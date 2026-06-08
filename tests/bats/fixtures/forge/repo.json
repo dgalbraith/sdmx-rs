@@ -1,0 +1,17 @@
+{
+  "full_name": "dgalbraith/sdmx-rs",
+  "allow_squash_merge": false,
+  "allow_rebase_merge": false,
+  "allow_merge_commit": true,
+  "allow_auto_merge": false,
+  "delete_branch_on_merge": true,
+  "has_projects": false,
+  "has_wiki": false,
+  "has_pages": false,
+  "allow_update_branch": false,
+  "web_commit_signoff_required": true,
+  "security_and_analysis": {
+    "secret_scanning": {"status": "enabled"},
+    "secret_scanning_push_protection": {"status": "enabled"}
+  }
+}

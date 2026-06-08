@@ -1,0 +1,76 @@
+name: Protocol Signature Enforcer
+
+# Enforces the maintainer-signed-only invariant: every commit that lands on
+# main, and every tag object, must carry a valid GPG signature whose PRIMARY
+# key fingerprint appears in the maintainer allowlist below.
+#
+# Trust model:
+#   - The committed public key (.github/maintainer-keys/*.asc) is the trust
+#     source. It is imported into a clean keyring at job start.
+#   - Verification uses `git verify-{commit,tag} --raw`, which emits a VALIDSIG
+#     status line ONLY for a good, non-expired, non-revoked signature.
+#   - Match the LAST field of VALIDSIG (the PRIMARY key fingerprint), not the
+#     signing subkey. This is rotation-proof: rotating the signing subkey needs
+#     no change here, only a refreshed .asc commit.
+#
+# This is a post-hoc detection gate, paired with branch-protection rulesets
+# (required_signatures, restricted push) documented in docs/project/forge-setup.md.
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ '**' ]
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # MAINTENANCE: signing-subkey-renewal
+  # Last updated: 2026-05-30
+  # Next review: 2027-10-01
+  # Rotate the maintainer [S] signing subkey before it expires (2027-12-31);
+  # see docs/project/forge-setup.md "Signing subkey rotation". The PRIMARY
+  # fingerprint allowlisted below is unchanged by subkey rotation, so this
+  # workflow needs no edit on rotation — only a refreshed committed .asc.
+  #
+  # Allowed maintainer PRIMARY key fingerprints (uppercase, no spaces).
+  # Keep in sync with the maintainer key register in docs/project/forge-setup.md.
+  #   dgalbraith <dg@lbraith.io> — primary [C], never expires
+  ALLOWED_PRIMARY_FINGERPRINTS: |
+    53069F0184A426465E5FF9E7FC6BB04EBF431B25
+
+jobs:
+  enforce-maintainer-signature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Need full history to verify every commit in the pushed range,
+          # and the tag objects themselves.
+          fetch-depth: 0
+
+      - name: Import maintainer public keys
+        run: |
+          set -euo pipefail
+          KEY_DIR=".github/maintainer-keys"
+          if [ ! -d "${KEY_DIR}" ] || [ -z "$(ls -A "${KEY_DIR}"/*.asc 2>/dev/null)" ]; then
+            echo "❌ PROTOCOL VIOLATION: no maintainer public keys found in ${KEY_DIR}."
+            exit 1
+          fi
+          for key in "${KEY_DIR}"/*.asc; do
+            echo "Importing ${key}"
+            gpg --batch --import "${key}"
+          done
+
+      - name: Verify signatures
+        run: scripts/ci/verify-signature.sh
+        env:
+          ALLOWED_PRIMARY_FINGERPRINTS: ${{ env.ALLOWED_PRIMARY_FINGERPRINTS }}
+          # The push's pre-image SHA. Without this, the script's BEFORE is always
+          # empty, the BEFORE..SHA range branch is dead code, and EVERY branch
+          # push falls through to rev-list of the whole ancestry — re-verifying
+          # (a gpg spawn per commit) all of history on every push. Passing it
+          # bounds the walk to just the commits this push introduced.
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}

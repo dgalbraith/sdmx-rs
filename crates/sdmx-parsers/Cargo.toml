@@ -1,0 +1,48 @@
+[package]
+name = "sdmx-parsers"
+version = "0.0.0"
+edition.workspace = true
+rust-version = "1.91.0"
+authors.workspace = true
+description = "High-performance streaming XML and JSON deserializer for SDMX data and metadata."
+readme = "README.md"
+categories = ["parser-implementations", "no-std"]
+keywords = ["sdmx", "parser", "xml", "json"]
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
+
+[dependencies]
+sdmx-types = { version = "=0.0.0", path = "../sdmx-types" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+quick-xml = { workspace = true }
+thiserror = { workspace = true }
+
+# Scaffold: wasm-bindgen-test for Node.js WASM test execution (ADR-0007).
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+# Scaffold: all dependencies suppressed until implementation begins.
+# Remove each entry here as it is actively used — machete will then flag genuine dead deps.
+# [features]
+# csv = []   # CSV (SDMX-CSV v2) format support (ROADMAP Phase 2)
+# json = []  # JSON (SDMX-JSON) format support (ROADMAP Phase 2)
+# xml = []   # XML (SDMX-ML) format support (ROADMAP Phase 2)
+
+[package.metadata.cargo-machete]
+ignored = [
+  "sdmx-types",        # Phase 1: depends on core types; unignore when type stubs are available
+  "serde",             # Phase 2: serialization support for XML/JSON parsing
+  "serde_json",        # Phase 2: JSON deserialization
+  "quick-xml",         # Phase 2: streaming XML parsing
+  "thiserror",         # Phase 1: error type definitions
+  "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32) for WASM testing)
+]

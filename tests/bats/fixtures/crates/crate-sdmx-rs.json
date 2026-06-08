@@ -1,0 +1,6 @@
+{
+  "crate": {
+    "name": "sdmx-rs",
+    "trustpub_only": true
+  }
+}

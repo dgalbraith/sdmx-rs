@@ -1,0 +1,468 @@
+# CI Gates & Quality Checks
+
+This document defines the continuous integration (CI) gates that enforce code quality, compliance, and correctness. All checks must pass before code can be merged to `main`.
+
+## Check Categorization
+
+Checks are classified into five categories based on when they run and whether they block merge:
+
+### 1. Always-Mandatory (Run on every PR & scheduled)
+
+These checks validate universal code quality and must pass unconditionally:
+
+| Check                | Purpose                                                                                      | Triggers                     | Blocks Merge |
+|----------------------|----------------------------------------------------------------------------------------------|:----------------------------:|:------------:|
+| **check-commits**    | Conventional commit message validation (local: `check-commits`, CI: `check-commit-messages`) | All PRs                      |    ✅ Yes    |
+| **test-matrix**      | Builds and tests on Linux, macOS, Windows with stable Rust                                   | Rust/infra changes, schedule |    ✅ Yes    |
+| **clippy**           | Static analysis and linting                                                                  | Rust/infra changes, schedule |    ✅ Yes    |
+| **check-formatting** | Code formatting and import sorting                                                           | Rust/infra changes, schedule |    ✅ Yes    |
+| **semver-check**     | Semantic versioning compliance (PRs to main only)                                            | PRs targeting main           |    ✅ Yes    |
+| **check-security**   | Supply chain audit (deny + machete)                                                          | Rust/infra changes, schedule |    ✅ Yes    |
+| **check-secrets**    | Secret leak scan over full git history (`gitleaks`)                                          | All pushes & PRs             |    ✅ Yes    |
+| **check-wasm**       | WASM target portability                                                                      | Rust/infra changes, schedule |    ✅ Yes    |
+| **docs**             | Documentation generation and warnings                                                        | Rust/infra changes, schedule |    ✅ Yes    |
+
+### 2. Mandatory-When-Triggered (Run only on relevant file changes)
+
+These checks are mandatory but scoped to specific file types. They block merge if triggered:
+
+| Check                   | Purpose                                  | Triggers                                     | Blocks Merge |
+|-------------------------|------------------------------------------|:--------------------------------------------:|:------------:|
+| **check-docs**          | Markdown/ADR/Design Doc validation       | Docs/infra changes, schedule                 | ✅ Yes       |
+| **nix-check**           | Nix flake integrity                      | Rust/infra changes, schedule                 | ✅ Yes       |
+| **msrv-verify**         | Declared MSRV compiles and passes checks | Rust/infra changes, schedule                 | ✅ Yes       |
+| **check-scripts**       | Shell script linting and BATS tests      | Scripts/infra changes, schedule              | ✅ Yes       |
+| **check-workflows**     | GitHub Actions workflow validation       | Infra changes, schedule                      | ✅ Yes       |
+| **validate-scaffolding** | Repository scaffolding conformance      | Rust/infra changes, schedule                 | ✅ Yes       |
+
+### 3. Continuous Monitoring & Maintenance
+
+These checks run continuously (on schedule and main pushes) to track maintenance obligations. They are informational — the **scheduled check creates GitHub Issues** for overdue items, which pull work into maintainers' queue:
+
+| Check                  | Purpose                                | Triggers                     | Blocks Merge          |
+|------------------------|----------------------------------------|:----------------------------:|:---------------------:|
+| **detect-maintenance** | Maintenance obligation tracking        | Schedule, main pushes        | ❌ No (informational) |
+
+### 4. Release Path Gates (Tag-triggered)
+
+These checks run only on tag pushes and are not part of the PR or main-push quality gate. They guard the publish pipeline itself — by the time they run, the release has already been prepared locally and the tag has been pushed. Contributors do not interact with these gates; they are maintainer-only.
+
+| Check                  | Purpose                                                                   | Triggers                     | Blocks Publish |
+|------------------------|---------------------------------------------------------------------------|:----------------------------:|:--------------:|
+| **validate-changelog** | Verifies `CHANGELOG.md` matches `git-cliff` regeneration byte-for-byte    | Tag push                     | ✅ Yes         |
+| **release-dry-run**    | Continuous packaging health check — verifies crates would package cleanly | Non-PR pushes/tags, schedule | ✅ Yes         |
+
+`validate-changelog` is gate 2 of the publish chain in `publish.yml` (after signature verification, before setup/tag resolution). See [releasing.md §6](releasing.md#6-ci-publishes-to-github--cratesio) for the full gate sequence.
+
+`release-dry-run` runs on `main` and tag pushes (never on PRs) as an early-warning check that packaging would succeed if a release were cut from the current tree. It is distinct from the local `just release-dry-run` step in the release workflow, which runs on the release branch as part of release preparation.
+
+### 5. Scheduled & Informational (Weekly check)
+
+These checks run on schedule and report findings but do not block:
+
+| Check                    | Purpose                                  | Triggers      | Blocks Merge          |
+|--------------------------|------------------------------------------|:-------------:|:---------------------:|
+| **check-msrv**           | MSRV floor detection (vs. declared)      | Schedule only | ❌ No (informational) |
+| **msrv-features-check**  | MSRV compatibility across feature combos | Schedule only | ❌ No (informational) |
+
+## Trigger Logic
+
+### File Change Detection
+
+The CI pipeline uses path-based filtering to determine which checks run. File change detection uses this matrix:
+
+```
+rust:
+  - crates/**
+  - Cargo.toml
+  - Cargo.lock
+  - rust-toolchain.toml
+
+scripts:
+  - scripts/**
+  - tests/bats/**
+  - Justfile
+  - .pre-commit-config.yaml
+
+docs:
+  - **/*.md
+  - docs/**
+
+infra:
+  - flake.nix
+  - flake.lock
+  - .github/workflows/ci.yml
+  - .github/workflows/publish.yml
+  - .github/workflows/verify-signature.yml
+  - .github/actions/**
+```
+
+### PR vs. Push vs. Schedule
+
+**Pull Requests to main**:
+- Always-mandatory checks: REQUIRED
+- Mandatory-when-triggered checks: REQUIRED (if file changes detected)
+- Scheduled checks: SKIP
+- Continuous monitoring checks: INFORMATIONAL (don't block contributions)
+
+**Pushes to `staging-*` (CI verification surface before fast-forward to main)**:
+- Same jobs as pushes to `main` — triggered by `on: push: branches: staging-*`
+- Status check results are stored against the commit SHA; a green SHA on `staging-*` satisfies the Zero Trust Gate when that SHA is fast-forwarded to `main`
+- Cancellation: concurrent `staging-*` runs are cancellable (they satisfy the `cancel-in-progress` expression `ref != refs/heads/main && !startsWith(ref, refs/tags/)`)
+
+**Pushes to main (after fast-forward from staging)**:
+- All mandatory checks: REQUIRED (satisfied by the SHA's prior green run on `staging-*`)
+- Continuous monitoring checks: INFORMATIONAL (no blocks)
+
+**Scheduled (Weekly, Saturday 00:00 UTC)**:
+- All checks run (including informational)
+- detect-maintenance detects overdue items and creates GitHub Issues labeled `maintenance` for maintainer action
+
+## Status Check Requirements
+
+### The CI Quality Gate aggregator
+
+The Zero Trust Gate ruleset on `main` requires exactly **one** status-check context: `CI Quality Gate`. This is the `ci-gate` job in `.github/workflows/ci.yml` — an aggregator that depends on every merge-gating job (`needs:`) and passes only when each one is `success` or legitimately `skipped`. A green seal on this single context, earned on a `staging-*` SHA, carries to `main` on fast-forward.
+
+A single aggregate context (rather than enumerating each job) buys two things:
+
+1. **No path-filter deadlock.** Path-filtered jobs that legitimately do not run on a given SHA report `skipped`. If each were an individually required check, GitHub would treat the missing result as *unsatisfied* and block the fast-forward for any SHA that did not touch every path category. The aggregator treats a legitimate `skipped` as acceptable, so a docs-only or config-only change is not blocked by Rust jobs that never ran.
+2. **No brittle string list.** The ruleset no longer has to stay byte-identical to a dozen job `name:` fields; only the one aggregate name must match.
+
+The aggregator is **fail-closed** (see the in-workflow comment on `ci-gate`):
+
+- It asserts `changes.result == "success"` explicitly. Every gating job has `needs: [changes]`; if the path-filter job dies, all dependents are `skipped`, and a naive "no failures" check would read all-skips as green and let an unverified SHA onto `main`. Asserting `changes` succeeded closes that hole.
+- It allowlists the safe states (`success`/`skipped`) rather than denylisting bad ones, so a new or unknown result string from GitHub fails closed, not open.
+
+### Declared gating set & drift protection
+
+The exact set of jobs the aggregator must cover is declared in [`forge/github/ci-gating-jobs.json`](../../forge/github/ci-gating-jobs.json) — the **intent**. The `ci-gate` job's `needs:` list is the **execution**. `scripts/verify-ci-gate.sh` (run by the `check-workflows` job) asserts the two match exactly and that every declared job actually exists in `ci.yml`. A stray edit that drops a gating job from `needs:` — silently ungating it on `main` — therefore fails CI rather than reaching production. When a job is added to or removed from the gate, update the manifest in the same change.
+
+### What the gate does *not* cover, and why
+
+Six jobs are deliberately **excluded** from the aggregator. Including any of them would either deadlock the staging fast-forward (they do not run on `push` events) or block a merge for non-code reasons:
+
+| Excluded job | Class | Why excluded |
+|--------------|-------|--------------|
+| **semver-check** | PR-only (procedural) | Validates version strings against commit history on PRs. A local `--no-ff` merge does not alter `Cargo.toml` versions, so re-running it on the staging SHA adds noise without signal; it does not run on `push`, so requiring it would deadlock the fast-forward. Remains required on PRs to `main`. |
+| **check-commit-messages** | PR-only (procedural) | Validates commit message format on the feature branch. Does not run on `push` events. |
+| **validate-changelog** | Tag-scoped | Triggers strictly on `refs/tags/**`. No bearing on a `staging-*` or `main` push. |
+| **detect-maintenance** | Informational | Non-blocking maintenance tracker; runs on schedule/main-push and creates Issues, never gates a merge. |
+| **check-msrv** | Scheduled/informational | Opportunistic MSRV-floor detection; schedule-only, non-blocking. |
+| **msrv-features-check** | Scheduled/informational | MSRV feature-matrix check; schedule-only, non-blocking. |
+
+## Check Details
+
+### Always-Mandatory Checks
+
+#### check-commit-messages
+Validates that commit messages follow the Conventional Commits specification. This is enforced as a GitHub Actions job on all PRs.
+
+**Runs on**: All PRs (validates commits not yet on main).
+**Purpose**: Ensure commit messages are well-formed and consistent for changelog generation and history readability.
+
+#### test-matrix
+Builds and tests the workspace on three operating systems (Ubuntu Linux, macOS, Windows) with the latest stable Rust compiler.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Ensures portability across platforms.
+
+#### clippy
+Static analysis and linting with strict warnings-as-errors enforcement.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Catch common mistakes, performance issues, and non-idiomatic patterns.
+
+#### check-formatting
+Enforces consistent formatting of Rust code and TOML manifests using nightly rustfmt rules.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Maintain readable, consistent code style.
+
+#### semver-check
+Verifies semantic versioning compliance on PRs to `main`. Applicability is decided
+from the crates' own versions (read locally), not a network probe: **warn-skipped
+while pre-1.0** (no stability promise to diff against), and **mandatory once any
+crate is 1.0+, including 1.0 pre-releases like `1.0.0-rc.1`** — the rc cycle is the
+1.0 cycle. Post-1.0 the check fails **closed**: if the published baseline cannot be
+confirmed (network/registry error), the gate fails rather than silently skipping;
+the only post-1.0 skip is the explicit `SEMVER_ALLOW_NO_BASELINE=1` opt-in for the
+first `1.0.0` publish.
+
+**Runs on**: PRs targeting `main` only.
+**Purpose**: Ensure version bumps follow SemVer conventions; prevent an
+undetected breaking change from shipping in a 1.0+ release.
+
+#### check-security
+Runs `cargo deny` (advisory/license checks) and `cargo machete` (unused dependency detection).
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Prevent vulnerable or dead dependencies.
+
+#### check-secrets
+Scans the full git history for committed secrets (keys, tokens, private keys) with `gitleaks` (`just secrets-scan`).
+
+**Runs on**: All pushes and PRs (unconditional; not path-filtered).
+**Purpose**: Block committed secrets from reaching or persisting on the remote (see [SECURITY.md § Secret Leak Prevention](../../SECURITY.md#secret-leak-prevention)).
+
+#### check-wasm
+Verifies that WASM-target crates compile without `std` and feature combinations work correctly.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Enforce WASM portability (ADR-0005).
+
+#### docs
+Generates workspace documentation and enforces `missing_docs` linting.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Ensure all public API items are documented.
+
+### Mandatory-When-Triggered Checks
+
+#### nix-check
+Validates Nix flake schema and evaluation.
+
+**Runs on**:
+- Rust or infra changes
+- Scheduled weekly
+
+**Purpose**: Ensure Nix environment integrity.
+
+#### msrv-verify
+Verifies that code compiles and passes checks on the declared Minimum Supported Rust Version (MSRV).
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Ensure MSRV promises to users are kept.
+
+#### check-docs
+Validates documentation structure and style for Markdown, ADRs, and Design Docs.
+
+**Runs on**: Documentation/Markdown changes, infrastructure changes, or scheduled.
+**Purpose**: Maintain consistent, well-formed documentation.
+
+#### check-scripts
+Lints shell scripts with `shellcheck` and runs BATS test suite for maintenance system.
+
+**Runs on**: Script changes, infrastructure changes, or scheduled.
+**Purpose**: Ensure shell scripts are safe and maintainable.
+
+#### check-workflows
+Validates GitHub Actions workflow syntax and security with `actionlint`.
+
+**Runs on**: Workflow file changes, infrastructure changes, or scheduled.
+**Purpose**: Prevent broken or insecure CI workflows.
+
+#### validate-scaffolding
+Verifies that repository scaffolding (crate structure, required files, workspace configuration) conforms to the project spec.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Catch scaffolding drift — missing or malformed crate metadata, workspace member mismatches, or required file absences — before they compound.
+
+### Release Path Gate Checks
+
+#### validate-changelog
+Verifies that each crate's committed `CHANGELOG.md` matches what `git-cliff` regenerates byte-for-byte from the current tag's commit history. A mismatch means the changelog was either hand-edited or not regenerated before the release tag was pushed.
+
+**Runs on**: Tag pushes only (`refs/tags/**`).
+**Position in publish chain**: Gate 2 — runs after `verify-signature`, before `setup`/tag-resolution. See [releasing.md §6](releasing.md#6-ci-publishes-to-github--cratesio).
+**Purpose**: Enforce the machine-record integrity of `CHANGELOG.md`. Manual edits must never reach a release; fix the underlying commit messages instead and regenerate.
+
+#### release-dry-run
+Runs `cargo release --dry-run` across all crates to verify packaging would succeed from the current tree — catches missing metadata, oversized packages, and compilation errors before a real release is attempted.
+
+**Runs on**: Non-PR pushes (main and tag) and scheduled (weekly). Never on PRs — packaging every crate is slow and irrelevant to review feedback.
+**Purpose**: Continuous packaging health check. Distinct from the local `just release-dry-run` step in the release workflow (which runs on the release branch as part of release preparation) — this gate monitors the state of `main` between releases.
+
+### Continuous Monitoring & Maintenance Checks
+
+#### detect-maintenance
+Validates that maintenance obligations (in `maintenance.toml`) are tracked and current. Informational check — does not block merge.
+
+**Runs on**:
+- Every scheduled run (Saturday 00:00 UTC)
+- All pushes to main (after merge)
+- Demoted to informational on PRs (warns but doesn't block external contributions)
+
+**Result**:
+- **Scheduled (Saturday)**: Creates GitHub Issues labeled `maintenance` for any overdue items. This pulls work into maintainers' queue.
+- **Post-merge**: Informational (doesn't fail). Visibility via scheduled issues is the enforcement mechanism.
+
+**Purpose**: Track periodic maintenance obligations and surface overdue work via automated GitHub Issues rather than CI failures.
+
+### Scheduled & Informational Checks
+
+#### check-msrv
+Detects the actual MSRV floor using `cargo-msrv` and reports if it differs from declared.
+
+**Runs on**: Schedule only (weekly).
+**Result**: Green checkmark with floor details in logs (non-blocking).
+
+**Purpose**: Identify opportunistic MSRV lowering (feature work, not breaking).
+
+#### msrv-features-check
+Verifies MSRV compatibility (see `rust-toolchain.toml`) across feature combinations: `--no-default-features` and `--all-features`.
+
+**Runs on**: Schedule only (weekly).
+**Result**: Confirms compilation succeeds with feature matrices (informational).
+
+**Purpose**: Catch regressions where feature flags introduce dependencies newer than MSRV. Developers can run locally (`just msrv-features`) when working on optional features.
+
+## Interpreting CI Failures
+
+### "check-commit-messages" failed
+**Probable causes**:
+- Commit message doesn't follow Conventional Commits format
+- Missing scope, type, or description
+- Wrong type (should be `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `perf`, `style`)
+
+**Fix**: Amend commit message to follow format:
+```
+<type>(<scope>): <description>
+
+<body (optional)>
+
+<footer (optional, e.g., Closes #123)>
+```
+
+Example:
+```
+feat(sdmx-types): add codelist representation
+
+Implements core structure for SDMX codelists with serialization traits.
+
+Closes #42
+```
+
+For more details, see [CONTRIBUTING.md § Commit Requirements](../../CONTRIBUTING.md#4-commit-requirements).
+
+### "test-matrix" failed
+**Probable causes**:
+- Code doesn't compile on one or more platforms (Linux/macOS/Windows)
+- Tests fail on stable Rust
+
+**Fix**: Reproduce locally on the failing OS or use `cargo build --target <triple>`.
+
+### "clippy" failed
+**Probable causes**:
+- Code violates clippy linting rules
+- Performance or style issues detected
+
+**Fix**: Run `cargo clippy --all-targets -- -D warnings` locally and address warnings.
+
+### "check-formatting" failed
+**Probable causes**:
+- Code is not formatted with nightly rustfmt rules
+- TOML files are not formatted
+
+**Fix**: Run `just fmt` (which uses the nightly rustfmt from Nix) to auto-fix.
+
+### "semver-check" failed
+**Probable causes**:
+- Public API changed without version bump
+- Breaking change detected
+- (1.0+ only) the published baseline could not be confirmed — a network/registry
+  error, or no `1.0.0` baseline exists yet on crates.io
+
+**Fix**: For an API change, review it and update the version in `Cargo.toml` if the
+change is intentional. For a baseline/network failure, retry once crates.io is
+reachable — the gate fails closed here by design rather than skipping. If this is
+the genuine **first** `1.0.0` publish (no 1.0 baseline can exist yet), set
+`SEMVER_ALLOW_NO_BASELINE=1` deliberately for that one release, then remove it.
+
+### "check-security" failed
+**Probable causes**:
+- Dependency has known vulnerability
+- Dependency license is not approved
+- Unused dependency added
+
+**Fix**:
+- Vulnerabilities: upgrade to patched version or document exception in `deny.toml`
+- Licenses: approve in `deny.toml` (rare) or remove dependency
+- Unused: remove from Cargo.toml or add to `[package.metadata.cargo-machete]` with comment
+
+### "check-wasm" failed
+**Probable causes**:
+- Code uses `std` features in no_std crate
+- WASM target doesn't compile
+
+**Fix**: Ensure crates with `#![no_std]` use only core/alloc APIs.
+
+### "docs" failed
+**Probable causes**:
+- Public item lacks doc comment
+- Doc comment contains warnings
+
+**Fix**: Add `///` doc comments to public items.
+
+### "nix-check" failed
+**Probable causes**:
+- Nix flake syntax error
+- Missing input or output in `flake.nix`
+
+**Fix**: Review `flake.nix` for syntax errors; run `nix flake check` locally.
+
+### "msrv-verify" failed
+**Probable causes**:
+- Code uses features only available in Rust version newer than declared MSRV
+- Code doesn't compile on declared MSRV
+
+**Fix**: Either lower MSRV if intentional, or refactor to use older APIs.
+
+### "check-docs" failed
+**Probable causes**:
+- Markdown syntax error
+- ADR or Design Doc missing required fields
+- Broken links
+
+**Fix**: Review documentation format; run `just verify-docs` locally.
+
+### "check-scripts" failed
+**Probable causes**:
+- Shell script has syntax error or unsafe pattern
+- BATS test failed
+
+**Fix**: Run `just shellcheck` and review output; run `just test-scripts` locally.
+
+### "check-workflows" failed
+**Probable causes**:
+- GitHub Actions workflow YAML syntax error
+- Expression syntax error
+
+**Fix**: Review `.github/workflows/ci.yml` for syntax errors; run `just test-workflows` locally.
+
+### "detect-maintenance" failed
+**Probable causes**:
+- Maintenance obligation is overdue
+- Inline comment doesn't match `maintenance.toml`
+
+**Fix**: Update maintenance items using `scripts/maintenance-bump.sh`; see [maintenance.md](maintenance.md).
+
+### "check-msrv" (informational)
+**Meaning**: MSRV floor is lower than declared (not a failure).
+
+**Example**: Declared 1.90.0, but code works on 1.88.0.
+
+**Action**: Opportunistic—decide during maintenance if you want to lower MSRV. See [msrv.md](msrv.md).
+
+## Local Verification
+
+All mandatory checks are available locally via `just verify`:
+
+```bash
+just verify        # Run complete verification (CI equivalent)
+just verify-rust   # Rust checks only
+just verify-docs   # Documentation checks only
+just verify-infra  # Infrastructure checks (Nix, workflows)
+just test-help     # Testing help menu
+just audit-help    # Audit & compliance help menu
+just lint-help     # Linting & style help menu
+```
+
+**Key principle**: If `just verify` passes locally, CI should pass.
+
+## Related Documentation
+
+- [maintenance.md](maintenance.md) — Maintenance obligation tracking and updates
+- [msrv.md](msrv.md) — MSRV policy and upgrade procedures
+- [merging.md](merging.md) — Merge protocol and check trigger matrix
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) — Contributor requirements and PR workflow

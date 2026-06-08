@@ -1,0 +1,37 @@
+[package]
+name = "sdmx-types"
+version = "0.0.0"
+edition.workspace = true
+rust-version = "1.91.0"
+authors.workspace = true
+description = "Core SDMX domain types, data structures, and validation invariants with strict no_std compatibility."
+readme = "README.md"
+categories = ["data-structures", "no-std"]
+keywords = ["sdmx", "types", "metadata", "model", "statistics"]
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+
+# Scaffold: wasm-bindgen-test for Node.js WASM test execution (ADR-0007).
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+# Scaffold: all dependencies suppressed until implementation begins.
+# Remove each entry here as it is actively used — machete will then flag genuine dead deps.
+[package.metadata.cargo-machete]
+ignored = [
+  "serde",             # Phase 1: serialization trait derives for type structures
+  "thiserror",         # Phase 1: error type definitions
+  "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32) for WASM testing)
+]

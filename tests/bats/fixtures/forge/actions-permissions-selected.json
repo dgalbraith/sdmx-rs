@@ -1,0 +1,14 @@
+{
+  "github_owned_allowed": true,
+  "verified_allowed": false,
+  "patterns_allowed": [
+    "codecov/codecov-action@*",
+    "DeterminateSystems/nix-installer-action@*",
+    "dorny/paths-filter@*",
+    "dtolnay/rust-toolchain@*",
+    "Mozilla-Actions/sccache-action@*",
+    "nix-community/cache-nix-action@*",
+    "rust-lang/crates-io-auth-action@*",
+    "taiki-e/install-action@*"
+  ]
+}

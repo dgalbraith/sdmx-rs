@@ -1,0 +1,8 @@
+# Fixture workflow with only GitHub-owned and covered third-party actions.
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@abc123def456
+      - uses: dtolnay/rust-toolchain@abc123def456
+      - uses: DeterminateSystems/nix-installer-action@abc123def456
+      - uses: nix-community/cache-nix-action@abc123def456

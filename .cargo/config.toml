@@ -1,0 +1,17 @@
+[build]
+# Promote warnings to hard errors for every cargo invocation (local + CI).
+#
+# Safe as a global setting even though it applies to the whole build graph:
+#   - Dependencies are unaffected. Cargo compiles non-local crates with
+#     `--cap-lints allow`, which caps their lints below `deny`, so a dependency
+#     that emits warnings (e.g. after a version or toolchain bump) will NOT fail
+#     our build — only first-party code can.
+#   - First-party crates are the intended target. This backstops
+#     [workspace.lints] and also catches warnings outside lint config (rustc
+#     future-incompat, build scripts, examples, tests, benches).
+#   - New compiler lints surface only on a deliberate toolchain bump (pinned in
+#     rust-toolchain.toml), which is gated by update-msrv.sh (diffs clippy
+#     output old vs. new before the bump lands).
+rustflags = [
+  "-Dwarnings", # Promote all compiler warnings to hard errors
+]

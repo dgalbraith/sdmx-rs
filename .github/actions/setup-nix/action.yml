@@ -1,0 +1,42 @@
+name: Set up Nix
+description: >-
+  Install Nix and restore/save the Nix store from the GitHub Actions cache,
+  size-bounded via pre-save garbage collection so it shares the repo-wide
+  ~10 GB cache budget with the cargo and sccache caches. Centralises the Nix
+  CI setup (replaces the deprecated magic-nix-cache-action) so every job uses a
+  single, SHA-pinned definition.
+
+inputs:
+  gc-max-store-size:
+    description: >-
+      Upper bound, in bytes, on the saved Nix store after garbage collection.
+      Keeps this cache within the shared repo-wide budget. Applied per-OS below.
+      Jobs that run `nix build` (not just `nix develop`) may raise this.
+    required: false
+    default: "5368709120" # 5 GiB
+
+runs:
+  using: composite
+  steps:
+    - name: Install Nix
+      uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+      with:
+        # Plain upstream Nix only. `determinate` defaults to true, which installs
+        # Determinate Nix and attempts a FlakeHub OIDC login — we want neither
+        # (we cache via cache-nix-action, not FlakeHub).
+        determinate: false
+
+    - name: Cache Nix store
+      uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
+      with:
+        # OS/arch-namespaced, keyed on the devShell closure's only input
+        # (flake.lock). Mirrors the cargo/sccache cache idiom: exact key, then
+        # prefix fallback. runner.arch is included because the macOS runner
+        # fleet spans arm64/x86_64.
+        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-
+        # Size-bound the saved store via GC (shared ~10 GB budget). BOTH OS
+        # inputs must be set: on macOS, GC is SKIPPED unless the -macos input is
+        # present. Set defensively even though only Linux jobs use Nix today.
+        gc-max-store-size-linux: ${{ inputs.gc-max-store-size }}
+        gc-max-store-size-macos: ${{ inputs.gc-max-store-size }}

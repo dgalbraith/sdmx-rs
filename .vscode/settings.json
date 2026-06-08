@@ -1,0 +1,17 @@
+{
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  "rust-analyzer.rustfmt.overrideCommand": [
+    "nix",
+    "develop",
+    "--command",
+    "cargo",
+    "fmt",
+    "--",
+    "--config-path",
+    "rustfmt.toml"
+  ],
+  "rust-analyzer.checkOnSave.command": "clippy"
+}

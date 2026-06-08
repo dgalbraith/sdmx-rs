@@ -1,0 +1,45 @@
+# .gitattributes - Global Repository Normalization
+
+# 1. Default: Auto-detect text files and normalize
+* text=auto
+
+# 2. Strict POSIX / Unix (Must be LF to prevent execution errors)
+.gitattributes text eol=lf
+.gitignore    text eol=lf
+.envrc        text eol=lf
+Justfile      text eol=lf
+*.sh          text eol=lf
+
+# 3. Framework Templates (Must be LF to prevent factory corruption)
+*.template text eol=lf
+*.tmpl     text eol=lf
+
+# 4. Windows Specific (Must be CRLF for native compatibility)
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+
+# 5. Cross-Platform Scripts & Data (Explicitly text, fallback to OS default)
+Cargo.lock    text eol=lf
+flake.lock    text eol=lf
+*.json        text
+*.md          text
+*.toml        text
+*.svg         text
+*.xml         text
+*.yaml        text
+*.yml         text
+
+# 6. Image Binaries (Do NOT normalize)
+*.jpg     binary
+*.png     binary
+*.webp    binary
+
+# 7. Archive Binaries
+*.tar.gz  binary
+*.zip     binary
+
+# 8. Executable & Font Binaries
+*.a       binary
+*.lib     binary
+*.so      binary
+*.wasm    binary

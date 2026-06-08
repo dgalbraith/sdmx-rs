@@ -1,0 +1,19 @@
+sign-commit = true          # Enforce cryptographic GPG signatures on release commits
+sign-tag = true             # Enforce cryptographic GPG signatures on release git tags
+push = false                # Do not auto-push to remote (enables manual check before pushing)
+publish = false             # Do not auto-publish to crates.io (CI release handles registry push)
+consolidate-commits = false # Keep independent release commit logs per workspace crate
+
+# Tagging convention: crate-name/vVersion
+tag-name = "{{crate_name}}/v{{version}}"
+tag-message = "chore(release): {{crate_name}} {{version}}"
+pre-release-commit-message = "chore(release): {{crate_name}} {{version}}"
+
+# Pre-release hook to generate/update CHANGELOG.md via git-cliff
+# $WORKSPACE_ROOT is explicitly provided by cargo-release to hook environments.
+# $CARGO_MANIFEST_DIR (a Cargo build-script variable) is NOT provided and must not be used.
+pre-release-hook = [
+  "sh",
+  "-c",
+  "[ \"$DRY_RUN\" = 'true' ] && exit 0; git-cliff --config $WORKSPACE_ROOT/cliff.toml --tag {{crate_name}}/v{{version}} --tag-pattern '^{{crate_name}}/v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$' --include-path 'crates/{{crate_name}}/**' --output CHANGELOG.md",
+]

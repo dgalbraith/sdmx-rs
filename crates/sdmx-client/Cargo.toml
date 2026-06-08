@@ -1,0 +1,67 @@
+[package]
+name = "sdmx-client"
+version = "0.0.0"
+edition.workspace = true
+rust-version = "1.91.0"
+authors.workspace = true
+description = "High-performance async HTTP client for SDMX REST endpoints built on reqwest and Tokio, coordinating parsing and state hydration."
+readme = "README.md"
+categories = ["web-programming::http-client"]
+keywords = ["sdmx", "http", "client", "async", "api"]
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
+
+[dependencies]
+sdmx-types = { version = "=0.0.0", path = "../sdmx-types" }
+sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers" }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
+
+# TLS configuration (ADR-0013).
+#
+# reqwest 0.13 ships with two TLS backends; C-based native-tls is explicitly
+# rejected (ADR-0013). Only the pure-Rust rustls backend is supported here, so
+# the backend is not a user choice — the single `tls` flag is on/off only.
+#
+#   tls  (default) — enables reqwest's `rustls` feature. reqwest 0.13 defaults to
+#                    the rustls-platform-verifier, so the host OS / native trust
+#                    store is used; identical behaviour on Linux, macOS, and
+#                    Windows. Use for all public SDMX endpoints (ECB, IMF,
+#                    Eurostat…). Disable (via --no-default-features) only for
+#                    custom-transport scenarios.
+#
+# Users who need to trust an internal corporate CA merge their certificate into
+# the native roots at runtime — no separate feature flag is required:
+#   ClientBuilder::tls_certs_merge([my_ca_cert])
+# (reqwest 0.13 deprecated add_root_certificate in favour of tls_certs_merge /
+# tls_certs_only.)
+[features]
+default = ["tls"]
+tls = ["reqwest/rustls"]
+# blocking = []   # blocking API bridge (Design 0005; Phase 3)
+
+[dev-dependencies]
+wiremock = { workspace = true }
+
+# Scaffold: all dependencies suppressed until implementation begins.
+# Remove each entry here as it is actively used — machete will then flag genuine dead deps.
+[package.metadata.cargo-machete]
+ignored = [
+  "sdmx-types",   # Phase 2: depends on core types; unignore when integrated
+  "sdmx-parsers", # Phase 2: depends on parsers; unignore when integrated
+  "tokio",        # Phase 3: async runtime for HTTP client
+  "reqwest",      # Phase 3: HTTP client library
+  "thiserror",    # Phase 1: error type definitions
+  "url",          # Phase 3: URL parsing and validation for endpoint builders
+  "wiremock",     # Phase 3: HTTP mocking for integration tests
+]

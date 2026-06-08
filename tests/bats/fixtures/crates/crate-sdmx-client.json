@@ -1,0 +1,6 @@
+{
+  "crate": {
+    "name": "sdmx-client",
+    "trustpub_only": true
+  }
+}

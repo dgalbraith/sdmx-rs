@@ -1,0 +1,7 @@
+{
+  "name": "release",
+  "prevent_self_review": false,
+  "reviewers": [
+    {"type": "User", "reviewer": {"login": "dgalbraith", "id": 12345}}
+  ]
+}

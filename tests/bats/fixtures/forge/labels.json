@@ -1,0 +1,16 @@
+[
+  {"name": "feat", "color": "0e8a16", "description": "New feature implementations and structural enhancements"},
+  {"name": "fix", "color": "d93f0b", "description": "Targeted bug fixes and code corrections"},
+  {"name": "docs", "color": "0075ca", "description": "Documentation-only modifications and additions"},
+  {"name": "refactor", "color": "0052cc", "description": "Code changes that neither fix a bug nor add a feature"},
+  {"name": "perf", "color": "006b75", "description": "Code changes that explicitly improve execution performance"},
+  {"name": "test", "color": "fef2c0", "description": "Adding missing tests or correcting existing test suites"},
+  {"name": "ci", "color": "0369a1", "description": "Changes to continuous integration configurations, scripts, and automation workflows"},
+  {"name": "build", "color": "93c5fd", "description": "Changes affecting the build system, workspace layouts, or external dependencies"},
+  {"name": "chore", "color": "5319e7", "description": "Repository maintenance, toolchain shifts, and meta-configuration updates"},
+  {"name": "maintenance", "color": "ffa500", "description": "Scheduled maintenance obligations, dependency reviews, and toolchain upkeep"},
+  {"name": "breaking", "color": "9b1c1c", "description": "Introduces a breaking change; requires migration notes and semver major bump"},
+  {"name": "good first issue", "color": "7057ff", "description": "Well-scoped issue suitable for first-time contributors"},
+  {"name": "help wanted", "color": "ec4899", "description": "Maintainer is requesting outside input or contributions"},
+  {"name": "duplicate", "color": "cfd3d7", "description": "Tracks a problem already reported in another issue"}
+]

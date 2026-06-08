@@ -1,0 +1,5 @@
+# Inherit the workspace rule set, then lift first-line-heading: curated release
+# notes lead with summary prose (no leading heading); the Release title is set by
+# create-release.sh.
+extends: ../../../.markdownlint.yaml
+MD041: false

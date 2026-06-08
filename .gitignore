@@ -1,0 +1,518 @@
+# ==============================================================================
+# I. Global Policy
+# ==============================================================================
+# Deny everything by default (The "Allow-list" Pattern)
+*
+
+# ==============================================================================
+# II. Repository Metadata, Configuration
+# ==============================================================================
+# Nix core configuration
+!/flake.nix
+!/flake.lock
+
+# Rust/Cargo configuration
+!/.cargo/
+!/.cargo/config.toml
+!/Cargo.toml
+!/Cargo.lock
+
+# Build automation & quality
+!/.markdownlint.yaml
+!/.pre-commit-config.yaml
+!/Justfile
+!/cliff.toml
+!/codecov.yaml
+!/commitlint.config.cjs
+!/deny.toml
+!/maintenance.toml
+!/release.toml
+!/rust-toolchain.toml
+!/rustfmt.toml
+
+# Git/Editor metadata
+!/.editorconfig
+!/.gitattributes
+!/.gitignore
+!/.github/
+!/.github/.markdownlint.yaml
+!/.github/CODEOWNERS
+!/.github/ISSUE_TEMPLATE/
+!/.github/ISSUE_TEMPLATE/01_feature.md
+!/.github/ISSUE_TEMPLATE/02_fix.md
+!/.github/ISSUE_TEMPLATE/03_docs.md
+!/.github/ISSUE_TEMPLATE/04_chore.md
+!/.github/ISSUE_TEMPLATE/config.yml
+!/.github/pull_request_template.md
+
+# Github Actions - workflows
+!/.github/workflows/
+!/.github/workflows/ci.yml
+!/.github/workflows/publish.yml
+!/.github/workflows/verify-signature.yml
+
+# Github Actions - composite actions
+!/.github/actions/
+!/.github/actions/setup-nix/
+!/.github/actions/setup-nix/action.yml
+
+# Maintainer public keys — trust source for signature verification CI.
+# Deny-by-default: re-ignore the directory contents so adding a new maintainer
+# key is a deliberate, reviewed act (an explicit allowlist entry below), never
+# an accidental commit of a stray .asc file into the CI trust root.
+!/.github/maintainer-keys/
+/.github/maintainer-keys/*
+!/.github/maintainer-keys/dgalbraith.asc
+
+# IDE workspace configuration
+!/.vscode/
+!/.vscode/settings.json
+!/.idea/
+!/.idea/rustfmt.toml
+
+# Scratch space and transient files
+!/scratch/
+/scratch/*
+!/scratch/flake.nix
+!/scratch/flake.lock
+
+# ==============================================================================
+# III. Core Project Documentation
+# ==============================================================================
+!/ARCHITECTURE.md
+!/CODE_OF_CONDUCT.md
+!/CONTRIBUTING.md
+!/LICENSE-APACHE
+!/LICENSE-MIT
+!/README.md
+!/ROADMAP.md
+!/SECURITY.md
+
+# ==============================================================================
+# IV. Documentation Infrastructure
+# ==============================================================================
+# documentation directories and index
+!/docs/
+/docs/*
+!/docs/README.md
+
+# project documentation
+!/docs/project/
+/docs/project/*
+!/docs/project/README.md
+
+# developer documentation - internal-facing documentation for project contributors and maintainers
+!/docs/dev/
+/docs/dev/*
+!/docs/dev/README.md
+
+# user documentation
+!/docs/user/
+/docs/user/*
+!/docs/user/README.md
+
+# design - broad archectural and design documentation
+!/docs/design/
+/docs/design/*
+!/docs/design/README.md
+
+# adrs - architecture decision records
+!/docs/adr/
+/docs/adr/*
+!/docs/adr/README.md
+
+# guides - user-facing tutorials and walkthroughs for library usage
+!/docs/guides/
+/docs/guides/*
+!/docs/guides/README.md
+
+# ==============================================================================
+# V. Project Documentation
+# ==============================================================================
+!/docs/project/ci-gating.md
+!/docs/project/forge-setup.md
+!/docs/project/maintenance.md
+!/docs/project/merging.md
+!/docs/project/msrv.md
+!/docs/project/performance.md
+!/docs/project/phases.md
+!/docs/project/registry-setup.md
+!/docs/project/releasing.md
+!/docs/project/reviews.md
+
+# ==============================================================================
+# VI. Developer Documentation
+# ==============================================================================
+!/docs/dev/documentation.md
+!/docs/dev/practices.md
+!/docs/dev/testing.md
+!/docs/dev/tooling.md
+!/docs/dev/workflow.md
+
+# ==============================================================================
+# VII. User Documentation
+# ==============================================================================
+!/docs/user/getting-started.md
+
+# ==============================================================================
+# VIII. Design Documentation
+# ==============================================================================
+!/docs/design/0001-design-documentation-process.md
+!/docs/design/0002-sdmx-csv-stream-parsing-design.md
+!/docs/design/0003-typestate-query-builders-design.md
+!/docs/design/0004-release-publish-pipeline-and-supply-chain-provenance.md
+!/docs/design/0005-synchronous-and-blocking-api-execution-bridge.md
+!/docs/design/0006-builder-field-storage.md
+!/docs/design/0007-typestate-query-validation.md
+!/docs/design/0008-target-version-policy-for-serialization.md
+!/docs/design/0009-maintenance-obligation-tracking-system-design.md
+
+# ==============================================================================
+# IX. Architecture Decision Records (ADRs)
+# ==============================================================================
+!/docs/adr/0001-record-architecture-decisions.md
+!/docs/adr/0002-workspace-wide-safety-policy-banning-unsafe-code.md
+!/docs/adr/0003-workspace-crate-facade-and-version-pinning-strategy.md
+!/docs/adr/0004-decoupled-crate-versioning-strategy.md
+!/docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md
+!/docs/adr/0006-standardise-error-handling-with-thiserror-per-crate.md
+!/docs/adr/0007-headless-webassembly-execution-verification.md
+!/docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md
+!/docs/adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md
+!/docs/adr/0010-parser-fuzzing-suite-and-panic-profile-configuration.md
+!/docs/adr/0011-use-tokio-as-the-primary-async-runtime.md
+!/docs/adr/0012-use-reqwest-over-hyper-and-ureq-for-the-http-client.md
+!/docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md
+!/docs/adr/0014-fallible-client-construction-and-custom-error-mapping.md
+!/docs/adr/0015-send-and-intofuture.md
+!/docs/adr/0016-type-parameter-count.md
+!/docs/adr/0017-sdmx-csv-stream-parsing-strategy.md
+!/docs/adr/0018-content-type-negotiation-and-parser-routing.md
+!/docs/adr/0019-xml-namespace-aware-parsing.md
+!/docs/adr/0020-shell-script-test-environment-isolation.md
+
+# ==============================================================================
+# X. Guides
+# ==============================================================================
+!/docs/guides/guide-documentation-process.md
+
+# ==============================================================================
+# XI. Source Code & Workspace Packages
+# ==============================================================================
+!/crates/
+/crates/*
+!/crates/**/
+
+# Root-level examples hub
+!/examples/
+/examples/*
+!/examples/README.md
+
+# Crate-level examples
+!/crates/*/examples/
+!/crates/*/examples/*.rs
+!/crates/*/examples/README.md
+
+# Crate-level benchmarks
+!/crates/*/benches/
+!/crates/*/benches/**/*.rs
+!/crates/*/benches/README.md
+
+# Crate-level integration tests
+!/crates/*/tests/
+!/crates/*/tests/**/*.rs
+!/crates/*/tests/README.md
+
+# Curated facade release notes (sdmx-rs only; drives the GitHub Release body)
+!/crates/*/release-notes/
+!/crates/*/release-notes/*.md
+!/crates/*/release-notes/.markdownlint.yaml
+# Release-notes template (deny-by-default; only the template.md is tracked)
+!/crates/*/release-notes/templates/
+/crates/*/release-notes/templates/*
+!/crates/*/release-notes/templates/template.md
+
+# Rust source and crate manifests
+!/crates/**/*.rs
+!/crates/**/Cargo.toml
+
+# Crate-level documentation
+!/crates/**/README.md
+!/crates/**/CHANGELOG.md
+
+# sdmx-parsers: spec validation fixtures
+!/crates/sdmx-parsers/tests/fixtures/**/*.xml
+!/crates/sdmx-parsers/tests/fixtures/**/*.json
+!/crates/sdmx-parsers/tests/fixtures/**/*.csv
+
+# sdmx-parsers: fuzz targets
+!/crates/sdmx-parsers/fuzz/Cargo.toml
+!/crates/sdmx-parsers/fuzz/fuzz_targets/
+!/crates/sdmx-parsers/fuzz/fuzz_targets/*.rs
+
+# Baseline seed corpus — cargo-fuzz names files by content hash, no extension.
+# /** is intentional and necessary here; extension filtering is not possible.
+# Only manually committed seeds land here; fuzzer runtime output remains denied.
+!/crates/sdmx-parsers/fuzz/corpus/
+!/crates/sdmx-parsers/fuzz/corpus/**
+
+# sdmx-client: integration response mocks only
+!/crates/sdmx-client/tests/responses/**/*.xml
+!/crates/sdmx-client/tests/responses/**/*.json
+!/crates/sdmx-client/tests/responses/**/*.csv
+
+# ==============================================================================
+# XII. Forge Configuration Artifacts
+# ==============================================================================
+# Machine-readable realization of docs/project/forge-setup.md (the "what" the
+# forge tooling consumes). Top-level, forge-neutral, per-forge subdirectories.
+!/forge/
+/forge/*
+!/forge/README.md
+!/forge/github/
+!/forge/github/*.json
+
+# Registry Configuration Artifacts — the crates.io (registry) plane, sibling of
+# forge/. Machine-readable realization of docs/project/registry-setup.md.
+!/registry/
+/registry/*
+!/registry/README.md
+
+# ==============================================================================
+# XIII. Automation & Developer Tooling
+# ==============================================================================
+!/scripts/
+/scripts/*
+
+# Core library scripts.
+!/scripts/lib/
+/scripts/lib/*
+!/scripts/lib/dates.sh
+!/scripts/lib/doc-engine-helpers.sh
+!/scripts/lib/forge-spec.sh
+!/scripts/lib/registry-spec.sh
+!/scripts/lib/log.sh
+
+# CI scripts
+!/scripts/ci/
+/scripts/ci/*
+!/scripts/ci/check-published.sh
+!/scripts/ci/create-release.sh
+!/scripts/ci/parse-release-tag.sh
+!/scripts/ci/run-coverage.sh
+!/scripts/ci/secrets-scan.sh
+!/scripts/ci/verify-signature.sh
+!/scripts/ci/verify-tag-on-main.sh
+!/scripts/ci/wait-for-deps.sh
+!/scripts/ci/wait-for-index.sh
+
+# Verification gates & checkers
+!/scripts/check-changelog.sh
+!/scripts/check-local-links.sh
+!/scripts/check-maintenance.sh
+!/scripts/check-release-notes.sh
+!/scripts/check-scaffolding.sh
+!/scripts/check-semver.sh
+!/scripts/check-shebangs.sh
+!/scripts/check-test-manifests.sh
+!/scripts/verify-ci-gate.sh
+
+# Diagnostics & environment verification (doctor-*)
+!/scripts/doctor-ci.sh
+!/scripts/doctor-devshell.sh
+!/scripts/doctor-direnv.sh
+!/scripts/doctor-docs.sh
+!/scripts/doctor-env.sh
+!/scripts/doctor-forge.sh
+!/scripts/doctor-git.sh
+!/scripts/doctor-hooks.sh
+!/scripts/doctor-monorepo.sh
+!/scripts/doctor-nix.sh
+!/scripts/doctor-quick.sh
+!/scripts/doctor-registry.sh
+!/scripts/doctor-toolchain.sh
+!/scripts/doctor-workspace.sh
+
+# Forge governance
+!/scripts/forge-apply.sh
+!/scripts/update-actions-allowlist.sh
+!/scripts/update-labels.sh
+!/scripts/update-rulesets.sh
+
+# Registry (crates.io) governance — print-only Trusted Publishing helper
+!/scripts/registry-tp.sh
+
+# Release & publication pipeline
+!/scripts/changelog-generate.sh
+!/scripts/new-release-notes.sh
+!/scripts/prep-release.sh
+!/scripts/prepublish-check.sh
+!/scripts/release-commit-changelogs.sh
+!/scripts/release-dry-run.sh
+!/scripts/release-merge.sh
+!/scripts/release-push.sh
+!/scripts/release-stage.sh
+
+# Maintenance & dependency management
+!/scripts/maintenance-bump.sh
+!/scripts/maintenance-sync.sh
+!/scripts/update-deps.sh
+!/scripts/update-flake.sh
+!/scripts/update-msrv.sh
+
+# Task & format runners (run-*)
+!/scripts/run-bats.sh
+!/scripts/run-fmt.sh
+!/scripts/run-fuzz-check.sh
+
+# Core infrastructure support
+!/scripts/common.sh
+!/scripts/doc-engine.sh
+
+# Test infrastructure & core helpers
+!/tests/
+/tests/*
+!/tests/bats/
+!/tests/bats/common.sh
+
+# Core library support tests
+!/tests/bats/dates-lib.bats
+!/tests/bats/log-lib.bats
+
+# CI script tests
+!/tests/bats/create-release.bats
+!/tests/bats/run-coverage.bats
+!/tests/bats/secrets-scan.bats
+!/tests/bats/verify-signature.bats
+!/tests/bats/verify-tag-on-main.bats
+!/tests/bats/wait-for-index.bats
+
+# Verification gate tests
+!/tests/bats/check-changelog.bats
+!/tests/bats/check-local-links.bats
+!/tests/bats/check-maintenance.bats
+!/tests/bats/check-release-notes.bats
+!/tests/bats/check-scaffolding.bats
+!/tests/bats/check-semver.bats
+!/tests/bats/verify-ci-gate.bats
+
+# Diagnostics tests (doctor-*)
+!/tests/bats/doctor-forge.bats
+!/tests/bats/doctor-registry.bats
+
+# Forge governance tests
+!/tests/bats/forge-apply.bats
+!/tests/bats/forge-projection.bats
+!/tests/bats/update-actions-allowlist.bats
+!/tests/bats/update-labels.bats
+!/tests/bats/update-rulesets.bats
+
+# Registry governance tests
+!/tests/bats/registry-tp.bats
+
+# Documentation management automation tests (doc-engine)
+!/tests/bats/add-adr.bats
+!/tests/bats/add-design.bats
+!/tests/bats/add-guide.bats
+!/tests/bats/remove-adr.bats
+!/tests/bats/remove-design.bats
+!/tests/bats/remove-guide.bats
+!/tests/bats/rename-adr.bats
+!/tests/bats/rename-design.bats
+!/tests/bats/rename-guide.bats
+!/tests/bats/verify-adr.bats
+!/tests/bats/verify-design.bats
+!/tests/bats/verify-guide.bats
+
+# Release & publication pipeline tests
+!/tests/bats/changelog-generate.bats
+!/tests/bats/new-release-notes.bats
+!/tests/bats/prep-release.bats
+!/tests/bats/prepublish-check.bats
+!/tests/bats/release-commit-changelogs.bats
+!/tests/bats/release-merge.bats
+!/tests/bats/release-push.bats
+!/tests/bats/release-stage.bats
+
+# Maintenance & dependency management tests
+!/tests/bats/maintenance-bump.bats
+!/tests/bats/update-deps.bats
+!/tests/bats/update-flake.bats
+!/tests/bats/update-msrv.bats
+!/tests/bats/fixtures
+!/tests/bats/fixtures/update-msrv-manifest.txt
+
+# Forge diagnostics fixtures (canned gh API responses for doctor-forge tests)
+!/tests/bats/fixtures/forge/
+!/tests/bats/fixtures/forge/*.json
+!/tests/bats/fixtures/forge/workflows/
+!/tests/bats/fixtures/forge/workflows/*.yml
+
+# Registry diagnostics fixtures (canned crates.io responses for doctor-registry
+# / registry-tp tests). reserved/ holds extensionless name-reservation markers.
+!/tests/bats/fixtures/crates/
+!/tests/bats/fixtures/crates/*.json
+!/tests/bats/fixtures/crates/reserved/
+!/tests/bats/fixtures/crates/reserved/*
+
+# Task & format runner tests (run-*)
+!/tests/bats/run-bats.bats
+!/tests/bats/run-fmt.bats
+!/tests/bats/run-fuzz-check.bats
+
+
+# ==============================================================================
+# XIV. Project Templates and Scaffolding Assets
+# ==============================================================================
+# Architecture Decision Record (ADR) template
+!/docs/adr/templates/
+/docs/adr/templates/*
+!/docs/adr/templates/template.md
+
+# Design document template
+!/docs/design/templates/
+/docs/design/templates/*
+!/docs/design/templates/template.md
+
+# User-facing guide template
+!/docs/guides/templates/
+/docs/guides/templates/*
+!/docs/guides/templates/template.md
+
+# ==============================================================================
+# XV. Deny Sensitive Environment Files
+# ==============================================================================
+# .envrc is permitted as the only sanctioned environment-configuration
+# for Nix integration. All other .env* files are denied by default.
+# .envrc.local is intentionally untracked — it holds maintainer-specific
+# overrides (e.g. SDMX_MAIN_REMOTE=all) loaded via source_env_if_exists
+# in .envrc and must never be committed.
+.env*
+!.envrc
+.envrc.local
+
+# ==============================================================================
+# XVI. Transient Build and Runtime Artifacts
+# ==============================================================================
+# direnv state directory
+/.direnv/
+# Test coverage reports
+/lcov.info
+# Nix build symlinks
+/result
+/result-*
+
+# ==============================================================================
+# XVII. Permanent Exclusions
+# ==============================================================================
+# Re-apply exclusions on top of allowed directories/files
+# OS metadata
+**/._*
+**/.DS_Store
+**/desktop.ini
+**/Thumbs.db
+# Editor & build artifacts
+**/*.rs.bk
+**/*.swp
+**/*~
+**/target/

@@ -1,0 +1,123 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/sdmx-client",
+  "crates/sdmx-parsers",
+  "crates/sdmx-rs",
+  "crates/sdmx-types",
+  "crates/sdmx-writers",
+]
+
+[workspace.package]
+edition = "2024"
+# MAINTENANCE: msrv-upgrade-window
+# Last updated: 2026-05-30
+# Next review: 2026-11-26
+# Evaluate if MSRV can be bumped (Rust releases every 6 weeks, check breaking changes)
+# Also verify: cargo clippy output matches between old and new MSRV (see ci.yml msrv-verify)
+#
+# Canonical MSRV. Member crates intentionally redeclare this as a literal rather
+# than inheriting via `rust-version.workspace = true` (cargo-msrv can't resolve
+# inherited MSRV, and update-msrv.sh rewrites literals). Do not "DRY" this away —
+# see docs/project/msrv.md ("MSRV Declaration Layout").
+rust-version = "1.91.0"
+authors = ["dgalbraith <dg@lbraith.io>"]
+description = "A high-performance, compliant SDMX parsing and client architecture engine in Rust."
+readme = "README.md"
+categories = [
+  "parser-implementations",
+  "data-structures",
+  "web-programming::http-client",
+]
+keywords = ["sdmx", "parser", "xml", "json", "http"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/dgalbraith/sdmx-rs"
+homepage = "https://github.com/dgalbraith/sdmx-rs"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"                 # Guarantee 100% memory safety across all crates
+missing_docs = "warn"                  # Enforce public API documentation coverage
+missing_debug_implementations = "warn" # Enforce public type Debug implementation
+
+[workspace.lints.clippy]
+# pedantic includes must_use_candidate — all builder methods, constructors, and
+# non-trivial return values must carry #[must_use]. CI treats these as hard errors.
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Allowed Lints & Rationale
+multiple_crate_versions = "allow" # Audited centrally and locked in deny.toml
+module_name_repetitions = "allow" # Allowed due to SDMX schema name patterns
+missing_errors_doc = "allow"      # Disabled as error mappings are self-documenting
+missing_panics_doc = "allow"      # Disabled as library paths are panic-free by contract
+
+# Restriction Lints (Explicit Warning Gates)
+unwrap_used = "warn" # Forbid panicking unwrap() in library code
+expect_used = "warn" # Forbid panicking expect() in library code
+
+[workspace.dependencies]
+# Error Handling
+thiserror = { version = "2.0.18", default-features = false }
+
+# Serialization Framework
+serde = { version = "1.0.228", default-features = false, features = [
+  "derive",
+  "alloc",
+] }
+serde_json = { version = "1.0.149", default-features = false, features = [
+  "alloc",
+] }
+quick-xml = { version = "0.40.1", default-features = false, features = [
+  "serialize",
+] }
+
+# Async / HTTP (used in sdmx-client)
+tokio = { version = "1.52.3", default-features = false, features = [
+  "rt-multi-thread",
+  "macros",
+  "time",
+  "sync",
+] }
+reqwest = { version = "0.13.3", default-features = false, features = [
+  "json",
+  "stream",
+  # TLS backend is NOT declared here; it is activated per-crate through the
+  # `tls` feature flag
+] }
+url = { version = "2", default-features = false }
+
+# Benchmarking
+criterion = { version = "0.8.2", default-features = false }
+
+# Testing (HTTP mocking)
+wiremock = { version = "0.6", default-features = false }
+
+[profile.dev.package."aws-lc-sys"]
+opt-level = 3
+
+[profile.dev.package."aws-lc-rs"]
+opt-level = 3
+
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"
+
+[profile.bench]
+inherits = "release"
+debug = true
+strip = false
+
+# Fuzzing profile placeholder for the Phase 4 parser fuzzing suite (ADR-0010).
+# Add fuzz-specific tuning here when `cargo fuzz` targets land.
+[profile.fuzz]
+inherits = "release"

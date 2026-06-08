@@ -1,0 +1,86 @@
+[package]
+name = "sdmx-rs"
+version = "0.0.0"
+edition.workspace = true
+rust-version = "1.91.0"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Universal statistical data and metadata exchange (SDMX) framework for Rust."
+readme = "README.md"
+categories = ["parser-implementations", "web-programming::http-client"]
+keywords = ["sdmx", "metadata", "statistics", "parser", "client"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
+
+[dependencies]
+sdmx-types = { version = "=0.0.0", path = "../sdmx-types" }
+sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers", optional = true }
+sdmx-writers = { version = "=0.0.0", path = "../sdmx-writers", optional = true }
+# default-features = false: TLS is controlled by this facade's own `tls` feature
+# flag, not by sdmx-client's own default. This lets consumers of sdmx-rs toggle
+# TLS from the facade without reaching into the inner crate's feature namespace
+# (ADR-0013).
+sdmx-client = { version = "=0.0.0", path = "../sdmx-client", optional = true, default-features = false }
+
+# Features
+# Note: The `client` feature depends on `sdmx-client`, which transitively depends
+# on `sdmx-parsers`. However, enabling the `client` feature alone does not
+# expose `sdmx_rs::parsers` through the facade. If a consumer needs direct
+# access to the parsers API from the facade, they must explicitly enable
+# the `parsers` feature. This design is intentional to keep the exposed
+# API surface granular.
+#
+# TLS Control at Facade Level (ADR-0013)
+# ---------------------------------------
+# The `tls` feature flag is controlled at the facade level rather than delegating
+# to `sdmx-client`'s own default. This design ensures:
+#
+# 1. **Unified TLS Configuration:** Downstream consumers interact with a single
+#    facade crate and expect its feature defaults to apply uniformly. If TLS were
+#    left to `sdmx-client`'s default, consumers would need to understand and
+#    manage two independent feature hierarchies (`sdmx-rs` features + `sdmx-client`
+#    features), creating confusion.
+#
+# 2. **Prevents Feature Flag Conflicts:** Without facade-level control, a consumer
+#    enabling `sdmx-rs` (which defaults to all features) would inherit
+#    `sdmx-client`'s default TLS state. If they needed TLS off (custom transport),
+#    they would be forced to override deep into the dependency tree
+#    (e.g., `sdmx-rs --no-default-features --features client`), which is
+#    unintuitive and breaks the facade abstraction.
+#
+# 3. **Simplifies Weak Dependency Syntax:** Using the `?` (weak) syntax here
+#    (`sdmx-client?/tls`) means the feature is only active when the `client`
+#    feature is enabled. This keeps the dependency graph clean and prevents
+#    accidental activation of TLS configuration when only types/parsers are needed.
+#
+# Current TLS:
+#   tls (default) — Pure Rust rustls (the only permitted backend, ADR-0013).
+#                   reqwest 0.13 defaults to the rustls-platform-verifier, so the
+#                   host OS / native trust store is used; identical behaviour on
+#                   Linux, macOS, and Windows. Suitable for all public SDMX
+#                   endpoints (ECB, IMF, etc.).
+#
+# For consumers needing corporate/internal CA certificates, add them at runtime:
+#   use sdmx_rs::client::SdmxClientBuilder;
+#   let client = SdmxClientBuilder::new("https://...")
+#       .add_ca_cert(my_internal_ca_pem)
+#       .build()?;
+#
+# Note: the host OS / native roots are already trusted by default (reqwest 0.13's
+# rustls-platform-verifier). The builder above is for adding an *additional*
+# internal CA on top of the native roots.
+#
+[features]
+default = ["parsers", "writers", "client", "tls"]
+parsers = ["dep:sdmx-parsers"]
+writers = ["dep:sdmx-writers"]
+client = ["dep:sdmx-client"]
+# The `?` (weak) syntax activates the inner feature only when sdmx-client is enabled.
+tls = ["sdmx-client?/tls"]

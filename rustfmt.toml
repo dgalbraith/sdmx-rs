@@ -1,0 +1,16 @@
+edition = "2024"
+newline_style = "Unix"       # Prevent dirty trees due to CRLF changes
+use_small_heuristics = "Max" # Pack constructs compactly to maximize density
+max_width = 100              # Strict horizontal line limit
+hard_tabs = false            # Disallow tab characters
+tab_spaces = 4               # Standard 4-space indentation
+
+# --- Unstable / Nightly Features ---
+unstable_features = true # Enable nightly-only formatting options
+
+# 1. Import Strictness
+imports_granularity = "Crate"      # Group all imports from a crate into single block
+group_imports = "StdExternalCrate" # Separate std, external, and local imports
+
+# 2. Documentation Strictness
+format_code_in_doc_comments = true # Format code snippets inside doc comments
