@@ -1,0 +1,27 @@
+{
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "~DEFAULT_BRANCH"
+      ]
+    }
+  },
+  "enforcement": "active",
+  "name": "Zero Trust Gate",
+  "rules": [
+    {
+      "parameters": {
+        "required_status_checks": [
+          {
+            "context": "CI Quality Gate"
+          }
+        ],
+        "strict_required_status_checks_policy": false
+      },
+      "type": "required_status_checks"
+    }
+  ],
+  "target": "branch"
+}

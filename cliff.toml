@@ -1,0 +1,94 @@
+[changelog]
+header = "# Changelog\n\n"
+body = """\
+{% if version -%}
+## [{{ version | split(pat="/") | last | replace(from="v", to="") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+## [Unreleased]
+{% endif %}
+{% set_global huc = false -%}
+{% for c in commits -%}
+  {%- if c.group != "Chore" -%}
+    {%- set_global huc = true -%}
+  {%- endif -%}
+{%- endfor -%}
+{% if not huc -%}
+- No user-facing changes in this release.
+{% else -%}
+{% for group, commits in commits | group_by(attribute="group") -%}
+{% if group != "Chore" -%}
+### {{ group | upper_first }}
+{% for commit in commits -%}\
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{{ commit.message | split(pat="\n") | first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/dgalbraith/sdmx-rs/commit/{{ commit.id }}))
+{% endfor %}
+{% endif -%}
+{% endfor -%}
+{% endif -%}
+"""
+trim = true
+
+[git]
+conventional_commits = true  # Parse commits according to Conventional Commits specification
+filter_unconventional = true # Exclude non-conventional commits from the changelog
+split_commits = false        # Do not split multi-paragraph commits into separate entries
+
+# Enforce lowercase commit descriptions for consistency in Git history
+commit_preprocessors = [
+  { pattern = '(\w+\(.*\): )([A-Z])', replace = "${1}${2 | lower}" },
+]
+
+commit_parsers = [
+  { message = "^.*!:", group = "<!-- 0 -->⚠️ Breaking Changes" },
+  { message = "^feat[:(]", group = "Features" },
+  { message = "^fix[:(]", group = "Bug Fixes" },
+
+  # Skip developer-only documentation scopes from the public changelog
+  { message = "^docs\\(adr\\)", skip = true },
+  { message = "^docs\\(design\\)", skip = true },
+  { message = "^docs\\(dev\\)", skip = true },
+
+  # Allow all other documentation (e.g. docs: or docs(client): user-facing changes)
+  { message = "^docs[:(]", group = "Documentation" },
+
+  { message = "^perf[:(]", group = "Performance" },
+  { message = "^refactor[:(]", group = "Refactor" },
+
+  # Skip other developer-only types
+  { message = "^test[:(]", skip = true },
+  { message = "^ci[:(]", skip = true },
+  { message = "^build[:(]", skip = true },
+  { message = "^style[:(]", skip = true },
+
+  # Capture (do NOT skip) the release-process commits into a "Chore" group. This
+  # group is suppressed from the rendered body (see [changelog].body), but its
+  # PRESENCE is what makes a release section render at all: under lockstep pre-1.0
+  # bumping, a no-op crate's only in-range commits are these chore(release) ones.
+  # Capturing them keeps the version in git-cliff's model (so the `## [version]`
+  # header is emitted), while the body's huc ("has user-facing changes") guard
+  # renders "No user-facing changes in this release." instead of an empty section.
+  # Matches BOTH the prep-release batch commit AND cargo-release's per-crate
+  # commit (release.toml emits `chore(release): ...` for both).
+  { message = '^chore\(release\)', group = "Chore" },
+  # All OTHER chore commits are intentionally excluded from the changelog body,
+  # keeping it free of unrelated maintenance noise.
+  { message = "^chore[:(]", skip = true },
+]
+
+protect_breaking_commits = true # Ensure breaking commits are kept under Breaking Changes group
+filter_commits = true           # Apply commit parser skip/include rules defined above
+sort_commits = "oldest"         # Sort commits chronologically within their respective groups
+
+# Default tag boundaries for a bare `git-cliff` run: the sdmx-rs facade crate only.
+# Per-crate invocations (release.toml hook + `just changelog-generate`) MUST override
+# this with `--tag-pattern '^<crate>/v<semver>$'`. Under decoupled versioning a global
+# alternation across all crates is WRONG here: it would let one crate's tag (e.g.
+# sdmx-types/v0.3.0) act as a release boundary for another crate, emitting a phantom
+# `## [0.3.0]` section in that other crate's changelog for a version it never released.
+#
+# The version body is the CANONICAL semver.org regex (major.minor.patch + optional
+# -prerelease + optional +build), anchored to the `<crate>/v` tag prefix. A non-semver
+# tag (e.g. `sdmx-rs/v1-experimental`) is therefore EXCLUDED rather than silently
+# rendered under a malformed header.
+# This exact string is mirrored in the per-crate --tag-pattern in release.toml, Justfile,
+# and scripts/check-changelog.sh.
+tag_pattern = "^sdmx-rs/v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"

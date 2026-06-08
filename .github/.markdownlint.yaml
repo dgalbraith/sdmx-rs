@@ -1,0 +1,4 @@
+# Inherit the workspace rule set, then lift first-line-heading: issue/PR templates
+# lead with a guidance comment + prose (no leading heading) by design.
+extends: ../.markdownlint.yaml
+MD041: false

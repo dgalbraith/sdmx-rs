@@ -1,0 +1,52 @@
+# Coverage thresholds per crate (see testing.md for objectives).
+# NOTE: the coverage-threshold-review maintenance obligation is dormant until
+# Phase 1 (see maintenance.toml). Restore the `# MAINTENANCE:` breadcrumb here
+# when that item is uncommented.
+
+codecov:
+  require_ci_to_pass: true
+
+coverage:
+  precision: 2
+  round: down
+  status:
+    project:
+      # 1. Global/default fallback — overall workspace coverage.
+      default:
+        target: 80%
+        threshold: 1% # Allows 1% fluctuation before failing, preventing flaky failures
+
+      # 2. Per-crate gates (each a distinct status, scoped by path).
+      sdmx-types:
+        target: 85% # Domain types are critical; comprehensive validation required
+        threshold: 0% # Enforce strict 0% threshold drop
+        paths:
+          - "crates/sdmx-types"
+
+      sdmx-parsers:
+        target: 75% # Streaming logic is complex; rare parser error branches are hard to hit
+        threshold: 1% # Allow 1% fluctuation for non-critical paths
+        paths:
+          - "crates/sdmx-parsers"
+
+      sdmx-writers:
+        target: 80% # Serialization is straightforward; high coverage expected
+        threshold: 1% # Allow 1% fluctuation for non-critical paths
+        paths:
+          - "crates/sdmx-writers"
+
+      sdmx-client:
+        target: 80% # HTTP logic and error mapping covered by mock tests
+        threshold: 1% # Allow 1% fluctuation for non-critical paths
+        paths:
+          - "crates/sdmx-client"
+
+      sdmx-rs:
+        target: 70% # Thin facade wrapper; coverage secondary to integration tests
+        threshold: 1% # Allow 1% fluctuation for non-critical paths
+        paths:
+          - "crates/sdmx-rs"
+
+    patch:
+      default:
+        target: 80% # New code in PRs must meet this standard

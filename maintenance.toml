@@ -1,0 +1,116 @@
+# sdmx-rs Maintenance Policy Ledger
+# Single source of truth for periodic maintenance obligations.
+#
+# Each [[maintenance]] block tracks:
+#   - item: identifier (slug format)
+#   - file: source file where this work happens
+#   - marker: comment marker to find inline breadcrumb
+#   - review_cadence: days between reviews
+#   - warn_threshold: warn if not updated this many days
+#   - fail_threshold: fail CI if overdue this many days
+#   - last_updated: ISO 8601 date (when work was last done)
+#   - next_review: ISO 8601 date (when to review next)
+#
+# Validation: check-maintenance.sh verifies:
+#   1. Inline comments exist in named files with marker
+#   2. Inline dates match this config (catch drift)
+#   3. next_review has not passed (fail if overdue)
+#   4. Days since last_updated < warn_threshold (warn if stale)
+#
+# Commented items: Phase 2+ features. Uncomment and set dates when phase starts.
+# For automation: scripts/maintenance-bump.sh <item> updates both this file and inline comments.
+
+[[maintenance]]
+item = "rustfmt-date-bump"
+file = "flake.nix"
+marker = "# MAINTENANCE: rustfmt-date-bump"
+review_cadence = 60
+warn_threshold = 90
+fail_threshold = 120
+last_updated = "2026-05-30"
+next_review = "2026-07-29"
+
+[[maintenance]]
+item = "msrv-upgrade-window"
+file = "Cargo.toml"
+marker = "# MAINTENANCE: msrv-upgrade-window"
+review_cadence = 180
+warn_threshold = 210
+fail_threshold = 270
+last_updated = "2026-05-30"
+next_review = "2026-11-26"
+
+# Periodic MANUAL dependency-freshness review (outdated-but-not-vulnerable
+# hygiene). Security advisories and license conflicts are NOT gated by this
+# cadence — `cargo deny` runs continuously in `verify` on every push plus the
+# scheduled CI job, so the urgent surface is always covered. This item is the
+# slower hygiene pass: review `just outdated`, then remediate with
+# `just update-deps` / `just update-flake`. Cadence relaxed to quarterly to suit
+# a part-time single-maintainer cadence (was 30/60/90).
+[[maintenance]]
+item = "dependency-audit"
+file = ".github/workflows/ci.yml"
+marker = "# MAINTENANCE: dependency-audit"
+review_cadence = 90
+warn_threshold = 150
+fail_threshold = 210
+last_updated = "2026-05-30"
+next_review = "2026-08-28"
+
+[[maintenance]]
+item = "linting-rules-review"
+file = "Justfile"
+marker = "# MAINTENANCE: linting-rules-review"
+review_cadence = 90
+warn_threshold = 150
+fail_threshold = 180
+last_updated = "2026-05-30"
+next_review = "2026-08-28"
+
+# Dormant until Phase 1. In Phase 0 the workspace is scaffolding with little
+# code to cover, so reviewing coverage thresholds is premature. Uncomment when
+# Phase 1 begins (and restore the inline marker in codecov.yaml), setting the
+# dates to the Phase 1 start.
+# [[maintenance]]
+# item = "coverage-threshold-review"
+# file = "codecov.yaml"
+# marker = "# MAINTENANCE: coverage-threshold-review"
+# review_cadence = 90
+# warn_threshold = 120
+# fail_threshold = 180
+# last_updated = "2026-05-30"  # Set to Phase 1 start date when uncommenting
+# next_review = "2026-08-28"
+
+# Deadline-driven item (not a rolling cadence): the maintainer signing subkey
+# [S] expires 2027-12-31. next_review is set to ~90 days before expiry so the
+# weekly scheduled job opens a renewal tracking issue with runway to rotate.
+# The OVERDUE check (next_review passed) is the real trigger; warn/fail
+# thresholds are set wide so the staleness check does not fire spuriously
+# before the deadline-based review date does. On rotation, run
+# scripts/maintenance-bump.sh signing-subkey-renewal — note this resets
+# next_review to today + review_cadence, so manually set next_review to ~90
+# days before the NEW subkey's expiry afterwards.
+[[maintenance]]
+item = "signing-subkey-renewal"
+file = ".github/workflows/verify-signature.yml"
+marker = "# MAINTENANCE: signing-subkey-renewal"
+review_cadence = 730
+warn_threshold = 730
+fail_threshold = 760
+last_updated = "2026-05-30"
+next_review = "2027-10-01"
+
+# ==============================================================================
+# Phase 2+ Maintenance Items (uncomment when phase starts; set dates to phase
+# start date)
+# ==============================================================================
+
+# [[maintenance]]
+# item = "benchmark-baseline-refresh"
+# file = "crates/sdmx-parsers/benches/README.md"
+# marker = "# MAINTENANCE: benchmark-baseline-refresh"
+# review_cadence = 90
+# warn_threshold = 120
+# fail_threshold = 180
+# last_updated = "2026-05-23"  # Set to Phase 2 start date when uncommenting
+# next_review = "2026-08-23"

@@ -1,0 +1,22 @@
+default: true
+MD004: false   # Allow mixed unordered list styles (asterisks/dashes)
+MD012: false   # Allow multiple consecutive blank lines
+MD013: false   # Disable line length rules
+MD022: false   # Allow headings without surrounding blank lines
+MD024:         # Allow duplicate headings if they aren't siblings
+  siblings_only: true
+MD030: false   # Allow multiple spaces after list markers
+MD031: false   # Allow fenced code blocks without surrounding blank lines
+MD032: false   # Allow lists without surrounding blank lines
+MD033:         # Restrict inline HTML to an explicit whitelist
+  allowed_elements:
+    - p
+    - div
+    - img
+    - details
+    - summary
+    - a
+    - br
+MD034: false   # Allow bare URLs and emails (e.g. in SECURITY.md)
+MD040: false   # Allow code blocks without specified language
+MD060: false   # Disable strict column pipe alignment in tables

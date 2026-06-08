@@ -1,0 +1,19 @@
+[toolchain]
+# The Minimum Supported Rust Version (MSRV) floor for all workspace crates
+channel = "1.91.0"
+
+# Target architectures to pre-install for local validation gates
+targets = [
+  "wasm32-unknown-unknown", # Target platform for no_std parsing engines
+]
+
+# Development and diagnostic toolchain components
+components = [
+  "rustfmt",            # Code style formatter (complemented by nightly rustfmt)
+  "clippy",             # Workspace static analyzer and compiler linter
+  "rust-src",           # Standard library source for editor navigation
+  "llvm-tools-preview", # Profiling instrumentation for test coverage extraction
+]
+
+# Restrict dependencies to speed up environment initialization
+profile = "minimal"

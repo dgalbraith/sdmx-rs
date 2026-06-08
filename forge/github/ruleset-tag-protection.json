@@ -1,0 +1,25 @@
+{
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "refs/tags/sdmx-*/v*"
+      ]
+    }
+  },
+  "enforcement": "active",
+  "name": "Protect Release Tags",
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_signatures"
+    }
+  ],
+  "target": "tag"
+}

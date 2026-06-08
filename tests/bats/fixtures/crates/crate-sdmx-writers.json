@@ -1,0 +1,6 @@
+{
+  "crate": {
+    "name": "sdmx-writers",
+    "trustpub_only": true
+  }
+}

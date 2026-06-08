@@ -1,0 +1,9 @@
+{
+  "github_configs": [
+    {"id": 1, "crate": "sdmx-types",   "repository_owner": "dgalbraith", "repository_owner_id": 100, "repository_name": "sdmx-rs", "workflow_filename": "publish.yml", "environment": "release", "created_at": "2026-01-01T00:00:00Z"},
+    {"id": 2, "crate": "sdmx-parsers", "repository_owner": "dgalbraith", "repository_owner_id": 100, "repository_name": "sdmx-rs", "workflow_filename": "publish.yml", "environment": "release", "created_at": "2026-01-01T00:00:00Z"},
+    {"id": 3, "crate": "sdmx-writers", "repository_owner": "dgalbraith", "repository_owner_id": 100, "repository_name": "sdmx-rs", "workflow_filename": "publish.yml", "environment": "release", "created_at": "2026-01-01T00:00:00Z"},
+    {"id": 4, "crate": "sdmx-client",  "repository_owner": "dgalbraith", "repository_owner_id": 100, "repository_name": "sdmx-rs", "workflow_filename": "publish.yml", "environment": "release", "created_at": "2026-01-01T00:00:00Z"},
+    {"id": 5, "crate": "sdmx-rs",      "repository_owner": "dgalbraith", "repository_owner_id": 100, "repository_name": "sdmx-rs", "workflow_filename": "publish.yml", "environment": "release", "created_at": "2026-01-01T00:00:00Z"}
+  ]
+}

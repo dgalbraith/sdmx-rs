@@ -1,0 +1,6 @@
+# Fixture workflow with an uncovered third-party action.
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@abc123def456
+      - uses: some-org/some-unlisted-action@abc123def456

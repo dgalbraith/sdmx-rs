@@ -1,0 +1,50 @@
+# EditorConfig - Maintains consistent coding styles across editors
+# https://editorconfig.org
+
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Rust Source Files (Aligned with rustfmt standard)
+[*.rs]
+indent_style = space
+indent_size = 4
+
+# Shell scripts (POSIX / Unix scripts)
+[*.sh]
+indent_style = space
+indent_size = 4
+
+# Nix Configurations (Aligned with nixfmt standard)
+[*.nix]
+indent_style = space
+indent_size = 2
+
+# Cargo & Configuration Manifests
+[*.toml]
+indent_style = space
+indent_size = 2
+
+# YAML Configurations
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# SDMX payload and data models (XML & JSON)
+[*.{xml,json}]
+indent_style = space
+indent_size = 2
+
+# Developer Tooling Manifests
+[Justfile]
+indent_style = space
+indent_size = 4
+
+# Markdown Files (Preserves trailing double-spaces for hard line breaks)
+[*.md]
+trim_trailing_whitespace = false

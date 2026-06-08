@@ -1,0 +1,25 @@
+# JetBrains IDEA Rustfmt Configuration
+#
+# This file documents how to configure IntelliJ IDEA / CLion / RustRover
+# to use the project's nightly rustfmt through the Nix devShell.
+#
+# To configure rustfmt in IDEA:
+#
+# 1. Open Settings → Languages & Frameworks → Rust → Rustfmt
+# 2. Enable "Run rustfmt on Save" (optional, for automatic formatting)
+# 3. Set "Rustfmt executable path" to one of:
+#
+#    Option A (Recommended - Automatic via Nix):
+#      nix develop --command cargo fmt
+#
+#    Option B (Explicit path):
+#      $(nix build --print-out-paths --no-link .#nightly-fmt)/bin/rustfmt
+#
+# 4. Set "Additional arguments" to:
+#      --config-path rustfmt.toml
+#
+# 5. Click "OK" to apply.
+#
+# NOTE: All developers must use the project-sanctioned nightly rustfmt
+# to ensure consistent formatting. For manual formatting, use:
+#   just fmt

@@ -1,0 +1,33 @@
+[graph]
+targets = []
+
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+ignore = []                                          # Explicitly ignore verified non-vulnerable advisory exceptions
+
+[licenses]
+unused-allowed-license = "warn"
+# Permissive open-source licenses approved for library dependency use
+allow = [
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "Unicode-3.0",
+]
+
+[bans]
+multiple-versions = "warn" # Warn on duplicate crate versions in the tree
+# Ban native TLS libraries to enforce pure rustls portability (ADR-0013)
+deny = [{ name = "native-tls" }, { name = "openssl" }, { name = "openssl-sys" }]
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny" # Prevent dependencies from unapproved registries
+unknown-git = "deny"      # Prevent unpinned/unvetted git dependencies
+# Approved index registries for dependency sources
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

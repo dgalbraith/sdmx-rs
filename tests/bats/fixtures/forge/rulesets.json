@@ -1,0 +1,5 @@
+[
+  {"id": 1, "name": "Enforce High Integrity Development", "target": "branch", "enforcement": "active"},
+  {"id": 2, "name": "Zero Trust Gate", "target": "branch", "enforcement": "active"},
+  {"id": 3, "name": "Protect Release Tags", "target": "tag", "enforcement": "active"}
+]

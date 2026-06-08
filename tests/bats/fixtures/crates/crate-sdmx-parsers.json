@@ -1,0 +1,6 @@
+{
+  "crate": {
+    "name": "sdmx-parsers",
+    "trustpub_only": true
+  }
+}

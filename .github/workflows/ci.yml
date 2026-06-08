@@ -1,0 +1,920 @@
+name: Continuous Integration
+
+# ==============================================================================
+# Continuous Integration
+# ==============================================================================
+# The quality gate for every change. Jobs are scoped by a path-filter (the
+# `changes` job) so that pull requests only run the checks their diff can
+# affect; scheduled and non-PR runs execute the full suite.
+#
+# Trigger matrix:
+#   - pull_request  -> diff-scoped checks + PR-only gates (commits, semver)
+#   - push (main)   -> full suite + coverage upload + maintenance tracking
+#   - push (tag)    -> full suite + changelog + release dry-run (publish.yml
+#                      handles the actual publish on the same tag)
+#   - schedule      -> full suite + opportunistic MSRV-floor detection
+#
+# Job-name taxonomy (the suffix noun states what the job does to a change):
+#   - "... Check"      runs a tool and passes/fails on its exit status
+#   - "... Validation" asserts conformance of artifacts to a defined spec
+#   - "... Detection"  discovers/classifies state without pass-judging it
+#   - no suffix        an activity (build matrix) rather than a gate
+#
+# All third-party actions are SHA-pinned; the human-readable version is noted
+# in a trailing comment.
+
+on:
+  push:
+    branches: [ main, 'staging-*' ]
+    tags: [ '**' ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 6' # Saturday at 00:00 UTC
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Fast-cancel superseded runs only on development branches (PRs/feature
+  # branches). main and tags are protected (never cancelled): both carry
+  # irreversible side effects — main uploads coverage/runs maintenance, and
+  # tag runs publish to crates.io / cut releases, which cannot be undone.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  # The `changes` outputs drive diff-scoping for the rest of the workflow. The
+  # recurring guard `github.event_name == 'schedule' || needs.changes.outputs.X`
+  # on later jobs means: always run on the weekly schedule, otherwise run only
+  # when the relevant path category (rust/scripts/docs/infra) was touched. `infra`
+  # is included widely because a workflow or Nix change can affect any job.
+  changes:
+    name: Detect Changed Files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      scripts: ${{ steps.filter.outputs.scripts }}
+      docs: ${{ steps.filter.outputs.docs }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
+            scripts:
+              - 'scripts/**'
+              - 'tests/bats/**'
+              - 'Justfile'
+              - '.pre-commit-config.yaml'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+            infra:
+              - 'flake.nix'
+              - 'flake.lock'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/publish.yml'
+              - '.github/workflows/verify-signature.yml'
+              - '.github/actions/**'
+
+  check-formatting:
+    name: Formatting & Import Sort Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Formatting Checks
+        run: nix develop --command just check-format
+
+  check-commit-messages:
+    name: Conventional Commit Validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Validate Commit Messages
+        run: nix develop --command just check-commits
+
+  validate-changelog:
+    name: Release Changelog Validation
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # git-cliff walks the full tag and commit history to regenerate the
+          # expected changelog; a shallow (single-commit) clone of the tag would
+          # yield an empty diff and fail the sync check. See check-changelog.sh.
+          fetch-depth: 0
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Verify Changelog Synchronisation
+        run: nix develop --command just check-changelog
+
+  validate-scaffolding:
+    name: Repository Scaffolding Validation
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Scaffolding Checks
+        run: nix develop --command just check-scaffolding
+
+
+  check-docs:
+    name: Documentation & ADR Validation
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Documentation Checks
+        run: nix develop --command just verify-adr verify-design verify-guide md-check link-check
+
+
+  check-scripts:
+    name: Shell Script Lint & Test Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.scripts == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Script Verification
+        run: nix develop --command just verify-scripts
+
+
+  clippy:
+    name: Clippy Lint Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Run Clippy Lints
+        run: nix develop --command just clippy
+
+  check-wasm:
+    name: WASM Portability Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Run WASM Target Check
+        run: nix develop --command just check-wasm
+
+  docs:
+    name: Documentation Warnings Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Generate Workspace Documentation
+        run: nix develop --command just docs
+
+  check-security:
+    name: Supply Chain Audit
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # MAINTENANCE: dependency-audit
+      # Last updated: 2026-05-30
+      # Next review: 2026-08-28
+      # Quarterly MANUAL freshness review (outdated deps). Advisories/licenses are
+      # gated continuously by this same `cargo deny` step, not by the review date.
+      - name: Run Cargo Deny & Machete
+        run: nix develop --command just deny machete
+
+  check-secrets:
+    name: Secret Leak Scan
+    runs-on: ubuntu-latest
+    # Intentionally NOT path-filtered: a secret can be introduced in any file
+    # type (config, env, docs), so this gate runs on every push and PR.
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # gitleaks `detect` walks the full commit history, so the scan covers
+          # secrets hidden in rewritten/force-pushed history, not just the tip.
+          fetch-depth: 0
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Scan Git History for Secrets
+        run: nix develop --command just secrets-scan
+
+  # The coverage thresholds are the GATE here: the `just test-coverage-headless`
+  # step enforces per-crate floors locally (hermetic, no SaaS on the merge path).
+  # The Codecov upload is dashboard/PR-annotation only and is non-blocking
+  # (fail_ci_if_error: false); codecov.yaml drives those informational statuses,
+  # not the gate. See CONTRIBUTING.md for the project's testing philosophy and
+  # instructions on how to handle legitimate coverage gaps.
+  coverage:
+    name: Code Coverage Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Codecov resolves the PR merge-base from local history to compute the
+          # patch diff; under our merge-commit model a shallow clone can miss it
+          # and yield an inaccurate/empty diff. Full history keeps PR diffs correct.
+          fetch-depth: 0
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Run Test Coverage Headless
+        run: nix develop --command just test-coverage-headless
+
+      # Uploads on PRs and main pushes alike: PR uploads drive Codecov's diff
+      # annotations/patch status; main uploads refresh the baseline (including
+      # the merge commit) for the next PR's diff. Non-blocking by design — the
+      # gate is the per-crate enforcement step above, so a Codecov/token outage
+      # never blocks a merge.
+      #
+      # `!cancelled()` deliberately uploads even when the local gate FAILED: that
+      # is exactly when the Codecov diff is most useful, letting a contributor see
+      # which lines dropped a crate below its floor. The Justfile recipe always
+      # writes lcov.info before the gate can abort, so a partial report is present
+      # here even on a failed build. PR uploads only touch the PR diff (never the
+      # main baseline), and Codecov is not a required check, so a failure-state
+      # upload cannot corrupt the baseline or gate a merge. We use `!cancelled()`
+      # rather than `always()` to skip pointless uploads when a run is cancelled
+      # (e.g. concurrency cancellation on force-push).
+      #
+      # `continue-on-error: true` (not `fail_ci_if_error: false`) keeps the upload
+      # non-blocking while still recording a non-success `outcome` we can branch on
+      # below. This is deliberate: the coverage GATE is hermetic and owes nothing
+      # to this SaaS upload, so a Codecov/token failure must never fail the job —
+      # but it must not pass *silently* either. `verbose: true` leaves full upload
+      # diagnostics in this step's log for when an investigation is warranted.
+      - name: Upload Coverage to Codecov
+        id: codecov
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
+
+      # Surface a non-blocking upload failure as a yellow ⚠️ annotation on the run
+      # (the job stays green — the upload is a nice-to-have, not a gate). Branching
+      # on `outcome` (not just `failure()`) also catches a skipped/neutral upload,
+      # i.e. the cases where the warning machinery would otherwise stay silent. The
+      # primary in-our-control failure vector is CODECOV_TOKEN expiry; full detail
+      # lives in the verbose upload log above. (A proactive token-renewal deadline
+      # check is a tracked future maintenance item, complementary to this warning.)
+      - name: Warn on Codecov Upload Failure
+        if: ${{ !cancelled() && steps.codecov.outcome != 'success' }}
+        run: |
+          echo "::warning title=Codecov upload failed (non-blocking)::Coverage was generated but the upload to Codecov did not succeed (outcome: ${{ steps.codecov.outcome }}). PR coverage annotations are unavailable for this run. The coverage GATE is unaffected. See the 'Upload Coverage to Codecov' step log for details; the likeliest in-our-control cause is an expired CODECOV_TOKEN."
+
+  # NOTE: msrv-verify and test-matrix use dtolnay/rust-toolchain instead of the Nix
+  # devShell for a practical reason: Nix sandboxes do not provide exact historic Rust
+  # toolchains easily without a version bump to rust-overlay. The dtolnay action is the
+  # idiomatic way to install and test MSRV; environmental parity with Nix CI is traded for
+  # ergonomic access to the precise MSRV compiler and the ability to test across multiple OS
+  # variants efficiently. Cargo caching and registry access are preserved across CI runs.
+  msrv-verify:
+    name: MSRV Compatibility Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install stable Rust (for metadata extraction)
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Read MSRV from Cargo.toml
+        id: msrv
+        # Extract MSRV from the canonical facade package (sdmx-rs) to ensure
+        # testing against the declared MSRV, not a random workspace member.
+        run: |
+          set -euo pipefail
+          echo "Extracting MSRV from sdmx-rs package..."
+          MSRV=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "sdmx-rs") | .rust_version')
+
+          if [ -z "$MSRV" ]; then
+            echo "❌ ERROR: Failed to extract MSRV from Cargo.toml"
+            echo ""
+            echo "Debugging info:"
+            echo "- Cargo metadata output:"
+            cargo metadata --no-deps --format-version 1 | jq '.packages[] | select(.name == "sdmx-rs") | {name, rust_version}'
+            exit 1
+          fi
+
+          echo "✓ Extracted MSRV: $MSRV"
+          echo "msrv=$MSRV" >> "$GITHUB_OUTPUT"
+
+      - name: Install MSRV Rust Toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: ${{ steps.msrv.outputs.msrv }}
+          targets: wasm32-unknown-unknown
+
+      - name: Install sccache
+        uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Verify Codebase Compiles on MSRV
+        run: cargo check --workspace --all-targets --locked
+
+      - name: Run Clippy on MSRV
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Check WASM on MSRV
+        run: |
+          cargo check -p sdmx-types   --target wasm32-unknown-unknown --locked
+          cargo check -p sdmx-parsers --target wasm32-unknown-unknown --locked
+          cargo check -p sdmx-writers --target wasm32-unknown-unknown --locked
+
+  check-msrv:
+    name: MSRV Floor Detection
+    runs-on: ubuntu-latest
+    # Scheduled maintenance check only: detects if actual MSRV floor is lower than declared.
+    # This is informational (non-blocking) — maintainers decide opportunistically when to lower MSRV.
+    # MSRV compilation is verified implicitly by clippy (on default features) and msrv-features-check (feature matrix).
+    if: github.event_name == 'schedule'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Stable Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install sccache
+        uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Install cargo-msrv
+        uses: taiki-e/install-action@920ab1831fbf4fb3ef75c8ead83556c918bb7290 # v2.79.8
+        with:
+          tool: cargo-msrv
+
+      - name: Verify MSRV Floor
+        run: cargo msrv verify
+
+  msrv-features-check:
+    name: MSRV Feature Matrix Check
+    runs-on: ubuntu-latest
+    # Scheduled check only: verifies MSRV compatibility across feature combinations (see rust-toolchain.toml).
+    # Tests: no default features, all features. Non-blocking; catches regressions opportunistically.
+    if: github.event_name == 'schedule'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Verify MSRV with No Default Features
+        run: nix develop --command cargo check --all --no-default-features --locked
+
+      - name: Verify MSRV with All Features
+        run: nix develop --command cargo check --all --all-features --locked
+
+  test-matrix:
+    name: Build & Test Matrix (latest-stable, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      RUSTC_WRAPPER: sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set sccache directory
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            printf "SCCACHE_DIR=C:\\Users\\runner\\AppData\\Local\\sccache\n" >> "$GITHUB_ENV"
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            printf "SCCACHE_DIR=/Users/runner/Library/Caches/sccache\n" >> "$GITHUB_ENV"
+          else
+            printf "SCCACHE_DIR=/home/runner/.cache/sccache\n" >> "$GITHUB_ENV"
+          fi
+        shell: bash
+
+      - name: Install Stable Rust Toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+
+      - name: Install sccache
+        uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@920ab1831fbf4fb3ef75c8ead83556c918bb7290 # v2.79.8
+        with:
+          tool: nextest
+
+      - name: Build Workspace
+        run: cargo build --workspace --all-targets --locked
+
+      - name: Run Tests
+        run: cargo nextest run --workspace --locked
+
+      - name: Check WASM Target
+        # Guarded to Linux: wasm32-unknown-unknown is a fully cross-compiled
+        # target whose result is host-independent (target_os is "unknown" on
+        # every runner), so re-running it on macOS/Windows burns minutes for no
+        # added signal. The native build+test above still run on all three OSes
+        # (that is the matrix's purpose); the canonical full WASM gate lives in
+        # the Nix `check` job (`just check-wasm`).
+        if: runner.os == 'Linux'
+        # Each package checked individually to mirror `just check-wasm` exactly.
+        # Only sdmx-rs (the facade) uses --no-default-features; sdmx-types,
+        # sdmx-parsers, and sdmx-writers must compile with their standard feature set on WASM.
+        run: |
+          cargo check -p sdmx-types   --target wasm32-unknown-unknown --locked
+          cargo check -p sdmx-parsers --target wasm32-unknown-unknown --locked
+          cargo check -p sdmx-writers --target wasm32-unknown-unknown --locked
+          cargo check -p sdmx-rs      --target wasm32-unknown-unknown --no-default-features --locked
+          cargo check -p sdmx-rs      --target wasm32-unknown-unknown --no-default-features --features parsers --locked
+          cargo check -p sdmx-rs      --no-default-features --features parsers --locked
+          cargo test  -p sdmx-rs      --no-default-features --features parsers --no-run --locked
+
+  nix-check:
+    name: Nix Sandbox Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    # Validates Nix flake integrity. Runs on rust or infra changes, or the weekly schedule.
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Nix Flake Check
+        run: nix flake check --print-build-logs
+
+  check-workflows:
+    name: Workflow Syntax Validation
+    runs-on: ubuntu-latest
+    needs: [changes]
+    # Validates GitHub Actions workflow syntax and security (actionlint).
+    # Runs on infra changes (.github/workflows/) or scheduled validation.
+    # Mandatory-when-triggered: ensures workflow modifications are validated before merge.
+    if: needs.changes.outputs.infra == 'true' || github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Validate GitHub Actions Workflows
+        run: nix develop --command just test-workflows
+
+  release-dry-run:
+    name: Release Dry-Run Check
+    runs-on: ubuntu-latest
+    needs: [changes]
+    # Never on PRs: a dry-run packages every crate, which is slow and irrelevant
+    # to review feedback. Runs on main/tag pushes and the weekly schedule when
+    # Rust or infra changed, so packaging breakage surfaces before a real release.
+    if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true')
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Run Release Dry-Run Check
+        run: nix develop --command just release-dry-run
+
+  semver-check:
+    name: Semantic Versioning Check
+    runs-on: ubuntu-latest
+    # PR-only, and only against main: the check compares the branch's public API
+    # against the released baseline to catch unintended SemVer breaks before they
+    # merge. It is meaningless on push/tag/schedule (no PR base to diff against).
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    env:
+      RUSTC_WRAPPER: sccache
+      SCCACHE_DIR: /home/runner/.cache/sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache sccache Compiler Artifacts
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: /home/runner/.cache/sccache
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-sccache-
+
+      - name: Run Semantic Versioning Check
+        run: nix develop --command just semver-check
+
+  detect-maintenance:
+    name: Maintenance Obligation Detection
+    runs-on: ubuntu-latest
+    # Informational check: tracks maintenance obligations and creates tracking issues on schedule.
+    # Runs on schedule (Saturday 00:00 UTC) and on main pushes (post-merge) for visibility.
+    # Always succeeds (non-blocking) — scheduled check creates GitHub Issues to pull work into queue.
+    # Prevents duplicate issues: existing open issues are not re-created (see check-maintenance.sh).
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Run Maintenance Obligation Check
+        run: |
+          # Non-blocking diagnostic: capture output and create tracking issues for maintainer if needed.
+          # This job does not fail the CI workflow; it reports maintenance obligations asynchronously.
+          nix develop --command ./scripts/check-maintenance.sh > maintenance_output.txt 2>&1 || {
+            cat maintenance_output.txt
+
+            # If this is a scheduled cron run and there are failures, create a tracking issue
+            if [ "${{ github.event_name }}" = "schedule" ] && grep -q "❌" maintenance_output.txt; then
+              echo "Checking for existing open maintenance tracking issues..."
+              OPEN_ISSUE=$(gh issue list --label "maintenance" --state "open" --json number --jq '.[0].number' 2>/dev/null || true)
+
+              if [ -z "$OPEN_ISSUE" ]; then
+                echo "No open maintenance issues found. Creating tracking issue..."
+
+                printf "Scheduled weekly maintenance scan detected overdue obligations. Overdue items must be reviewed and resolved to maintain repository compliance.\n\n## Key Deliverables\n- [ ] Review and update the following overdue maintenance obligations:\n" > issue_body.md
+
+                # Extract item names (part before first colon) and format as markdown checklist
+                # Using awk is safer than sed chains for special characters and multiple colons
+                grep "❌" maintenance_output.txt | awk -F'❌' '{
+                  item = $2; gsub(/^[[:space:]]+/, "", item);
+                  item_name = substr(item, 1, index(item, ":") - 1);
+                  printf "- [ ] `%s`\n", item_name
+                }' >> issue_body.md
+
+                printf "\n## Verification\n- [ ] Run \`just check-maintenance\` locally and confirm all obligations are up-to-date.\n- [ ] Automated CI pipelines (\`verify\`) pass 100%% on the branch.\n\n## Dependencies & References\n- **Pre-requisites**: None\n- **Resources**: [maintenance.md](docs/project/maintenance.md)\n" >> issue_body.md
+
+                gh issue create \
+                  --title "chore(maintenance): Scheduled Maintenance Review Overdue" \
+                  --label "maintenance" \
+                  --body-file issue_body.md
+              else
+                echo "Maintenance issue #${OPEN_ISSUE} is already open. Skipping creation."
+              fi
+            fi
+
+            # Always succeed (informational check) — GitHub Issues track overdue work
+            exit 0
+          }
+          cat maintenance_output.txt
+
+  # ============================================================================
+  # CI Quality Gate — the SINGLE required status check on `main`.
+  # ============================================================================
+  # The Zero Trust Gate ruleset (forge/github/ruleset-push-restriction.json)
+  # requires exactly ONE status-check context: "CI Quality Gate". This job
+  # aggregates the result of every merge-gating job so the ruleset needs one
+  # stable context string instead of a brittle multi-entry list that must stay
+  # byte-identical to each job's `name:` field. A green seal on this single
+  # context, earned on a `staging-*` SHA, carries to `main` on fast-forward.
+  #
+  # Path-filtered jobs that legitimately do not run report `skipped`; those are
+  # acceptable. A job that FAILED, was CANCELLED, or was skipped because an
+  # upstream `needs:` dependency died is NOT acceptable and fails the gate.
+  #
+  # FAIL-CLOSED INVARIANTS (do not weaken without re-reading the rationale):
+  #   1. `changes` must be `success`. Every gating job has `needs: [changes]`;
+  #      if `changes` dies, all dependents are `skipped`, and a naive "no
+  #      failures" check would read all-skips as green and let an UNVERIFIED SHA
+  #      onto main. Asserting changes==success closes that hole.
+  #   2. Every dependency must be `success` OR `skipped` — never any other
+  #      state. We allowlist the SAFE states rather than denylisting bad ones,
+  #      so a new/unknown result string from GitHub fails closed, not open.
+  #
+  # COVERAGE INVARIANT: the `needs:` list below must equal the gating set
+  # declared in forge/github/ci-gating-jobs.json. A gating job omitted here is
+  # silently ungated on main. This is enforced by scripts/verify-ci-gate.sh
+  # (run by the check-workflows job), so drift fails CI, not production. When you
+  # add or remove a job here, update that manifest in the same change.
+  #
+  # This job deliberately does NOT use the Nix devShell: it only inspects the
+  # `needs` context and runs `jq` (preinstalled on the ubuntu-latest runner), so
+  # coupling the merge-blocking gate to a devShell evaluation would add a failure
+  # mode for no benefit.
+  ci-gate:
+    name: CI Quality Gate
+    runs-on: ubuntu-latest
+    # always() — the gate must evaluate even when an upstream job failed or was
+    # cancelled. The default `success()` guard would SKIP this job in exactly
+    # those cases, which GitHub then reports as a missing required check,
+    # deadlocking every push to main.
+    if: always()
+    needs:
+      - changes
+      - check-formatting
+      - clippy
+      - test-matrix
+      - check-wasm
+      - docs
+      - check-security
+      - check-secrets
+      - validate-scaffolding
+      - check-docs
+      - check-scripts
+      - coverage
+      - nix-check
+      - check-workflows
+      - msrv-verify
+      - release-dry-run
+    steps:
+      - name: Evaluate Dependency Matrix
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          set -eu
+          echo "Evaluating CI dependency matrix..."
+
+          # `needs` is a JSON OBJECT keyed by job name, not an array. Assert:
+          #   (a) the path-filter job itself succeeded (proves filtering ran), and
+          #   (b) every dependency is in the safe-state allowlist {success, skipped}.
+          # `to_entries | all(...)` iterates the object's VALUES explicitly so the
+          # `.changes.result` root access and the all() iteration do not collide.
+          if printf '%s' "$NEEDS_JSON" | jq -e '
+                .changes.result == "success"
+                and (to_entries | all(.value.result == "success" or .value.result == "skipped"))
+              ' > /dev/null; then
+            echo "✅ Gate passed: changes succeeded and all dependencies are success or safe-skipped."
+            exit 0
+          fi
+
+          echo "❌ Gate failed: an upstream job failed, was cancelled, or the 'changes' job did not succeed."
+          echo "Dependency state:"
+          printf '%s' "$NEEDS_JSON" | jq -r 'to_entries[] | "  \(.key): \(.value.result)"'
+          exit 1
