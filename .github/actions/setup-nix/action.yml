@@ -25,6 +25,13 @@ runs:
         # Determinate Nix and attempts a FlakeHub OIDC login — we want neither
         # (we cache via cache-nix-action, not FlakeHub).
         determinate: false
+        # Disable store optimisation. The nix-installer sets auto-optimise-store = true
+        # on Linux by default. cache-nix-action cannot reliably restore an
+        # optimised store — tar extracts hard links sequentially and .links/
+        # targets may not exist at extraction time, leaving a corrupt store.
+        # See: https://github.com/nix-community/cache-nix-action/issues/170
+        extra-conf: |
+          auto-optimise-store = false
 
     - name: Cache Nix store
       uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
