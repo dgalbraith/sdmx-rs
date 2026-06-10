@@ -89,7 +89,7 @@
 !/SECURITY.md
 
 # ==============================================================================
-# IV. Documentation Infrastructure
+# IV. Documentation Infrastructure & Root-level Documentation
 # ==============================================================================
 # documentation directories and index
 !/docs/
@@ -125,6 +125,9 @@
 !/docs/guides/
 /docs/guides/*
 !/docs/guides/README.md
+
+# decisison register
+!/docs/decisions.md
 
 # ==============================================================================
 # V. Project Documentation
