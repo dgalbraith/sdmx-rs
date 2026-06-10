@@ -139,11 +139,11 @@ EOF
 create_adr_gitignore() {
     cat > .gitignore <<'EOF'
 # ==============================================================================
-# IX. Architecture Decision Records (ADRs)
+# X. Architecture Decision Records (ADRs)
 # ==============================================================================
 
 # ==============================================================================
-# X. Guides
+# XI. Guides
 # ==============================================================================
 EOF
 }
@@ -152,11 +152,11 @@ EOF
 create_design_gitignore() {
     cat > .gitignore <<'EOF'
 # ==============================================================================
-# VIII. Design Documentation
+# IX. Design Documentation
 # ==============================================================================
 
 # ==============================================================================
-# IX. Architecture Decision Records (ADRs)
+# X. Architecture Decision Records (ADRs)
 # ==============================================================================
 EOF
 }
@@ -165,31 +165,35 @@ EOF
 create_guide_gitignore() {
     cat > .gitignore <<'EOF'
 # ==============================================================================
-# X. Guides
+# XI. Guides
 # ==============================================================================
 
 # ==============================================================================
-# XI. Source Code & Workspace Packages
+# XII. Source Code & Workspace Packages
 # ==============================================================================
 EOF
 }
 
-# Add an ADR entry to .gitignore in the correct section
+# Add an ADR entry to .gitignore in the correct section.
+# Inserts before the NEXT section header (Guides); anchored on the title to avoid
+# Roman-numeral prefix collisions (e.g. /^# X/ would also match XI, XII).
 add_adr_to_gitignore() {
     local file="$1"
-    sed -i "/^# X/i\\!/docs/adr/${file}" .gitignore
+    sed -i "/^# XI\\. Guides/i\\!/docs/adr/${file}" .gitignore
 }
 
-# Add a design document entry to .gitignore in the correct section
+# Add a design document entry to .gitignore in the correct section.
+# Inserts before the NEXT section header (Architecture Decision Records).
 add_design_to_gitignore() {
     local file="$1"
-    sed -i "/^# IX/i\\!/docs/design/${file}" .gitignore
+    sed -i "/^# X\\. Architecture Decision Records/i\\!/docs/design/${file}" .gitignore
 }
 
-# Add a guide document entry to .gitignore in the correct section
+# Add a guide document entry to .gitignore in the correct section.
+# Inserts before the NEXT section header (Source Code & Workspace Packages).
 add_guide_to_gitignore() {
     local file="$1"
-    sed -i "/^# XI/i\\!/docs/guides/${file}" .gitignore
+    sed -i "/^# XII\\. Source Code/i\\!/docs/guides/${file}" .gitignore
 }
 
 # Helper to add guide entry to README.md index

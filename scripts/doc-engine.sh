@@ -36,8 +36,8 @@ case "$DOC_TYPE" in
     adr)
         DIR="docs/adr"
         TEMPLATE="docs/adr/templates/template.md"
-        GITIGNORE_HEADER="IX. Architecture Decision Records"
-        GITIGNORE_NEXT="X. Guides"
+        GITIGNORE_HEADER="X. Architecture Decision Records"
+        GITIGNORE_NEXT="XI. Guides"
         NUMBERED=1
         LABEL="Architecture Decision Record"
         TYPE_LABEL="ADR"
@@ -54,8 +54,8 @@ case "$DOC_TYPE" in
     design)
         DIR="docs/design"
         TEMPLATE="docs/design/templates/template.md"
-        GITIGNORE_HEADER="VIII. Design Documentation"
-        GITIGNORE_NEXT="IX. Architecture Decision Records"
+        GITIGNORE_HEADER="IX. Design Documentation"
+        GITIGNORE_NEXT="X. Architecture Decision Records"
         NUMBERED=1
         LABEL="Design Document"
         TYPE_LABEL="Design Document"
@@ -72,8 +72,8 @@ case "$DOC_TYPE" in
     guide)
         DIR="docs/guides"
         TEMPLATE="docs/guides/templates/template.md"
-        GITIGNORE_HEADER="X. Guides"
-        GITIGNORE_NEXT="XI. Source Code & Workspace Packages"
+        GITIGNORE_HEADER="XI. Guides"
+        GITIGNORE_NEXT="XII. Source Code & Workspace Packages"
         NUMBERED=0
         LABEL="User Guide"
         TYPE_LABEL="Guide Document"

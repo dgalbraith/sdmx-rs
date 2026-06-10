@@ -161,7 +161,7 @@ EOF
 
 @test "verify-design: detects .gitignore entry with no physical file" {
     # Add entry without creating file
-    sed -i '/^# IX/i\!/docs/design/0003-phantom.md' .gitignore
+    sed -i '/^# X\. Architecture Decision Records/i\!/docs/design/0003-phantom.md' .gitignore
 
     run_isolated ./doc-engine.sh verify design
     [ "$status" -eq 1 ]

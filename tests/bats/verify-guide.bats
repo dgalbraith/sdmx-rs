@@ -74,7 +74,7 @@ Some prerequisites.
 ## Step-by-Step
 Steps here.
 EOF
-    sed -i '/^# X/a\!/docs/guides/incomplete.md' .gitignore
+    sed -i '/^# XI\. Guides/a\!/docs/guides/incomplete.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]
@@ -95,7 +95,7 @@ Guide overview.
 ## Step-by-Step
 Steps here.
 EOF
-    sed -i '/^# X/a\!/docs/guides/incomplete.md' .gitignore
+    sed -i '/^# XI\. Guides/a\!/docs/guides/incomplete.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]
@@ -116,7 +116,7 @@ Guide overview.
 ## Prerequisites
 Some prerequisites.
 EOF
-    sed -i '/^# X/a\!/docs/guides/incomplete.md' .gitignore
+    sed -i '/^# XI\. Guides/a\!/docs/guides/incomplete.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]
@@ -143,7 +143,7 @@ ADR decision here.
 ## Consequences
 ADR consequences here.
 EOF
-    sed -i '/^# IX/a\!/docs/guides/wrong-template.md' .gitignore
+    sed -i '/^# XI\. Guides/a\!/docs/guides/wrong-template.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]
@@ -192,7 +192,7 @@ EOF
     # Add guide to README.md index
     echo "- [Real Guide](real-guide.md)" >> docs/guides/README.md
     # Manually add an orphaned entry by inserting before the XI header
-    sed -i '/^# XI\. Source Code/i\!/docs/guides/orphaned.md' .gitignore
+    sed -i '/^# XII\. Source Code/i\!/docs/guides/orphaned.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]
@@ -220,7 +220,7 @@ Some prerequisites.
 ## Step-by-Step
 Steps here.
 EOF
-    sed -i '/^# X/a\!/docs/guides/unindexed.md' .gitignore
+    sed -i '/^# XI\. Guides/a\!/docs/guides/unindexed.md' .gitignore
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 1 ]

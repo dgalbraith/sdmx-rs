@@ -72,8 +72,8 @@ teardown() {
 @test "remove-adr: preserve .gitignore structure after removal" {
     ./doc-engine.sh remove adr -f 0001-test.md > /dev/null
 
-    grep -q "IX. Architecture Decision Records" .gitignore
-    grep -q "X. Guides" .gitignore
+    grep -q "X. Architecture Decision Records" .gitignore
+    grep -q "XI. Guides" .gitignore
 }
 
 # ==============================================================================
