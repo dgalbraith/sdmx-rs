@@ -23,6 +23,7 @@ Start here: [User Guide](user/README.md)
 - [Developer Guides](dev/README.md): Code style, testing strategy, MSRV policy, common development tasks
 - [Design Documentation](design/README.md): Detailed design exploration before implementation begins
 - [ADRs](adr/README.md): Architectural decisions and rationale (organized by category)
+- [Decision Register](decisions.md): Scoped, source-cited observations and decisions spanning spec behaviour, Rust language choices, and domain modelling — too lightweight for an ADR, too specific for a design document
 
 Start here: [CONTRIBUTING.md](../CONTRIBUTING.md)
 
@@ -35,6 +36,7 @@ Start here: [CONTRIBUTING.md](../CONTRIBUTING.md)
 - [ARCHITECTURE.md](../ARCHITECTURE.md): Crate boundaries, API patterns, feature strategy, specification alignment
 - [Design Documentation](design/README.md): Detailed design exploration (proposals, alternatives, trade-offs, implementation planning)
 - [ADRs](adr/README.md): Architectural decisions organized by category (Safety, Workspace, Platform, Client API, etc.)
+- [Decision Register](decisions.md): Scoped, source-cited implementation decisions — spec observations, Rust language choices, and domain modelling consequences
 
 When implementing Phase 3+ features, consult the corresponding design doc to understand context and constraints.
 
@@ -68,13 +70,14 @@ For now, documentation lives in version-controlled markdown and rustdoc in the s
 
 ## Quick Navigation
 
-| I want to...                       | Go to...                                                                 |
-| ---------------------------------- | -------------------------------------------------------------------------|
-| **Use this library**               | [User Guide](user/README.md)                                             |
-| **Contribute code**                | [CONTRIBUTING.md](../CONTRIBUTING.md)                                    |
-| **Understand the design**          | [ARCHITECTURE.md](../ARCHITECTURE.md)                                    |
-| **Find an architectural decision** | [ADRs](adr/README.md)                                                    |
-| **Set up my environment**          | [CONTRIBUTING.md § Onboarding](../CONTRIBUTING.md#onboarding-quickstart) |
-| **Cut a release**                  | [Release Workflow](project/releasing.md)                                 |
-| **Report a security issue**        | [SECURITY.md](../SECURITY.md)                                            |
-| **See what's planned**             | [ROADMAP.md](../ROADMAP.md)                                              |
+| I want to...                              | Go to...                                                                 |
+|-------------------------------------------| -------------------------------------------------------------------------|
+| **Use this library**                      | [User Guide](user/README.md)                                             |
+| **Contribute code**                       | [CONTRIBUTING.md](../CONTRIBUTING.md)                                    |
+| **Understand the design**                 | [ARCHITECTURE.md](../ARCHITECTURE.md)                                    |
+| **Find an architectural decision**        | [ADRs](adr/README.md)                                                    |
+| **Find a scoped implementation decision** | [Decision Register](decisions.md)                                        |
+| **Set up my environment**                 | [CONTRIBUTING.md § Onboarding](../CONTRIBUTING.md#onboarding-quickstart) |
+| **Cut a release**                         | [Release Workflow](project/releasing.md)                                 |
+| **Report a security issue**               | [SECURITY.md](../SECURITY.md)                                            |
+| **See what's planned**                    | [ROADMAP.md](../ROADMAP.md)                                              |
