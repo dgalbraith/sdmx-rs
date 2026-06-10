@@ -158,7 +158,90 @@
 !/docs/user/getting-started.md
 
 # ==============================================================================
-# VIII. Design Documentation
+# VIII. Standard SDMX Schemas
+# ==============================================================================
+# The official SDMX XML schemas the workspace is modelled against, version-pinned.
+# Vendored from the upstream sdmx-ml release as the schemas/ subtree; see
+# specs/README.md for the source tag and provenance. Each schema file is listed
+# explicitly — adding or replacing a schema is a deliberate, reviewed act.
+!/specs/
+/specs/*
+!/specs/README.md
+
+# SDMX 3.0 schemas — sdmx-ml release v3.0
+!/specs/3.0/
+/specs/3.0/*
+!/specs/3.0/schemas/
+/specs/3.0/schemas/*
+!/specs/3.0/schemas/SDMXCommon.xsd
+!/specs/3.0/schemas/SDMXCommonReferences.xsd
+!/specs/3.0/schemas/SDMXDataStructureSpecific.xsd
+!/specs/3.0/schemas/SDMXMessage.xsd
+!/specs/3.0/schemas/SDMXMessageFooter.xsd
+!/specs/3.0/schemas/SDMXMetadataGeneric.xsd
+!/specs/3.0/schemas/SDMXRegistry.xsd
+!/specs/3.0/schemas/SDMXRegistryBase.xsd
+!/specs/3.0/schemas/SDMXRegistryRegistration.xsd
+!/specs/3.0/schemas/SDMXRegistryStructure.xsd
+!/specs/3.0/schemas/SDMXRegistrySubscription.xsd
+!/specs/3.0/schemas/SDMXStructure.xsd
+!/specs/3.0/schemas/SDMXStructureBase.xsd
+!/specs/3.0/schemas/SDMXStructureCategorisation.xsd
+!/specs/3.0/schemas/SDMXStructureCategory.xsd
+!/specs/3.0/schemas/SDMXStructureCodelist.xsd
+!/specs/3.0/schemas/SDMXStructureConcept.xsd
+!/specs/3.0/schemas/SDMXStructureConstraint.xsd
+!/specs/3.0/schemas/SDMXStructureDataflow.xsd
+!/specs/3.0/schemas/SDMXStructureDataStructure.xsd
+!/specs/3.0/schemas/SDMXStructureHierarchicalCodelist.xsd
+!/specs/3.0/schemas/SDMXStructureMetadataflow.xsd
+!/specs/3.0/schemas/SDMXStructureMetadataStructure.xsd
+!/specs/3.0/schemas/SDMXStructureOrganisation.xsd
+!/specs/3.0/schemas/SDMXStructureProcess.xsd
+!/specs/3.0/schemas/SDMXStructureProvisionAgreement.xsd
+!/specs/3.0/schemas/SDMXStructureReportingTaxonomy.xsd
+!/specs/3.0/schemas/SDMXStructureStructureMappings.xsd
+!/specs/3.0/schemas/SDMXStructureTransformation.xsd
+!/specs/3.0/schemas/xml.xsd
+
+# SDMX 3.1 schemas — sdmx-ml release v3.1
+!/specs/3.1/
+/specs/3.1/*
+!/specs/3.1/schemas/
+/specs/3.1/schemas/*
+!/specs/3.1/schemas/SDMXCommon.xsd
+!/specs/3.1/schemas/SDMXCommonReferences.xsd
+!/specs/3.1/schemas/SDMXDataStructureSpecific.xsd
+!/specs/3.1/schemas/SDMXMessage.xsd
+!/specs/3.1/schemas/SDMXMessageFooter.xsd
+!/specs/3.1/schemas/SDMXMetadataGeneric.xsd
+!/specs/3.1/schemas/SDMXRegistry.xsd
+!/specs/3.1/schemas/SDMXRegistryBase.xsd
+!/specs/3.1/schemas/SDMXRegistryRegistration.xsd
+!/specs/3.1/schemas/SDMXRegistryStructure.xsd
+!/specs/3.1/schemas/SDMXRegistrySubscription.xsd
+!/specs/3.1/schemas/SDMXStructure.xsd
+!/specs/3.1/schemas/SDMXStructureBase.xsd
+!/specs/3.1/schemas/SDMXStructureCategorisation.xsd
+!/specs/3.1/schemas/SDMXStructureCategory.xsd
+!/specs/3.1/schemas/SDMXStructureCodelist.xsd
+!/specs/3.1/schemas/SDMXStructureConcept.xsd
+!/specs/3.1/schemas/SDMXStructureConstraint.xsd
+!/specs/3.1/schemas/SDMXStructureDataflow.xsd
+!/specs/3.1/schemas/SDMXStructureDataStructure.xsd
+!/specs/3.1/schemas/SDMXStructureHierarchicalCodelist.xsd
+!/specs/3.1/schemas/SDMXStructureMetadataflow.xsd
+!/specs/3.1/schemas/SDMXStructureMetadataStructure.xsd
+!/specs/3.1/schemas/SDMXStructureOrganisation.xsd
+!/specs/3.1/schemas/SDMXStructureProcess.xsd
+!/specs/3.1/schemas/SDMXStructureProvisionAgreement.xsd
+!/specs/3.1/schemas/SDMXStructureReportingTaxonomy.xsd
+!/specs/3.1/schemas/SDMXStructureStructureMappings.xsd
+!/specs/3.1/schemas/SDMXStructureTransformation.xsd
+!/specs/3.1/schemas/xml.xsd
+
+# ==============================================================================
+# IX. Design Documentation
 # ==============================================================================
 !/docs/design/0001-design-documentation-process.md
 !/docs/design/0002-sdmx-csv-stream-parsing-design.md
@@ -171,7 +254,7 @@
 !/docs/design/0009-maintenance-obligation-tracking-system-design.md
 
 # ==============================================================================
-# IX. Architecture Decision Records (ADRs)
+# X. Architecture Decision Records (ADRs)
 # ==============================================================================
 !/docs/adr/0001-record-architecture-decisions.md
 !/docs/adr/0002-workspace-wide-safety-policy-banning-unsafe-code.md
@@ -195,12 +278,12 @@
 !/docs/adr/0020-shell-script-test-environment-isolation.md
 
 # ==============================================================================
-# X. Guides
+# XI. Guides
 # ==============================================================================
 !/docs/guides/guide-documentation-process.md
 
 # ==============================================================================
-# XI. Source Code & Workspace Packages
+# XII. Source Code & Workspace Packages
 # ==============================================================================
 !/crates/
 /crates/*
@@ -265,7 +348,7 @@
 !/crates/sdmx-client/tests/responses/**/*.csv
 
 # ==============================================================================
-# XII. Forge Configuration Artifacts
+# XIII. Forge Configuration Artifacts
 # ==============================================================================
 # Machine-readable realization of docs/project/forge-setup.md (the "what" the
 # forge tooling consumes). Top-level, forge-neutral, per-forge subdirectories.
@@ -282,7 +365,7 @@
 !/registry/README.md
 
 # ==============================================================================
-# XIII. Automation & Developer Tooling
+# XIV. Automation & Developer Tooling
 # ==============================================================================
 !/scripts/
 /scripts/*
@@ -465,7 +548,7 @@
 
 
 # ==============================================================================
-# XIV. Project Templates and Scaffolding Assets
+# XV. Project Templates and Scaffolding Assets
 # ==============================================================================
 # Architecture Decision Record (ADR) template
 !/docs/adr/templates/
@@ -483,7 +566,7 @@
 !/docs/guides/templates/template.md
 
 # ==============================================================================
-# XV. Deny Sensitive Environment Files
+# XVI. Deny Sensitive Environment Files
 # ==============================================================================
 # .envrc is permitted as the only sanctioned environment-configuration
 # for Nix integration. All other .env* files are denied by default.
@@ -495,7 +578,7 @@
 .envrc.local
 
 # ==============================================================================
-# XVI. Transient Build and Runtime Artifacts
+# XVII. Transient Build and Runtime Artifacts
 # ==============================================================================
 # direnv state directory
 /.direnv/
@@ -506,7 +589,7 @@
 /result-*
 
 # ==============================================================================
-# XVII. Permanent Exclusions
+# XVIII. Permanent Exclusions
 # ==============================================================================
 # Re-apply exclusions on top of allowed directories/files
 # OS metadata

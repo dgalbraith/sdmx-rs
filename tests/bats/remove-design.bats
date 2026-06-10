@@ -72,8 +72,8 @@ teardown() {
 @test "remove-design: preserve .gitignore structure after removal" {
     ./doc-engine.sh remove design -f 0001-test.md > /dev/null
 
-    grep -q "VIII. Design Documentation" .gitignore
-    grep -q "IX. Architecture Decision Records" .gitignore
+    grep -q "IX. Design Documentation" .gitignore
+    grep -q "X. Architecture Decision Records" .gitignore
 }
 
 # ==============================================================================

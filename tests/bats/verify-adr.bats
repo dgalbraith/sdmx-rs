@@ -163,7 +163,7 @@ EOF
 
 @test "verify-adr: detects .gitignore entry with no physical file" {
     # Add entry without creating file
-    sed -i '/^# X/i\!/docs/adr/0003-phantom.md' .gitignore
+    sed -i '/^# XI\. Guides/i\!/docs/adr/0003-phantom.md' .gitignore
 
     run_isolated ./doc-engine.sh verify adr
     [ "$status" -eq 1 ]

@@ -49,8 +49,8 @@ teardown() {
     ./doc-engine.sh add guide "Test Guide" > /dev/null
     ./doc-engine.sh remove guide -f test-guide.md > /dev/null
 
-    grep -q "X. Guides" .gitignore
-    grep -q "XI. Source Code & Workspace Packages" .gitignore
+    grep -q "XI. Guides" .gitignore
+    grep -q "XII. Source Code & Workspace Packages" .gitignore
 }
 
 # ==============================================================================
