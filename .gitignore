@@ -277,6 +277,10 @@
 !/docs/adr/0018-content-type-negotiation-and-parser-routing.md
 !/docs/adr/0019-xml-namespace-aware-parsing.md
 !/docs/adr/0020-shell-script-test-environment-isolation.md
+!/docs/adr/0021-domain-invariant-validation-and-encapsulation-strategy.md
+!/docs/adr/0022-owned-string-ownership-strategy.md
+!/docs/adr/0023-two-layer-infoset-store-and-derived-views-architecture.md
+!/docs/adr/0024-byte-preserving-document-integrity-pathway.md
 
 # ==============================================================================
 # XI. Guides
