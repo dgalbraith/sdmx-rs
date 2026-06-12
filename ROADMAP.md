@@ -75,6 +75,7 @@ Streaming CSV, JSON, and XML parsing (deserialization) and writing (serializatio
 
 ### Parsers (Deserialization)
 
+- [ ] **Reference-types / URN-contract pass (entry gate)**: Must land before any parser work consumes the reference structs, since every wire reference is URN element content the parser must split into the parsed `agency`/`scheme_id`/`id`/`version` fields. Fixed scope: (1) the URN grammar contract per reference shape (maintainable triple vs item-in-scheme, e.g. `CL_AGE(1.0).Y`), with named error variants; (2) the `version: String` → `SdmxVersion`/`Option<SdmxVersion>` decision for the reference structs; (3) the divergent wildcard-reference grammar (3.0 admits `major+`, 3.1 does not), which also intersects [ADR-0024](docs/adr/0024-byte-preserving-document-integrity-pathway.md)'s document pathway (a reference is wire text that must round-trip verbatim); (4) alignment with `TimePeriodRange.period`'s pending `SdmxTimePeriod` adoption as part of the same lexical-typing family — the target must cover the `ObservationalTimePeriodType` union (`StandardTimePeriodType ∪ TimeRangeType`), so a Standard-only newtype would reject schema-valid wire; newtype-vs-raw is this pass's own call
 - [ ] **SDMX-ML (XML) structure message parser**: Streaming deserializer using `quick-xml` with `serde` integration
 - [ ] **SDMX-JSON structure message parser**: Deserializer using `serde_json`
 
