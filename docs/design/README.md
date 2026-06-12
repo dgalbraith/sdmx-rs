@@ -43,6 +43,9 @@ Design documents can be lightweight (a few paragraphs exploring an idea) or comp
 - [0006: Builder Field Storage Strategy for Typestate Query Builders](0006-builder-field-storage.md): Builder pattern field storage strategy
 - [0007: Compile-Time Query Validation via the Typestate Pattern](0007-typestate-query-validation.md): Compile-time validation via typestate pattern
 
+## Domain Modeling
+- [0010: SDMX Core Domain Types Design](0010-sdmx-core-domain-types-design.md): Phase 1 canonical superset model for SDMX 3.0/3.1 — two-layer infoset store, ordered wire collections, per-artefact identifier tiers, and lossless round-trip serialisation
+
 ---
 
 ## Relationship to ADRs

@@ -252,6 +252,7 @@
 !/docs/design/0007-typestate-query-validation.md
 !/docs/design/0008-target-version-policy-for-serialization.md
 !/docs/design/0009-maintenance-obligation-tracking-system-design.md
+!/docs/design/0010-sdmx-core-domain-types-design.md
 
 # ==============================================================================
 # X. Architecture Decision Records (ADRs)
