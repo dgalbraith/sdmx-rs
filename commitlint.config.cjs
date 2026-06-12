@@ -18,6 +18,7 @@ const allowedScopes = () => [
   'design',      // Design documents (docs/design/ and just design)
   'guide',       // User-facing usage guides (docs/guides/) — consumer audience
   'arch',        // Repository architecture (ARCHITECTURE.md)
+  'project',     // Project planning & process docs (ROADMAP.md, docs/project/)
   'dev',         // Developer/contributor docs (docs/dev/) — not for consumers
 
   // Testing & Infrastructure
