@@ -206,14 +206,14 @@ This repository uses [`git-cliff`](https://github.com/orhun/git-cliff) for chang
 
 > **Note**: Version bumps are driven manually via `cargo release`. The commit type provides semantic intent for the maintainer to select the appropriate bump (`patch`, `minor`, or `major`) — it does not automatically trigger a bump. Standard semver convention applies: `feat` → MINOR, `fix` → PATCH, breaking change (`!`) → MAJOR. During the pre-1.0 phase, conservative bumps are used: features and breaking changes accumulate as patch increments until Phase 5 stabilisation.
 
-The `scope` is informational — it appears in changelog entries and `git log` to attribute changes to their area of the codebase. Use the affected crate name (`sdmx-types`, `sdmx-parsers`, `sdmx-client`) or `facade` (specifically for the facade crate at `crates/sdmx-rs`) for crate-specific work, or a descriptive term for cross-cutting changes (e.g., `ci`, `docs`, `deps`). The `facade` scope clearly distinguishes facade-specific changes from global repository-wide modifications.
+The `scope` is informational — it appears in changelog entries and `git log` to attribute changes to their area of the codebase. Use the affected crate's scope (`types`, `parsers`, `client`, `writers`) or `facade` (specifically for the facade crate at `crates/sdmx-rs`) for crate-specific work, or a descriptive term for cross-cutting changes (e.g., `ci`, `docs`, `deps`). The `facade` scope clearly distinguishes facade-specific changes from global repository-wide modifications. The authoritative list of permitted scopes is defined in [`commitlint.config.cjs`](commitlint.config.cjs); the names here are illustrative.
 
 > [!NOTE]
-> **Cross-Crate Commit Scopes**: When a commit spans multiple workspace crates (for example, introducing a core structural type in `sdmx-types` that requires a serialization update in `sdmx-parsers`), apply the scope of the lowest-level affected crate in the dependency chain (e.g., `feat(sdmx-types): ...`). If the change uniformly changes the high-level API entry point without isolated low-level additions, use the `facade` scope.
+> **Cross-Crate Commit Scopes**: When a commit spans multiple workspace crates (for example, introducing a core structural type in `sdmx-types` that requires a serialization update in `sdmx-parsers`), apply the scope of the lowest-level affected crate in the dependency chain (e.g., `feat(types): ...`). If the change uniformly changes the high-level API entry point without isolated low-level additions, use the `facade` scope.
 
 Examples of valid commit messages:
-* `feat(sdmx-types): add codelist representation`
-* `fix(sdmx-parsers): resolve xml payload clipping`
+* `feat(types): add codelist representation`
+* `fix(parsers): resolve xml payload clipping`
 * `chore(ci): pin nix actions to SHA`
 
 #### Closing Issue References
@@ -227,7 +227,7 @@ When your commit resolves or addresses an open issue, include the issue referenc
 
 Example of a complete commit message:
 ```text
-feat(sdmx-types): add codelist representation
+feat(types): add codelist representation
 
 Introduces the core structure and serialisation traits for SDMX codelists.
 
@@ -264,7 +264,7 @@ ignored = [
 **Requirements**:
 
 - **Single Intent**: One logical change per PR. Do not bundle unrelated fixes.
-- **PR Title Discipline**: **The title of your Pull Request must follow the Conventional Commits specification** (e.g., `feat(sdmx-types): add codelist representation`). The PR title (and individual branch commits) will be used to drive `git-cliff` changelog generation.
+- **PR Title Discipline**: **The title of your Pull Request must follow the Conventional Commits specification** (e.g., `feat(types): add codelist representation`). The PR title (and individual branch commits) will be used to drive `git-cliff` changelog generation.
 - **Issue Reference**: Every PR must reference its issue (`Closes #N` or `Fixes #N` in the description).
 - **Documentation**: All public items added or modified must carry `///` doc comments. The workspace enforces `missing_docs` as a warning — CI treats warnings as errors.
 - **Verification Gate**: Every PR must pass the unified `just verify` gate locally before submission. *Note: In PR contexts, overdue maintenance obligations (`check-maintenance.sh`) are demoted to non-blocking warnings so that expired deadlines do not block external contributions.*
