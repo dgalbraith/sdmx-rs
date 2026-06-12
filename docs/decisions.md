@@ -1139,7 +1139,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 > **Amended 2026-06-11 by [D-0052](#d-0052)**: `min_occurs` is stored as `Option<u32>` and the textTypes as `Option<DataType>` (defaults are effective views, position-aware for the time tier); `is_multi_lingual`'s `Option<bool>` below is now the general statedness rule, not a flip-forced exception.
 >
-> **Corrected 2026-06-11**: the "(no default → `Option`)" claim for `maxOccurs` below holds only at the base tier — `BasicComponentRepresentationType` and `MeasureRepresentationType` re-declare it `default="1"` (both versions; the dimension position prohibits it). The `Option<MaxOccurs>` store is right; the applied default is a position-aware `effective_max_occurs()` view, the same shape as `text_type`'s.
+> **Corrected 2026-06-11** (type name further corrected 2026-06-12): the "(no default → `Option`)" claim for `maxOccurs` below holds only at the base tier — `AttributeRepresentationType` and `MeasureRepresentationType` re-declare it `default="1"` (both versions; the dimension position prohibits it). (There is no type named `BasicComponentRepresentationType`; the real re-declarers are `AttributeRepresentationType` at `SDMXStructureDataStructure.xsd` 3.1:573 and `MeasureRepresentationType` at :591. `ConceptRepresentation` inherits the base `RepresentationType` with no `maxOccurs` default, so this is a per-position property, not a Basic-tier one.) The `Option<MaxOccurs>` store is right; the applied default is a position-aware `effective_max_occurs()` view, the same shape as `text_type`'s.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
@@ -1162,6 +1162,8 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 ### D-0049 — DSD container redrawn: identifiable descriptor structs; the DSD itself becomes a derived carrier
 
 > **Amended 2026-06-11 by [D-0051](#d-0051)/[D-0052](#d-0052)**: descriptor contents are ordered `Vec`s (`AttributeList` holds a single interleaved member `Vec` — the wire is one repeated choice; `attributes()`/`usages()` are filtered views), and the fixed descriptor ids are stored as `Option<String>` with mismatch rejected (statedness), rather than omitted as below.
+>
+> **Corrected 2026-06-12 (schema-fidelity pass).** The "Group ids carry no `xs:unique` (duplicates are schema-valid)" claim in the Observation/Decision/Rationale below is **false against the XSD**. `DataStructureUniqueComponent` (`SDMXStructureDataStructure.xsd` 3.1:65 / 3.0:53) is an `xs:unique` whose selector lists `structure:Group | …/Dimension | …/TimeDimension | …/Attribute | …/ReportingYearStartDay | …/Measure` on field `@id`; `Group @id` is `use="required"` (`GroupBaseType` ~3.1:431), so explicit duplicate group ids are **schema-invalid**. `Vec<Group>` still stands, justified now by **wire-order preservation** (a keyed map sorts) plus the genuine residue the constraint cannot see: an id a component **inherits from its concept identity** escapes XML validation (the `DataStructureComponents` annotation states such checks fall "outside of the XML validation"). Catalogued lint #4 is re-scoped from "duplicate group ids" to that concept-inherited residue.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
@@ -1203,11 +1205,13 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0051 — Wire collections stored as ordered Vecs; identity-keyed maps superseded
 
+> **Corrected 2026-06-12 (schema-fidelity pass).** The original Spec-ref and the Observation below claim "the only `xs:unique` in the 3.1 set covers Category and MetadataAttribute", which is **false**: `grep -c xs:unique specs/3.1/schemas/SDMXStructure.xsd` = **128** (3.0 = 124), and in-scope collections ARE protected. `Codelist_UniqueCode` (:552), `ConceptScheme_UniqueConcept` (:535), `AgencyScheme_UniqueAgency` (:462), `DataStructureUniqueComponent` (`SDMXStructureDataStructure.xsd` 3.1:65), and `DataConstraint_/AvailabilityConstraint_CubeRegionInclusion` (:586/:603) all enforce `@id`/`@include` uniqueness. The **`Vec`-everywhere decision stands**, but on corrected grounds: the universal justification is **wire-order preservation** (a `BTreeMap` sorts), with duplicate-identity preservation a **residual** concern confined to the collections the schema genuinely does not constrain: `ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, and cube-region selection ids. The "hybrid policy collapses to Vec everywhere" conclusion holds for that reason (order-faithfulness), not for the absent-`xs:unique` reason stated below. The Spec-ref cell is corrected in place; the Observation prose is retained for provenance.
+
 | **Area**     | Collections |
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | collections, vec, ordering, duplicates, verbatim-store, views, spec-alignment |
-| **Spec ref** | All in-scope XSDs: the only `xs:unique` constraints in the 3.1 set are on Category and MetadataAttribute (neither in 0010 scope); region key-component uniqueness is prose only (`RegionType` annotation) |
+| **Spec ref** | All in-scope XSDs (128 `xs:unique` in 3.1 `SDMXStructure.xsd`): explicit `@id` IS uniqueness-enforced for codes/concepts/agencies/DSD-components/groups and `@include` for cube-region direction; the residual uncovered cases (concept-inherited component ids, `ValueItem` ids, `LocalisedString` languages, region key-component "once" rule) are why ordered `Vec` storage is needed, with order preservation as the universal driver |
 | **Source**   | [ADR-0023](adr/0023-two-layer-infoset-store-and-derived-views-architecture.md); |
 | **Related**  | [D-0006](#d-0006), [D-0031](#d-0031), [D-0047](#d-0047), [D-0049](#d-0049), [D-0052](#d-0052) |
 

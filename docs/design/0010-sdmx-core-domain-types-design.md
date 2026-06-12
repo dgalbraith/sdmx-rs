@@ -88,7 +88,7 @@ classDiagram
 SDMX metadata contains multilingual text (e.g. Names and Descriptions). We define:
 
 - `LocalisedString` as an **ordered list** of `(language, text)` entries in wire order, where the key is the spec's `xml:lang` (= `xs:language`) tag (e.g. `"en"`, `"fr"`) — stored as `Option<String>`, because `TextType` declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are different documents, and the default is an effective view (D-0052/D-0059). See D-0016/D-0051/D-0059.
-- **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order and schema-valid duplicate identities are wire information the infoset store preserves (official samples exhibit duplicates; no in-scope collection carries `xs:unique`). Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
+- **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order is wire information no keyed map preserves (a `BTreeMap` sorts), and so are the duplicate identities the schema actually permits (`ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, cube-region selection ids; official samples exhibit them). Most in-scope schemes *do* carry an `xs:unique` on their explicit `@id` (codes, concepts, agencies, explicit DSD component/group ids), so a duplicate there is schema-invalid rather than wire to preserve, but order-faithfulness alone already dictates `Vec`. Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
 - Determinism is **wire-order-out**: serializing a parsed document reproduces the received order, and programmatic insertion order is itself deterministic. (The earlier `BTreeMap`-everywhere policy bought determinism by sorting — itself a normalization — at the cost of destroying order and duplicates; superseded, D-0006 → D-0051.)
 
 #### 3. Generic ItemScheme Framework
@@ -117,8 +117,10 @@ impl<I: SchemeItem> ItemScheme<I> {
         Self { metadata, is_partial, items: Vec::new() }
     }
     pub fn insert(&mut self, item: I) { self.items.push(item); }
-    /// First-match lookup view (Layer 2). Duplicate ids are schema-valid wire, held
-    /// verbatim and flagged by a catalogued lint; first match is the documented policy.
+    /// First-match lookup view (Layer 2). Wire order is preserved (a keyed map sorts); a
+    /// duplicate id is schema-invalid for these schemes (Code/Concept/Agency `@id` is
+    /// `xs:unique`-enforced), but if a non-conformant document presents one it is held
+    /// verbatim and flagged by a catalogued lint, never collapsed. First match is policy.
     pub fn get(&self, id: &str) -> Option<&I> {
         self.items.iter().find(|i| i.id() == id)
     }
@@ -141,7 +143,7 @@ Concrete domain types wrap or compose this generic container to expose a domain-
 A DSD (`DataStructureDefinition`) is a maintainable artifact defining the dimensions, attributes, and measures of a dataset. The spec's component containers are **identifiable descriptors** (`ComponentListType` extends `IdentifiableType` — each carries annotations/links/urn; their ids are fixed values, except `Group`'s, which is required and user-chosen), modelled as structs that own their content and their mechanical non-empty invariants (D-0049):
 
 - `DimensionList` (required, exactly one): an ordered `Vec` of `Dimension` (the spec's `Dimension+` — at least one, enforced at `DimensionList::new()`), plus an optional `TimeDimension` held in a *separate* `Option` slot on the descriptor — it has no position and is not part of the ordered key (D-0029). Order is preserved because CSV observation coordinates match the dimension declaration order. Each component carries an optional `Representation` (an enumeration reference — codelist, or value list where the position admits it — or text-format facets, plus the representation-level occurs attributes — D-0028/D-0048), replacing the earlier codelist-only field. The per-position mechanical restrictions (dimension: codelist-only; time: TextFormat-only; per-tier facet and textType subsets) are enforced at the component constructors (D-0048).
-- `Group` (0..\*): a named selection of dimensions (`GroupDimension+`) that attributes attach to via `AttributeRelationship::Group`. Carried as `Vec<Group>`: group ids have no `xs:unique`, so duplicate ids are schema-valid wire a keyed map would silently collapse (D-0049).
+- `Group` (0..\*): a named selection of dimensions (`GroupDimension+`) that attributes attach to via `AttributeRelationship::Group`. Carried as `Vec<Group>` to preserve wire order (a keyed map sorts) and stay uniform with the descriptor model. Group `@id` is `use="required"` and shares the `DataStructureUniqueComponent` `xs:unique` scope, so duplicate *group* ids are in fact schema-invalid; the residual duplicate the store must still hold verbatim is the *concept-inherited* component id elsewhere in the DSD, which escapes that `xs:unique` (per the `DataStructureComponents` annotation: such checks fall "outside of the XML validation") (D-0049).
 - `AttributeList` (optional): the attribute descriptor — a single ordered list of members in wire order, each an `Attribute` or a `MetadataAttributeUsage` (one wire choice, so one interleaved `Vec` — D-0050/D-0051), with filtered views per kind. Each attribute defines its relationship to DSD components via `AttributeRelationship` (a structured enum carrying the full relationship specifics — which dimensions, group, or observation level — not just an attachment category), links to a concept, carries an optional `Representation`, and may name the measures it applies to (`MeasureRelationship` — D-0050).
 - `MeasureList` (optional): the measure descriptor. SDMX 3.x models **multiple** measures (`Measure+`, each with an optional `usage` of `mandatory`/`optional`) — there is no single `PrimaryMeasure` (that was the 2.1 model). `None` is the wire's *absent* list (a measure-less DSD); a present descriptor mechanically holds at least one measure. See D-0025 as revised by D-0049.
 
@@ -782,8 +784,10 @@ pub struct ItemScheme<I: SchemeItem> {
     // ITEMS, that one an incomplete set of LANGUAGES. STATEDNESS stored (D-0052): None ⟺
     // attribute absent; the schema default (false) is the is_partial() view's business.
     pub is_partial: Option<bool>,
-    // Wire order preserved; schema-valid duplicate ids held verbatim (no xs:unique covers
-    // scheme items) and flagged by a catalogued lint (D-0051).
+    // Wire order preserved (a keyed map sorts). Code/Concept/Agency ids ARE xs:unique-
+    // enforced (Codelist_UniqueCode / ConceptScheme_UniqueConcept / AgencyScheme_UniqueAgency),
+    // so a duplicate id is schema-invalid here; if a non-conformant document presents one it
+    // is held verbatim and flagged by a catalogued lint, never collapsed (D-0051).
     pub items: Vec<I>,
 }
 
@@ -1183,7 +1187,7 @@ pub enum EnumerationReference {
 // Representation-level maxOccurs is OccurenceType: a number OR the literal "unbounded" — a
 // u32 cannot hold the literal, so it gets its own arm (D-0048). The schema default is
 // POSITION-DEPENDENT (report-5 V-5 corrected the earlier blanket "no schema default" claim):
-// the base RepresentationType declares none, but BasicComponentRepresentationType and
+// the base RepresentationType declares none, but AttributeRepresentationType and
 // MeasureRepresentationType re-declare it default="1" (both versions), and the dimension
 // position PROHIBITS it (constructor-enforced). So: Option stores statedness (D-0052), and
 // the applied default is a position-aware effective_max_occurs() view supplied at the
@@ -1774,8 +1778,11 @@ impl MeasureList {
 pub struct DataStructureDefinition {
     pub metadata: MaintainableMetadata,
     pub dimension_list: DimensionList,
-    // 0..unbounded; a Vec, NOT a map: group ids carry no xs:unique, so duplicate ids are
-    // schema-valid wire a keyed map would silently collapse (D-0049).
+    // 0..unbounded; a Vec, NOT a map: preserves wire order (a map sorts) and stays uniform
+    // with the descriptor model. Group @id is required and shares the
+    // DataStructureUniqueComponent xs:unique scope, so explicit duplicate group ids are
+    // schema-invalid; the residual uncollapsible duplicate is the concept-inherited
+    // component id elsewhere in the DSD, which escapes that xs:unique (D-0049).
     // Lookup is a view (below).
     pub groups: Vec<Group>,
     pub attribute_list: Option<AttributeList>,
@@ -2295,10 +2302,13 @@ pub enum AvailabilityConstraintAttachment {
 // is valid; a data constraint may be expressed purely via DataKeySets). This is the mirror of the
 // D-0034 ref newtypes: there the choice-arm made empty invalid; here minOccurs=0 makes empty valid,
 // so only the upper bound is enforced. The spec's "a set of included or excluded regions" is NOT a
-// one-include-one-exclude rule — two `include=true` regions are schema-valid (since a single region
-// can only express the intersection of filters, multiple regions are required to express a union.),
-// so direction is never checked at `new()`; a coherence lint (catalogued, not built — D-0031) may
-// flag the unusual same-direction case.
+// one-include-one-exclude rule (a single region expresses an intersection of filters; multiple
+// regions express a union). It is also not unconstrained on direction: `DataConstraint_CubeRegionInclusion`
+// (and the availability twin) is an `xs:unique` on the region `@include` (SDMXStructure.xsd 3.1:586/603),
+// so two regions with the same STATED direction are schema-invalid. `new()` does not re-check this (the
+// store is a faithful superset). The residual coherence concern a lint (catalogued, not built, D-0031)
+// may flag is the both-`@include`-absent pair, whose equality under the `default="true"` value is
+// validator-dependent.
 // Bespoke newtype (cf. D-0034 rationale): distinct domain identity + a named error.
 pub struct CubeRegions(Vec<CubeRegion>); // private; constructor rejects >2 (empty is valid)
 impl CubeRegions {
@@ -2568,10 +2578,10 @@ The `private::Sealed` supertrait prevents external crates from implementing `Sdm
 
 The two-layer architecture (ADR-0023) gives coherence and quality concerns a non-destructive home: the store preserves every schema-valid (and, where ruled, parsable-but-invalid) shape verbatim, and lints flag the dubious ones for the consuming application. This subsection is the single citable home for that surface (D-0031 consequence 4, consolidating the per-decision mentions). **No lint is a Phase-1 deliverable** — this is where they will live when built; the predicates below are recorded so they stay precise. Each member cites the decision that catalogued it.
 
-1. **Duplicate item ids in a scheme** — schema-valid (no `xs:unique` in scope); first-match lookup (D-0051).
+1. **Duplicate item ids in a scheme** — schema-**invalid** for `Codelist`/`ConceptScheme`/`AgencyScheme` (their `@id` IS `xs:unique`-enforced: `Codelist_UniqueCode`, `ConceptScheme_UniqueConcept`, `AgencyScheme_UniqueAgency`), so this fires only on a non-conformant document a lenient parse admitted; held verbatim, never collapsed, first-match lookup (D-0051). The genuinely schema-valid duplicate-id case is `ValueItem` (lint #9).
 2. **Duplicate languages in a `LocalisedString`** — duplicate *effective* languages (stated, else `"en"`), since absent ⟺ effective `"en"` (D-0051/D-0059).
 3. **Duplicate selection ids in a region** — the "each key component only once" rule is prose-only (D-0051).
-4. **Duplicate group ids on a DSD** — `GroupType` uniqueness is prose-only (D-0049).
+4. **Duplicate concept-inherited component ids on a DSD** — `DataStructureUniqueComponent` enforces `@id` uniqueness across components and groups for *explicitly assigned* ids only; an id a component inherits from its concept identity escapes XML validation (per the `DataStructureComponents` annotation), so a duplicate there is schema-valid wire. Explicit duplicate ids, all group ids included, are schema-invalid and caught at validation (D-0049).
 5. **Position consistency** — a stated `position` ≠ `list_index + 1` (D-0022/D-0056).
 6. **Negative stated `position`** — schema-valid `xs:int`, meaningless (D-0022).
 7. **Negative `series_count`/`obs_count`** — same class (D-0043).
@@ -2581,7 +2591,7 @@ The two-layer architecture (ADR-0023) gives coherence and quality concerns a non
 11. **`Dataflow.dsd: None` on a non-stub** — the prose "must reference unless defined externally" conditional (D-0053).
 12. **Evolving DSD without a dataflow `DimensionConstraint`** — the prose coupling rule (D-0045).
 13. **`ReleaseCalendar` duration grammar** — three unvalidated `String`s (D-0042).
-14. **Two same-direction cube regions** — include/exclude pairing is prose (D-0036).
+14. **Two both-`@include`-absent cube regions** — `*_CubeRegionInclusion` `xs:unique` (on `@include`) makes two regions with the same *stated* direction schema-invalid; the residue a lint may flag is the pair that both omit `@include`, whose equality under the `default="true"` value is validator-dependent (D-0036).
 15. **Language-key well-formedness** — a blank or off-pattern stated `xs:language` key, preserved verbatim under the parsable-within-spec principle; validity is this view (D-0059).
 
 The surface grows as decisions catalogue new members; a lint is added here (with its source D-number) at the moment a decision names it, so the catalogue and the register never diverge.
