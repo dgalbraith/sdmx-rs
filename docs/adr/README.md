@@ -44,6 +44,10 @@ For design exploration *before* decisions are made, detailed component planning,
 
 ## Domain Modeling
 - [ADR-0008: Unified constraint model](0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md): Single constraint model for SDMX 3.0 and 3.1
+- [ADR-0021: Domain invariant validation & encapsulation](0021-domain-invariant-validation-and-encapsulation-strategy.md): Single write path, custom Deserialize where invariants demand, visibility by invariant ownership
+- [ADR-0022: Owned string ownership](0022-owned-string-ownership-strategy.md): Lifetimeless `'static` domain types; owned `String` for all text fields
+- [ADR-0023: Two-layer infoset store & derived views](0023-two-layer-infoset-store-and-derived-views-architecture.md): Infoset-complete lossless store; ergonomics and defaults as views, never collapses
+- [ADR-0024: Byte-preserving document integrity pathway](0024-byte-preserving-document-integrity-pathway.md): Lossless document layer for edit-in-place; byte in == byte out outside edits
 
 ## Dependencies & Infrastructure
 - [ADR-0009: quick-xml & serde_json](0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md): Streaming deserialization with quick-xml and serde_json
@@ -61,8 +65,6 @@ For design exploration *before* decisions are made, detailed component planning,
 - [ADR-0017: SDMX-CSV parser library selection](0017-sdmx-csv-stream-parsing-strategy.md): Choose `csv` crate for SDMX-CSV parsing (fallback to manual byte scanning)
 - [ADR-0018: Content-Type negotiation and parser routing](0018-content-type-negotiation-and-parser-routing.md): Accept header negotiation and format-aware parser dispatch
 - [ADR-0019: XML namespace-aware parsing](0019-xml-namespace-aware-parsing.md): NsReader for SDMX 3.0/3.1 namespace distinction
-
-## Maintenance & Observability
 
 ## Testing & Development
 - [ADR-0020: Shell script test environment isolation](0020-shell-script-test-environment-isolation.md): Test reproducibility via CI variable isolation

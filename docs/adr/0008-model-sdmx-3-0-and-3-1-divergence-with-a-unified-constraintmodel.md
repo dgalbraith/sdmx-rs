@@ -11,8 +11,8 @@ Accepted
 ## Context
 
 The SDMX 3.x specification series contains structural changes between minor versions. A prominent divergence between **SDMX 3.0** and **SDMX 3.1** is the modeling of data constraints:
-* **SDMX 3.0** uses a unified `DataConstraint` structure. It contains a `constraint_type` attribute to differentiate between `Allowed` (reporting restrictions: what codes are allowed to be uploaded) and `Actual` (availability constraints: what data actually exists in the database).
-* **SDMX 3.1** refactors this area, restricting `DataConstraint` strictly to reporting restrictions (eliminating the `constraint_type` property) and introducing a brand new **`AvailabilityConstraint`** type to represent actual data holdings.
+* **SDMX 3.0** uses a unified `DataConstraint` structure. It carries a required `role` attribute (`ConstraintRoleType`) to differentiate between `Allowed` (reporting restrictions: what codes are allowed to be uploaded) and `Actual` (availability constraints: what data actually exists in the database).
+* **SDMX 3.1** refactors this area, restricting `DataConstraint` strictly to allowed-content semantics (eliminating the `role` attribute) and introducing a brand new **`AvailabilityConstraint`** type to represent actual data holdings.
 
 We must decide how to model this structural divergence in `sdmx-types` to prevent versioning complexity from leaking into the downstream public API of `sdmx-client` and user application code.
 
@@ -43,8 +43,8 @@ Defining a unified `ConstraintModel` enum in the core `sdmx-types` library that 
 
 ```rust
 pub enum ConstraintModel {
-    Allowed(ReportingConstraint),
-    Actual(AvailabilityConstraint),
+    Data(DataConstraint),
+    Availability(AvailabilityConstraint),
 }
 ```
 
@@ -68,11 +68,11 @@ To ensure future-proof interoperability and a complete, bidirectional library, w
 
 #### 1. Canonical Superset Model
 
-`ConstraintModel` is the canonical, version-agnostic source of truth. It is designed as a superset of all SDMX 3.x structural requirements: every field reachable from any supported version must be representable in the model, and no version-to-model conversion may silently discard information. The existing `Allowed(ReportingConstraint)` / `Actual(AvailabilityConstraint)` split already satisfies this: the semantic distinction between 3.0 and 3.1 is the type discriminant itself, not a dropped attribute.
+`ConstraintModel` is the canonical, version-agnostic source of truth. It is designed as a superset of all SDMX 3.x structural requirements: every field reachable from any supported version must be representable in the model. The model itself performs no version conversion — it is pure data; the burden it carries is purely structural completeness, so that when the adapter crates (`sdmx-parsers`, `sdmx-writers`) convert to and from it, no version-specific information is forced to be discarded by the *target type's* shape. The `Data(DataConstraint)` / `Availability(AvailabilityConstraint)` split, together with `DataConstraint.role: Option<ConstraintRole>` (D-0037), satisfies this: the 3.1 type split is the enum discriminant, and the 3.0 `role` attribute (`Allowed`/`Actual`) — which the discriminant alone cannot encode, since both 3.0 roles live on the *same* wire type — is carried as a verbatim superset field (`None` ⟺ the 3.1 wire, which has no such attribute). Variant names reflect what each type *is* in the domain (`Data` = data constraint on a dataflow; `Availability` = actual holdings response) rather than the 3.0 wire-format `role` attribute values (`Allowed`/`Actual`), keeping the enum vocabulary version-agnostic.
 
 #### 2. Adapter Pattern for Parsers and Serializers
 
-`sdmx-parsers` and the future `sdmx-writers` crate are pure adapters to and from the canonical model. All wire-format, version-specific logic (e.g. "if target is 3.0, write `constraint_type` attribute; if 3.1, write `AvailabilityConstraint` block") belongs exclusively in the adapter crates. `ConstraintModel` remains clean of all version-specific syntax.
+`sdmx-parsers` and the future `sdmx-writers` crate are pure adapters to and from the canonical model. All wire-format, version-specific logic (e.g. "if target is 3.0, write the required `role` attribute; if 3.1, write an `AvailabilityConstraint` block") belongs exclusively in the adapter crates. `ConstraintModel` remains clean of all version-specific syntax.
 
 #### 3. Version-Aware serialization via `TargetVersion`
 
