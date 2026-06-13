@@ -1,0 +1,113 @@
+//! The SDMX artefact trait hierarchy.
+//!
+//! The SDMX information model layers `Identifiable → Nameable → Versionable → Maintainable`.
+//! Rust has no class inheritance, so the shared interface is expressed as four supertrait-linked
+//! traits providing standard accessors. Concrete domain types implement them by delegating to a
+//! composed metadata leaf. The accessors are **effective views**: where the schema assigns a
+//! default to an absent attribute, the trait applies it over the stored value.
+#![cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The hierarchy mirrors the abstract artefact types of the SDMX information model (§5.3); concrete
+types compose a metadata leaf (§5.4) and delegate to it. Traits rather than trait objects: the
+accessors monomorphise, so there is no vtable or heap cost. The defaults applied here are the
+Layer-2 effective views over the statedness the metadata leaves store (Layer 1).
+
+Decisions: D-0024, D-0031, D-0035, D-0052.
+"#
+)]
+
+use chrono::{DateTime, FixedOffset};
+
+use crate::{
+    annotation::{Annotation, Link},
+    lexical::{SdmxVersion, VersionDisplay},
+    localised::LocalisedString,
+};
+
+/// An identifiable artefact: it has an id and may carry a URN, annotations, and links.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `IdentifiableType`
+/// - **Element**: N/A (Abstract Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// The base of the artefact hierarchy: every identifiable SDMX artefact exposes these accessors.
+pub trait IdentifiableArtefact {
+    /// The artefact's effective id.
+    fn id(&self) -> &str;
+    /// The artefact's registry URN, if any.
+    fn urn(&self) -> Option<&str>;
+    /// The artefact's annotations (empty slice if none).
+    fn annotations(&self) -> &[Annotation];
+    /// The artefact's links; empty slice if none. Sibling of
+    /// [`annotations`](Self::annotations): both ride on `IdentifiableType`.
+    fn links(&self) -> &[Link];
+}
+
+/// A nameable artefact: an identifiable artefact that additionally carries localised names and
+/// optional localised descriptions.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `NameableType`
+/// - **Element**: N/A (Abstract Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+pub trait NameableArtefact: IdentifiableArtefact {
+    /// The artefact's localised names (guaranteed non-empty).
+    fn names(&self) -> &LocalisedString;
+    /// The artefact's localised descriptions, if any.
+    fn descriptions(&self) -> Option<&LocalisedString>;
+}
+
+/// A versionable artefact: a nameable artefact that additionally carries version and validity
+/// information.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `VersionableType`
+/// - **Element**: N/A (Abstract Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+pub trait VersionableArtefact: NameableArtefact {
+    /// The artefact's version. `None` is the spec's "un-versioned" state, distinct from any
+    /// version value.
+    fn version(&self) -> Option<&SdmxVersion>;
+    /// The start of the artefact's validity window, if any.
+    fn valid_from(&self) -> Option<&DateTime<FixedOffset>>;
+    /// The end of the artefact's validity window, if any.
+    fn valid_to(&self) -> Option<&DateTime<FixedOffset>>;
+
+    /// A `Display` adapter for the version that renders `<unversioned>` when absent. Every
+    /// versionable artefact inherits this display path for free; it is for display and logging
+    /// only and must never be round-tripped (the sentinel is un-roundtrippable by design).
+    fn version_display(&self) -> VersionDisplay<'_> {
+        VersionDisplay(self.version())
+    }
+}
+
+/// A maintainable artefact: a versionable artefact owned by a maintenance agency, optionally a
+/// stub whose full definition is resolved elsewhere.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `MaintainableType`
+/// - **Element**: N/A (Abstract Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+pub trait MaintainableArtefact: VersionableArtefact {
+    /// The maintenance agency id (`agencyID`).
+    fn agency(&self) -> &str;
+    /// `true` if this artefact carries only a *subset* of the localisations its agency
+    /// maintains (the spec's `isPartialLanguage`, SDMX 3.1 only). `false` (the default, and the
+    /// value for a 3.0 payload or an absent attribute) asserts the localisations are complete.
+    fn is_partial_language(&self) -> bool;
+    /// `true` if this artefact is a stub whose full definition lives elsewhere (resolve via the
+    /// service or structure URL); `false` (the default) means it is defined inline.
+    fn is_external_reference(&self) -> bool;
+    /// `serviceURL`: an SDMX web-service endpoint the artefact can be retrieved from.
+    fn service_url(&self) -> Option<&str>;
+    /// `structureURL`: a structure message (same version) containing the artefact.
+    fn structure_url(&self) -> Option<&str>;
+}

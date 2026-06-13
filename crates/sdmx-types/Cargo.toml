@@ -20,18 +20,23 @@ rustdoc-args = ["--cfg", "docsrs"]
 workspace = true
 
 [dependencies]
+chrono = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+# Exercises the custom Deserialize impls (§7 construction contract): round-trip and
+# invariant-rejection tests deserialize through the validated constructors.
+serde_json = { workspace = true }
 
 # Scaffold: wasm-bindgen-test for Node.js WASM test execution (ADR-0007).
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
 
-# Scaffold: all dependencies suppressed until implementation begins.
-# Remove each entry here as it is actively used — machete will then flag genuine dead deps.
+# serde / thiserror / chrono are now actively used (Milestone 1), so they are no longer
+# suppressed — machete will flag them if they ever fall out of use. Only the platform-specific
+# WASM test harness stays ignored (it is referenced exclusively under cfg(target_arch = wasm32)).
 [package.metadata.cargo-machete]
 ignored = [
-  "serde",             # Phase 1: serialization trait derives for type structures
-  "thiserror",         # Phase 1: error type definitions
   "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32) for WASM testing)
 ]
