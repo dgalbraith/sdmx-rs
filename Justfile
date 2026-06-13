@@ -65,7 +65,7 @@ verify-scripts: shellcheck verify-test-manifests test-scripts check-shebangs
     @./scripts/lib/log.sh log_ok "verify-scripts: all gates passed"
 
 # Verify documentation integrity: code comments, commit messages, markdown, ADRs, design docs
-verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check
+verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check check-decision-refs
     @./scripts/lib/log.sh log_ok "verify-docs: all gates passed"
 
 # Verify security & supply chain: secret leak scan, dependency advisories/licenses, unused dependencies
@@ -97,6 +97,10 @@ md-link-check:
 # Ban machine-specific absolute file:// links across Markdown, TOML and Rust
 local-link-check:
     @./scripts/check-local-links.sh
+
+# Validate every decision-register reference (D-NNNN) in crate source resolves to docs/decisions.md
+check-decision-refs:
+    @./scripts/check-decision-refs.sh
 
 # --- verify-scripts sub-gate helpers ---
 
@@ -142,6 +146,7 @@ lint-help:
     @echo "  just check                  # Type-check all workspace packages without producing binaries"
     @echo "  just clippy                 # Run strict clippy static analysis (pedantic, nursery)"
     @echo "  just docs                   # Build documentation and check for comment warnings"
+    @echo "  just docs-internal [pkgs]   # Build internal docs (design_docs notes + private items)"
     @echo ""
     @echo "Formats:"
     @echo "  just toml-fmt               # Format workspace TOML files"
@@ -178,6 +183,10 @@ clippy:
 # Generate workspace documentation and verify all public items carry doc comments without warnings
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked --quiet
+
+# Generate internal docs: the design_docs rationale layer plus private items (default whole workspace; pass `-p <crate>` to scope)
+docs-internal pkgs="--workspace":
+    RUSTDOCFLAGS="--cfg design_docs -D warnings" cargo doc {{ pkgs }} --no-deps --document-private-items --all-features --locked --quiet
 
 # === Formats ===
 

@@ -39,6 +39,15 @@ unsafe_code = "forbid"                 # Guarantee 100% memory safety across all
 missing_docs = "warn"                  # Enforce public API documentation coverage
 missing_debug_implementations = "warn" # Enforce public type Debug implementation
 
+# Register the project's custom cfgs so `unexpected_cfgs` (promoted to an error by the
+# `-Dwarnings` rustflag) does not fire. `design_docs` gates the internal documentation
+# layer, rendered only by `just docs-internal`, never on docs.rs. `docsrs` is the docs.rs cfg
+# already passed via each crate's `[package.metadata.docs.rs]`.
+unexpected_cfgs = { level = "warn", check-cfg = [
+  "cfg(design_docs)",
+  "cfg(docsrs)",
+] }
+
 [workspace.lints.clippy]
 # pedantic includes must_use_candidate — all builder methods, constructors, and
 # non-trivial return values must carry #[must_use]. CI treats these as hard errors.
