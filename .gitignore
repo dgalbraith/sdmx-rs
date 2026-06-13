@@ -399,6 +399,7 @@
 
 # Verification gates & checkers
 !/scripts/check-changelog.sh
+!/scripts/check-decision-refs.sh
 !/scripts/check-local-links.sh
 !/scripts/check-maintenance.sh
 !/scripts/check-release-notes.sh
@@ -480,6 +481,7 @@
 
 # Verification gate tests
 !/tests/bats/check-changelog.bats
+!/tests/bats/check-decision-refs.bats
 !/tests/bats/check-local-links.bats
 !/tests/bats/check-maintenance.bats
 !/tests/bats/check-release-notes.bats

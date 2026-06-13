@@ -169,6 +169,7 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just verify-minimal`        | Local      | Fast validation gate for local iteration. Compiles and runs standard tests.                                              | `cargo check`, `cargo clippy`, `cargo nextest` |
 | `just check-commits`         | Local & CI | Validates commit messages in the active branch against Conventional Commit rules.                                        | `commitlint`                                   |
 | `just link-check`            | Local & CI | Validates Markdown link reachability and bans absolute `file://` links in md/toml/rs.                                    | `lychee`, `check-local-links.sh`               |
+| `just check-decision-refs`   | Local & CI | (Supports `verify-docs`) Validates that crate-source decision references (`D-NNNN`) resolve to `docs/decisions.md`.      | `check-decision-refs.sh`                       |
 | `just check-shebangs`        | Local & CI | (Supports `verify-scripts`) Validates that all scripts in `scripts/` declare the POSIX-portable `#!/bin/sh` shebang.     | `check-shebangs.sh`                            |
 | `just verify-test-manifests` | Local & CI | (Supports `verify-scripts`) Validates that the update-msrv test manifest lists all workspace crate `Cargo.toml` files.   | `check-test-manifests.sh`                      |
 | `just test-workflows`        | Local & CI | (Supports `verify-infra`) Validates GitHub Actions workflows for syntax errors and SHA-pinning compliance.               | `actionlint`                                   |
@@ -180,20 +181,21 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 
 ### 3. Code Quality, Formatting & Linting
 
-| Target              | Scope      | Description                                                                             | Tool(s)                                                    |
-|---------------------|:----------:|-----------------------------------------------------------------------------------------|------------------------------------------------------------|
-| `just lint-help`    | Local      | **Formatting, style, and static analysis diagnostics guide.** Displays style commands.  | `just`                                                     |
-| `just lint`         | Local      | Runs all non-modifying style, formatting, and clippy checks sequentially.               | `rustfmt`, `taplo`, `clippy`, `markdownlint`, `shellcheck` |
-| `just fmt`          | Local      | Formats all Rust files and TOML manifests using project-pinned nightly styling rules.   | Nightly `rustfmt`, `taplo`                                 |
-| `just check-format` | Local & CI | Validates formatting standards without modifying files.                                 | Nightly `rustfmt`, `taplo`                                 |
-| `just check`        | Local      | Type-checks all workspace packages and targets without producing binaries.              | `cargo check`                                              |
-| `just clippy`       | Local & CI | Strict static analysis under pedantic and nursery lints.                                | `cargo-clippy`                                             |
-| `just docs`         | Local & CI | Generates workspace documentation and validates that public API comments are warn-free. | `cargo-doc`                                                |
-| `just toml-fmt`     | Local      | Formats all TOML files (`Cargo.toml`, `deny.toml`, etc.) in the workspace.              | `taplo`                                                    |
-| `just toml-check`   | Local & CI | Validates that all workspace TOML files are formatted correctly.                        | `taplo`                                                    |
-| `just md-fmt`       | Local      | Formats all Markdown documentation files for structure and style.                       | `markdownlint`                                             |
-| `just md-check`     | Local & CI | Lints all Markdown documentation files for structure and syntax style.                  | `markdownlint`                                             |
-| `just shellcheck`   | Local & CI | Lints all repository shell scripts (`scripts/*.sh`) for errors and bad practices.       | `shellcheck`                                               |
+| Target              | Scope      | Description                                                                                                          | Tool(s)                                                    |
+|---------------------|:----------:|----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
+| `just lint-help`    | Local      | **Formatting, style, and static analysis diagnostics guide.** Displays style commands.                               | `just`                                                     |
+| `just lint`         | Local      | Runs all non-modifying style, formatting, and clippy checks sequentially.                                            | `rustfmt`, `taplo`, `clippy`, `markdownlint`, `shellcheck` |
+| `just fmt`          | Local      | Formats all Rust files and TOML manifests using project-pinned nightly styling rules.                                | Nightly `rustfmt`, `taplo`                                 |
+| `just check-format` | Local & CI | Validates formatting standards without modifying files.                                                              | Nightly `rustfmt`, `taplo`                                 |
+| `just check`        | Local      | Type-checks all workspace packages and targets without producing binaries.                                           | `cargo check`                                              |
+| `just clippy`       | Local & CI | Strict static analysis under pedantic and nursery lints.                                                             | `cargo-clippy`                                             |
+| `just docs`         | Local & CI | Generates workspace documentation and validates that public API comments are warn-free.                              | `cargo-doc`                                                |
+| `just docs-internal` | Local     | Renders the internal documentation layer (`design_docs` rationale plus private items); never published to docs.rs.   | `cargo-doc`                                                |
+| `just toml-fmt`     | Local      | Formats all TOML files (`Cargo.toml`, `deny.toml`, etc.) in the workspace.                                           | `taplo`                                                    |
+| `just toml-check`   | Local & CI | Validates that all workspace TOML files are formatted correctly.                                                     | `taplo`                                                    |
+| `just md-fmt`       | Local      | Formats all Markdown documentation files for structure and style.                                                    | `markdownlint`                                             |
+| `just md-check`     | Local & CI | Lints all Markdown documentation files for structure and syntax style.                                               | `markdownlint`                                             |
+| `just shellcheck`   | Local & CI | Lints all repository shell scripts (`scripts/*.sh`) for errors and bad practices.                                    | `shellcheck`                                               |
 
 ### 4. Testing & Coverage
 
