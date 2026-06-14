@@ -68,6 +68,8 @@ Documentation flows naturally from design exploration through user guidance. Eac
 
 **When to add**: Any type or function with non-obvious behavior. Always for public items (CI enforces rustdoc).
 
+**How**: For the authoring conventions (the public `///` versus `design_docs` split, the `## Specification` citation discipline, and the heading, example, and `## Guarantees` idioms), see [Rustdoc Conventions](rustdoc.md).
+
 ---
 
 ### Guides

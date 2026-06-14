@@ -6,6 +6,8 @@ Guidance for contributors writing and maintaining code in this repository.
 
 - [Developer Workflow](./workflow.md): Step-by-step contribution walkthrough (Issue → Commit → PR creation)
 - [Practices & Code Style](./practices.md): Naming conventions, formatting, rustdoc style, module organization
+- [Documentation Standards](./documentation.md): Which documentation type to write (design docs, ADRs, rustdoc, guides), and why
+- [Rustdoc Conventions](./rustdoc.md): How to author doc comments (the public `///` versus `design_docs` split, `## Specification` citations, heading and example idioms)
 - [Developer Tooling & Recipes](./tooling.md): Nix/direnv development environment and Justfile target reference
 - [Testing Strategy](./testing.md): Test pyramid, fixtures, mocking, coverage expectations, fuzzing plan
 - [Dependency Management](../project/maintenance.md#dependency-audit): How to audit and manage dependencies

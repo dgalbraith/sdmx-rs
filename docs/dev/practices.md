@@ -174,6 +174,8 @@ Use `# MAINTENANCE:` for periodic obligations; see [maintenance.md](../project/m
 
 Rustdoc comments (`///`) are required for all public items (types, functions, methods, modules, constants, traits). Rustdoc is validated in CI: missing or incomplete docs cause compilation to fail. See [RFC 430 — Documentation](https://rust-lang.github.io/api-guidelines/documentation.html) for detailed guidelines.
 
+The `sdmx-rs` authoring conventions (the public `///` versus `design_docs` split, the `## Specification` citation discipline, and the heading, example, and `## Guarantees` idioms) have their own guide: [Rustdoc Conventions](rustdoc.md). The baseline format below applies across the workspace.
+
 ### Format
 
 **One-line summary (preferred)**:
