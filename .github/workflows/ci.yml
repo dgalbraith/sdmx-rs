@@ -64,6 +64,7 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       infra: ${{ steps.filter.outputs.infra }}
       xsd: ${{ steps.filter.outputs.xsd }}
+      decisionrefs: ${{ steps.filter.outputs.decisionrefs }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -98,6 +99,11 @@ jobs:
               - 'crates/sdmx-types/src/**'
               - 'scripts/gen-xsd-fragments.sh'
               - 'scripts/check-xsd-fragments.sh'
+            decisionrefs:
+              # No hyphen in the name: `outputs.decision-refs` would parse as subtraction.
+              - 'crates/**/*.rs'
+              - 'docs/decisions.md'
+              - 'scripts/check-decision-refs.sh'
 
   check-formatting:
     name: Formatting & Import Sort Check
@@ -189,6 +195,21 @@ jobs:
 
       - name: Verify XSD contract fragments (freshness + cross-check)
         run: nix develop --command just check-xsd-fragments
+
+
+  check-decision-refs:
+    name: Decision Reference Resolution
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: github.event_name == 'schedule' || needs.changes.outputs.decisionrefs == 'true' || needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Verify crate-source decision references resolve
+        run: nix develop --command just check-decision-refs
 
 
   check-scripts:
@@ -913,6 +934,7 @@ jobs:
       - check-docs
       - check-scripts
       - check-xsd-fragments
+      - check-decision-refs
       - coverage
       - nix-check
       - check-workflows
