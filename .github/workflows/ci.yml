@@ -8,11 +8,12 @@ name: Continuous Integration
 # affect; scheduled and non-PR runs execute the full suite.
 #
 # Trigger matrix:
-#   - pull_request  -> diff-scoped checks + PR-only gates (commits, semver)
-#   - push (main)   -> full suite + coverage upload + maintenance tracking
-#   - push (tag)    -> full suite + changelog + release dry-run (publish.yml
-#                      handles the actual publish on the same tag)
-#   - schedule      -> full suite + opportunistic MSRV-floor detection
+#   - pull_request      -> diff-scoped checks + PR-only gates (commits, semver)
+#   - push (main)       -> full suite + coverage upload + maintenance tracking
+#   - push (tag)        -> full suite + changelog + release dry-run (publish.yml
+#                          handles the actual publish on the same tag)
+#   - schedule          -> full suite + opportunistic MSRV-floor detection
+#   - workflow_dispatch -> on-demand MSRV-floor detection (manual run)
 #
 # Job-name taxonomy (the suffix noun states what the job does to a change):
 #   - "... Check"      runs a tool and passes/fails on its exit status
@@ -31,6 +32,9 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 0 * * 6' # Saturday at 00:00 UTC
+  # On-demand trigger so the schedule-only MSRV Floor Detection job can be run
+  # without waiting for the weekly cron (usable once this lands on the default branch).
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -561,10 +565,17 @@ jobs:
   check-msrv:
     name: MSRV Floor Detection
     runs-on: ubuntu-latest
-    # Scheduled maintenance check only: detects if actual MSRV floor is lower than declared.
-    # This is informational (non-blocking) — maintainers decide opportunistically when to lower MSRV.
-    # MSRV compilation is verified implicitly by clippy (on default features) and msrv-features-check (feature matrix).
-    if: github.event_name == 'schedule'
+    # Detects whether a crate's real MSRV floor has risen above its declared
+    # rust-version. Per-crate via --manifest-path: the virtual workspace root has
+    # no [package].rust-version for cargo-msrv to read, and the floors genuinely
+    # diverge, so a red cell names the crate that rose. Informational and
+    # non-blocking (clippy and msrv-features-check verify compilation); runs on the
+    # weekly schedule or an on-demand workflow_dispatch.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false   # report every risen floor, not just the first
+      matrix:
+        crate: [sdmx-types, sdmx-parsers, sdmx-writers, sdmx-client]
     env:
       RUSTC_WRAPPER: sccache
       SCCACHE_DIR: /home/runner/.cache/sccache
@@ -598,13 +609,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-sccache-
 
+      # cargo-msrv (the installed tool) is intentionally UNPINNED (latest): this is
+      # an opportunistic upstream-drift detector, so pinning it would blind it to
+      # the changes it exists to catch. The action itself stays SHA-pinned. Do not
+      # pin the tool.
       - name: Install cargo-msrv
         uses: taiki-e/install-action@920ab1831fbf4fb3ef75c8ead83556c918bb7290 # v2.79.8
         with:
           tool: cargo-msrv
 
       - name: Verify MSRV Floor
-        run: cargo msrv verify
+        run: cargo msrv verify --manifest-path crates/${{ matrix.crate }}/Cargo.toml
 
   msrv-features-check:
     name: MSRV Feature Matrix Check
