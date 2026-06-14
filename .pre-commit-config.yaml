@@ -63,14 +63,16 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
-  # 7. Local Docs Quality Gate (Runs only on push when markdown files change)
+  # 7. Local Docs Quality Gate (runs on push when Markdown OR crate sources
+  #    change: verify-docs reads .rs too, for decision-reference resolution
+  #    (check-decision-refs) and the XSD-fragment cross-check)
   - repo: local
     hooks:
       - id: verify-gate-docs
         name: run-just-verify-docs
         entry: nix develop --command just verify-docs
         language: system
-        files: '\.md$'
+        files: '\.(md|rs)$'
         pass_filenames: false
         stages: [pre-push]
 

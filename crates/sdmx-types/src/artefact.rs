@@ -34,6 +34,7 @@ use crate::{
 /// - **Type**: `IdentifiableType`
 /// - **Element**: N/A (Abstract Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/IdentifiableType.md"))]
 ///
 /// The base of the artefact hierarchy: every identifiable SDMX artefact exposes these accessors.
 pub trait IdentifiableArtefact {
@@ -56,6 +57,7 @@ pub trait IdentifiableArtefact {
 /// - **Type**: `NameableType`
 /// - **Element**: N/A (Abstract Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/NameableType.md"))]
 pub trait NameableArtefact: IdentifiableArtefact {
     /// The artefact's localised names (guaranteed non-empty).
     fn names(&self) -> &LocalisedString;
@@ -71,6 +73,7 @@ pub trait NameableArtefact: IdentifiableArtefact {
 /// - **Type**: `VersionableType`
 /// - **Element**: N/A (Abstract Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionableType.md"))]
 pub trait VersionableArtefact: NameableArtefact {
     /// The artefact's version. `None` is the spec's "un-versioned" state, distinct from any
     /// version value.
@@ -95,7 +98,24 @@ pub trait VersionableArtefact: NameableArtefact {
 /// - **Schema**: `SDMXCommon.xsd`
 /// - **Type**: `MaintainableType`
 /// - **Element**: N/A (Abstract Type)
-/// - **Editions**: SDMX 3.0 and 3.1
+/// - **Editions**: SDMX 3.0 and 3.1 (Divergent)
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/MaintainableType.3.0.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/MaintainableType.3.1.md"))]
+#[cfg_attr(design_docs, doc = "")]
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`MaintainableType` diverges across editions: SDMX 3.1 adds the `isPartialLanguage` attribute
+(`use="optional" default="false"`), absent in 3.0, surfaced here as
+[`is_partial_language`](Self::is_partial_language). The two fragments above show each edition's
+verbatim contract; the attribute is carried unconditionally as a superset member, its `false`
+default applying to a 3.0 payload exactly as to an absent 3.1 attribute.
+
+Decisions: D-0010, D-0046.
+"#
+)]
 pub trait MaintainableArtefact: VersionableArtefact {
     /// The maintenance agency id (`agencyID`).
     fn agency(&self) -> &str;

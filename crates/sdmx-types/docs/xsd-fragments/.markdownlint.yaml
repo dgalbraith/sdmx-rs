@@ -1,0 +1,10 @@
+# Inherit the workspace rule set, then lift the rules the generated XSD contract
+# fragments must break. Each fragment is verbatim, HTML-wrapped XSD: it opens
+# with a <details> block (no leading heading), wraps the symbol name in <code>,
+# and preserves the schema's source hard tabs. The authored README.md in this
+# directory uses none of those constructs, so it stays linted under the
+# inherited rules.
+extends: ../../../../.markdownlint.yaml
+MD041: false
+MD033: false
+MD010: false

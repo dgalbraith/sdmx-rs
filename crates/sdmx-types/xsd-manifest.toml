@@ -1,0 +1,95 @@
+# XSD contract fragment manifest for sdmx-types.
+#
+# Each [[fragment]] opts one vendored XSD symbol into a generated contract fragment
+# under docs/xsd-fragments/<symbol>.md, included into the cited Rust item's
+# design_docs block via `#[cfg_attr(design_docs, doc = include_str!(...))]`.
+#
+# Listing a symbol IS the opt-in; omit large or noisy complexTypes. Keep one key
+# per line: the generator (scripts/gen-xsd-fragments.sh) parses this with awk,
+# not a TOML library, so the format stays flat and regular.
+#
+# Fields:
+#   symbol:    the xs:complexType / xs:simpleType name, extracted verbatim; also
+#              the fragment filename (<symbol>.md, or <symbol>.<edition>.md when the
+#              editions diverge).
+#   file:      schema path under specs/<edition>/.
+#   editions:  extracted from each; one fragment if byte-identical across them, two
+#              if they diverge (divergence is detected, never declared).
+#   rust:      the Rust item(s) whose ## Specification cites this symbol; each gets
+#              the include line and is cross-checked. An array: one shared symbol
+#              keeps one fragment but is referenced from every listed item.
+
+# --- Annotation and link carriers (annotation.rs) ---
+
+[[fragment]]
+symbol = "AnnotationURLType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["AnnotationUrl"]
+
+[[fragment]]
+symbol = "AnnotationType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Annotation"]
+
+[[fragment]]
+symbol = "LinkType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Link"]
+
+# --- Lexical types (lexical.rs) ---
+
+[[fragment]]
+symbol = "VersionType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxVersion"]
+
+# Time periods: StandardTimePeriodType (the union) is cited by both SdmxTimePeriod
+# and the SdmxTimePeriodKind classifier, the shared-symbol / multi-rust case. Its
+# members carry the actual grammar and are cited by the Kind enum.
+[[fragment]]
+symbol = "StandardTimePeriodType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxTimePeriod", "SdmxTimePeriodKind"]
+
+[[fragment]]
+symbol = "BasicTimePeriodType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxTimePeriodKind"]
+
+[[fragment]]
+symbol = "ReportingTimePeriodType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxTimePeriodKind"]
+
+# --- Abstract artefact hierarchy (artefact.rs) ---
+
+[[fragment]]
+symbol = "IdentifiableType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["IdentifiableArtefact"]
+
+[[fragment]]
+symbol = "NameableType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["NameableArtefact"]
+
+[[fragment]]
+symbol = "VersionableType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["VersionableArtefact"]
+
+[[fragment]]
+symbol = "MaintainableType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MaintainableArtefact"]
