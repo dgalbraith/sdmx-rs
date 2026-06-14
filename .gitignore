@@ -148,6 +148,7 @@
 # ==============================================================================
 !/docs/dev/documentation.md
 !/docs/dev/practices.md
+!/docs/dev/rustdoc.md
 !/docs/dev/testing.md
 !/docs/dev/tooling.md
 !/docs/dev/workflow.md

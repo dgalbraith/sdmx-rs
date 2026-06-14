@@ -278,6 +278,7 @@ Before submitting, verify your code adheres to the style guide:
 - [ ] Code formatted with `just fmt`
 - [ ] Naming follows conventions (functions/modules: snake_case, types: CamelCase)
 - [ ] All public items have rustdoc comments (`///`)
+- [ ] Doc comments follow the [rustdoc conventions](docs/dev/rustdoc.md) (the public/`design_docs` split, `## Specification` citations, heading and example idioms)
 - [ ] Rustdoc examples compile (`cargo test --doc`)
 - [ ] Comments explain WHY, not WHAT
 - [ ] No unnecessary comments or commented-out code
@@ -433,7 +434,7 @@ Full testing conventions, coverage expectations, and the testing checklist are d
 
 ## Documentation Standards
 
-`sdmx-rs` emphasises documentation that explains **why** decisions are made, not just **that** they were made. See [docs/dev/documentation.md](docs/dev/documentation.md) for the thinking and guidance.
+`sdmx-rs` emphasises documentation that explains **why** decisions are made, not just **that** they were made. See [docs/dev/documentation.md](docs/dev/documentation.md) for the thinking and guidance, and [docs/dev/rustdoc.md](docs/dev/rustdoc.md) for the rustdoc authoring conventions.
 
 ## Deprecation & Breaking Changes
 
