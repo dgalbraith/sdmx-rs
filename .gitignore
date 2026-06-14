@@ -331,6 +331,14 @@
 !/crates/**/README.md
 !/crates/**/CHANGELOG.md
 
+# sdmx-types: XSD contract fragment subsystem (design_docs layer).
+# The authored manifest, the generated fragments, and the scoped markdownlint
+# config that relaxes rules for the verbatim-XSD fragments; see xsd-manifest.toml
+# and scripts/gen-xsd-fragments.sh.
+!/crates/sdmx-types/xsd-manifest.toml
+!/crates/sdmx-types/docs/xsd-fragments/*.md
+!/crates/sdmx-types/docs/xsd-fragments/.markdownlint.yaml
+
 # sdmx-parsers: spec validation fixtures
 !/crates/sdmx-parsers/tests/fixtures/**/*.xml
 !/crates/sdmx-parsers/tests/fixtures/**/*.json
@@ -407,6 +415,7 @@
 !/scripts/check-semver.sh
 !/scripts/check-shebangs.sh
 !/scripts/check-test-manifests.sh
+!/scripts/check-xsd-fragments.sh
 !/scripts/verify-ci-gate.sh
 
 # Diagnostics & environment verification (doctor-*)
@@ -461,6 +470,10 @@
 !/scripts/common.sh
 !/scripts/doc-engine.sh
 
+# XSD contract fragment generator (apply); the doctor (check-xsd-fragments.sh)
+# lives under Verification gates & checkers.
+!/scripts/gen-xsd-fragments.sh
+
 # Test infrastructure & core helpers
 !/tests/
 /tests/*
@@ -482,6 +495,7 @@
 # Verification gate tests
 !/tests/bats/check-changelog.bats
 !/tests/bats/check-decision-refs.bats
+!/tests/bats/check-xsd-fragments.bats
 !/tests/bats/check-local-links.bats
 !/tests/bats/check-maintenance.bats
 !/tests/bats/check-release-notes.bats

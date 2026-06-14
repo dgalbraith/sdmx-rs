@@ -26,6 +26,7 @@ use crate::localised::LocalisedString;
 /// - **Type**: `AnnotationURLType`
 /// - **Element**: `<AnnotationURL>`
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/AnnotationURLType.md"))]
 ///
 /// The element carries one URL and at most one `xml:lang`. When the language tag is absent,
 /// the specification treats the resource as not localised.
@@ -72,6 +73,7 @@ pub struct AnnotationUrl {
 /// - **Type**: `AnnotationType`
 /// - **Element**: `<Annotation>`
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/AnnotationType.md"))]
 ///
 /// An annotation attaches non-normative notes to an artefact: an optional id, type, title,
 /// value, localised text, and any number of associated URLs. Every field is optional or a
@@ -130,6 +132,7 @@ pub struct Annotation {
 /// - **Type**: `LinkType`
 /// - **Element**: `<Link>`
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/LinkType.md"))]
 ///
 /// A link carries more than a bare URL: a relationship type, the target URL, an optional SDMX
 /// registry URN of the target, and an optional media-type hint.

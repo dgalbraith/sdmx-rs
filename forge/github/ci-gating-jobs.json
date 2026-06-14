@@ -35,6 +35,7 @@
     { "job": "validate-scaffolding", "why": "Repository scaffolding conformance." },
     { "job": "check-docs",           "why": "Markdown / ADR / design-doc validation." },
     { "job": "check-scripts",        "why": "Shell lint + bats suite." },
+    { "job": "check-xsd-fragments",  "why": "XSD contract fragments fresh + correctly wired (design_docs)." },
     { "job": "coverage",             "why": "Per-crate coverage floors." },
     { "job": "nix-check",            "why": "Nix flake integrity." },
     { "job": "check-workflows",      "why": "GitHub Actions workflow validation (also runs this drift check)." },

@@ -12,6 +12,11 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
+# Dev-only assets for the design_docs layer: the XSD contract fragments are
+# include_str!'d solely under cfg(design_docs) (never docs.rs or a normal build),
+# so they and their manifest stay out of the published crate.
+exclude = ["xsd-manifest.toml", "docs/"]
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

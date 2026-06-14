@@ -65,7 +65,7 @@ verify-scripts: shellcheck verify-test-manifests test-scripts check-shebangs
     @./scripts/lib/log.sh log_ok "verify-scripts: all gates passed"
 
 # Verify documentation integrity: code comments, commit messages, markdown, ADRs, design docs
-verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check check-decision-refs
+verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check check-decision-refs check-xsd-fragments
     @./scripts/lib/log.sh log_ok "verify-docs: all gates passed"
 
 # Verify security & supply chain: secret leak scan, dependency advisories/licenses, unused dependencies
@@ -101,6 +101,14 @@ local-link-check:
 # Validate every decision-register reference (D-NNNN) in crate source resolves to docs/decisions.md
 check-decision-refs:
     @./scripts/check-decision-refs.sh
+
+# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-vendoring)
+gen-xsd-fragments:
+    @./scripts/gen-xsd-fragments.sh
+
+# Verify the XSD contract fragments are fresh and correctly wired (doctor).
+check-xsd-fragments:
+    @./scripts/check-xsd-fragments.sh
 
 # --- verify-scripts sub-gate helpers ---
 
@@ -202,7 +210,7 @@ toml-check:
 md-fmt:
     markdownlint-cli2 --fix "**/*.md" "#target" "#.direnv" "#.git" "#node_modules"
 
-# Lint all Markdown documentation files for structure and syntax style
+# Lint all Markdown documentation files for structure and syntax style.
 md-check:
     markdownlint-cli2 "**/*.md" "#target" "#.direnv" "#.git" "#node_modules"
 
@@ -373,6 +381,10 @@ docs-help:
     @echo "  just guide-rename <old> <new>     # Rename a User Guide and update ledger"
     @echo "  just guide-remove <target>        # Remove a User Guide"
     @echo "  just verify-guide                 # Verify User Guide ledger formatting"
+    @echo ""
+    @echo "XSD Contract Fragments (design_docs layer):"
+    @echo "  just gen-xsd-fragments            # Regenerate fragments from xsd-manifest.toml (apply)"
+    @echo "  just check-xsd-fragments          # Verify fragments are fresh and wired (doctor)"
     @echo ""
 
 # Create a new Architecture Decision Record using the custom MADR template (non-interactive)

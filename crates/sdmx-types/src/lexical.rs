@@ -182,6 +182,7 @@ impl TryFrom<SdmxDecimal> for SdmxInteger {
 /// - **Type**: `VersionType`
 /// - **Element**: N/A (Simple Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionType.md"))]
 ///
 /// The canonical string is stored verbatim and the parsed components are read through the
 /// accessors. `patch()` returning `None` distinguishes the legacy form from the semantic form.
@@ -346,6 +347,7 @@ impl core::fmt::Display for VersionDisplay<'_> {
 /// - **Type**: `StandardTimePeriodType`
 /// - **Element**: N/A (Simple Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/StandardTimePeriodType.md"))]
 ///
 /// The canonical string is stored verbatim, and the value is classified into an
 /// [`SdmxTimePeriodKind`] during validation so the kind is available without reparsing.
@@ -416,6 +418,10 @@ impl SdmxTimePeriod {
 /// - **Type**: `StandardTimePeriodType` (`BasicTimePeriodType` and `ReportingTimePeriodType` members)
 /// - **Element**: N/A (Simple Type)
 /// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/StandardTimePeriodType.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/BasicTimePeriodType.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ReportingTimePeriodType.md"))]
+#[cfg_attr(design_docs, doc = "")]
 #[cfg_attr(
     design_docs,
     doc = r#"
