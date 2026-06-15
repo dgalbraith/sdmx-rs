@@ -140,6 +140,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0057](#d-0057) | Data structure              | Component id statedness stored (ComponentMetadata leaf); the trait id() is the effective view; TimeDimension fixed id enforced                     |
 | [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole              |
 | [D-0059](#d-0059) | Localisation                | LocalisedString key: statedness stored (xml:lang default en) + blank/off-pattern keys held; parsable-within-spec amends the reject-line            |
+| [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl    |
 
 ## Entries
 
@@ -1381,5 +1382,25 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: One field, one construction site, one coherent decision instead of two amendments. The statedness half is D-0052 applied to its missed attribute class; the validity half lands the parked thread's leaning — the key sits on the *content* side of the identity-vs-content fork (nothing structural depends on its grammar; worst case is can't-resolve-by-locale), so refusing it makes a call that belongs to the consuming application. Writers reproduce stated tags and omit absent ones, so key statedness round-trips need no language carve-out.
 
 **Consequences**: (1) ADR-0023's reject-line is amended in place (ceiling-not-mandate; the value-level vs structural boundary); D-0031 carries a pointer note. (2) D-0016's key clauses are superseded (note added); its blank-value clause had already been withdrawn under D-0031. (3) `Error::MalformedLocalisation` removed; the duplicate-language lint becomes duplicate *effective* languages. (4) `Contact`'s localisable triple (D-0055) and `Annotation.texts` inherit the resolution wholesale.
+
+---
+
+### D-0060 — SdmxVersion ordering deferred past Phase 1 (raw Eq only, no Ord)
+
+| **Area**     | Lexical types |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | sdmx-version, ordering, ord, eq, semver, precedence, deferral, lexical |
+| **Spec ref** | [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`VersionType`); [Semantic Versioning §11](https://semver.org/#spec-item-11) |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1 |
+| **Related**  | [D-0024](#d-0024), [D-0027](#d-0027) |
+
+**Observation**: `SdmxVersion` has raw-based equality (D-0027): two versions are equal iff their canonical strings match, so `1.0.0-rc` and `1.0.0` are correctly unequal. A SemVer §11 precedence `Ord` would order them (`1.0.0-rc` < `1.0.0`), but the unresolved legacy-vs-semantic equivalence (`3.1` vs `3.1.0`: equal under precedence, distinct under raw-`Eq`) means a precedence `Ord` bound to that `Eq` would violate the `Ord`/`Eq` consistency contract (`cmp == Equal` exactly when `==`). The earlier 0010 §5.1 pseudocode nonetheless showed `impl Ord`/`impl PartialOrd`, contradicting both the raw-`Eq` above and the shipped code.
+
+**Decision**: Ordering is **deferred past Phase 1**. `SdmxVersion` implements raw-based `PartialEq`/`Eq` and `Display` only; no `Ord`/`PartialOrd` in Phase 1. When precedence comparison is needed it lands as an explicit convenience (a method or a comparison wrapper), so raw-`Eq` and SemVer precedence coexist without an `Ord`/`Eq` contract: distinct under equality, equal under precedence. 0010 §5.1 is corrected to drop the `Ord`/`PartialOrd` impls and record this.
+
+**Rationale**: A type-level `Ord` would force a single answer to the legacy-equivalence question and bind it to `Eq`, the lossy collision D-0024/D-0027 avoid. Deferring keeps the raw store faithful and leaves the precedence semantics to be settled with samples when a consumer actually needs sorting; pre-1.0 an additive `Ord`-or-method is a clean MINOR bump.
+
+**Consequences**: (1) 0010 §5.1 drops the `Ord`/`PartialOrd` pseudocode (corrected). (2) No code change: the shipped `SdmxVersion` already omits `Ord` and documents the deferral; its Design Notes now cite this entry. (3) Sorting/precedence consumers (for example "latest version") wait for the future convenience; none exists in Phase 1.
 
 ---

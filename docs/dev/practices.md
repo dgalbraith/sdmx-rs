@@ -579,6 +579,23 @@ impl PartialEq for Client {
 - Document why you manually implement a trait (unusual semantics)
 - `#[derive(Debug)]` is almost always desirable for debugging
 
+### Lexical newtype trait surface
+
+The lexical newtypes (`SdmxDecimal`, `SdmxInteger`, `SdmxVersion`, `SdmxTimePeriod`; D-0027) store the raw lexeme losslessly and validate at construction. Their standard-trait surface is deliberate and uniform: it exposes the raw form for reading and parsing without dissolving the validated boundary.
+
+| Trait                            | Provided | Rationale                                                                                                                                                                                                                                                |
+| -------------------------------- |:--------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Display`                        | ✅       | Renders the raw lexeme verbatim, no normalisation.                                                                                                                                                                                                       |
+| `FromStr`                        | ✅       | Delegates to `new()`, so `"…".parse()` is the idiomatic, validating constructor.                                                                                                                                                                         |
+| `AsRef<str>`                     | ✅       | Explicit borrow of the raw lexeme.                                                                                                                                                                                                                       |
+| `PartialEq` / `Eq`               | ✅       | Equality is string identity, lossless-distinct (`SdmxVersion` treats `1.0.0-rc` and `1.0.0`, and `3.1` and `3.1.0`, as unequal).                                                                                                                         |
+| `PartialEq<str>` / `<&str>`      | intended | Ergonomic comparison to literals; not yet implemented (its round-trip property test lands with the M5/M6 `proptest` suite).                                                                                                                              |
+| `Ord` / `PartialOrd`             | ❌       | Deferred. `SdmxVersion` ordering is unresolved (legacy-vs-semantic equivalence), and a precedence `Ord` bound to the raw `Eq` would violate the `Ord`/`Eq` contract (D-0060); precedence will be an explicit method or wrapper, not a type-level `Ord`.  |
+| `Borrow<str>`                    | ❌       | Conditional only. It would require `Eq`/`Hash`/`Ord` consistent with `str`, locking the equality/ordering semantics and foreclosing the `SdmxVersion` precedence question. Adopt only if a `str`-keyed lookup need arises and the semantics are settled. |
+| `Deref<str>`                     | ❌       | Rejected. Auto-deref would surface every `str` method as the newtype's own API, dissolving the validated boundary; `AsRef<str>` gives explicit raw access instead.                                                                                       |
+
+Decisions: D-0027, D-0060.
+
 ### Const and Const Functions
 
 Use `const` for values known at compile time; use `const fn` for functions that can be evaluated at compile time.

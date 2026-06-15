@@ -220,7 +220,7 @@ The likely shape is an explicit precedence-comparison convenience (a method or w
 an `Ord` impl on the type, so raw-`Eq` and SemVer ordering can coexist without an `Ord`/`Eq`
 contract: distinct under equality, equal under precedence.
 
-Decisions: D-0027.
+Decisions: D-0027, D-0060.
 "#
 )]
 #[derive(Clone, Debug)]
