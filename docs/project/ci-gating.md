@@ -21,19 +21,23 @@ These checks validate universal code quality and must pass unconditionally:
 | **check-secrets**    | Secret leak scan over full git history (`gitleaks`)                                          | All pushes & PRs             |    ✅ Yes    |
 | **check-wasm**       | WASM target portability                                                                      | Rust/infra changes, schedule |    ✅ Yes    |
 | **docs**             | Documentation generation and warnings                                                        | Rust/infra changes, schedule |    ✅ Yes    |
+| **docs-internal**    | Internal design_docs layer builds clean (verify-only)                                        | Rust/infra changes, schedule |    ✅ Yes    |
+| **coverage**         | Per-crate code coverage floors (`cargo-llvm-cov`)                                            | Rust/infra changes, schedule |    ✅ Yes    |
 
 ### 2. Mandatory-When-Triggered (Run only on relevant file changes)
 
 These checks are mandatory but scoped to specific file types. They block merge if triggered:
 
-| Check                   | Purpose                                  | Triggers                                     | Blocks Merge |
-|-------------------------|------------------------------------------|:--------------------------------------------:|:------------:|
-| **check-docs**          | Markdown/ADR/Design Doc validation       | Docs/infra changes, schedule                 | ✅ Yes       |
-| **nix-check**           | Nix flake integrity                      | Rust/infra changes, schedule                 | ✅ Yes       |
-| **msrv-verify**         | Declared MSRV compiles and passes checks | Rust/infra changes, schedule                 | ✅ Yes       |
-| **check-scripts**       | Shell script linting and BATS tests      | Scripts/infra changes, schedule              | ✅ Yes       |
-| **check-workflows**     | GitHub Actions workflow validation       | Infra changes, schedule                      | ✅ Yes       |
-| **validate-scaffolding** | Repository scaffolding conformance      | Rust/infra changes, schedule                 | ✅ Yes       |
+| Check                    | Purpose                                                        | Triggers                                        | Blocks Merge |
+|--------------------------|----------------------------------------------------------------|:-----------------------------------------------:|:------------:|
+| **check-docs**           | Markdown/ADR/Design Doc validation                             | Docs/infra changes, schedule                    | ✅ Yes       |
+| **nix-check**            | Nix flake integrity                                            | Rust/infra changes, schedule                    | ✅ Yes       |
+| **msrv-verify**          | Declared MSRV compiles and passes checks                       | Rust/infra changes, schedule                    | ✅ Yes       |
+| **check-scripts**        | Shell script linting and BATS tests                            | Scripts/infra changes, schedule                 | ✅ Yes       |
+| **check-workflows**      | GitHub Actions workflow validation                             | Infra changes, schedule                         | ✅ Yes       |
+| **validate-scaffolding** | Repository scaffolding conformance                             | Rust/infra changes, schedule                    | ✅ Yes       |
+| **check-xsd-fragments**  | XSD contract fragments fresh and correctly wired (design_docs) | XSD manifest/fragment/source changes, schedule  | ✅ Yes       |
+| **check-decision-refs**  | Crate-source `D-NNNN` references resolve to the register       | Crate source / `decisions.md` changes, schedule | ✅ Yes       |
 
 ### 3. Continuous Monitoring & Maintenance
 
@@ -136,20 +140,20 @@ The aggregator is **fail-closed** (see the in-workflow comment on `ci-gate`):
 
 ### Declared gating set & drift protection
 
-The exact set of jobs the aggregator must cover is declared in [`forge/github/ci-gating-jobs.json`](../../forge/github/ci-gating-jobs.json) — the **intent**. The `ci-gate` job's `needs:` list is the **execution**. `scripts/verify-ci-gate.sh` (run by the `check-workflows` job) asserts the two match exactly and that every declared job actually exists in `ci.yml`. A stray edit that drops a gating job from `needs:` — silently ungating it on `main` — therefore fails CI rather than reaching production. When a job is added to or removed from the gate, update the manifest in the same change.
+The exact set of jobs the aggregator must cover is declared in [`forge/github/ci-gating-jobs.json`](../../forge/github/ci-gating-jobs.json) — the **intent**. The `ci-gate` job's `needs:` list is the **execution**, and the Check Details below are the **human-readable mirror**. `scripts/verify-ci-gate.sh` (run by the `check-workflows` job, and locally under both `just verify-infra` and `just verify-docs`) asserts all three agree: the `needs:` list equals the manifest, every declared job exists in `ci.yml`, and every gating job has a `#### <job>` Check Details entry below (the doc may document *more* — the excluded jobs — so this is a subset check). A stray edit that drops a gating job from `needs:` (silently ungating it on `main`), or adds a gating job without documenting it here, therefore fails CI rather than reaching production. When a job is added to or removed from the gate, update the manifest, the `needs:` list, **and this document** in the same change.
 
 ### What the gate does *not* cover, and why
 
 Six jobs are deliberately **excluded** from the aggregator. Including any of them would either deadlock the staging fast-forward (they do not run on `push` events) or block a merge for non-code reasons:
 
-| Excluded job | Class | Why excluded |
-|--------------|-------|--------------|
-| **semver-check** | PR-only (procedural) | Validates version strings against commit history on PRs. A local `--no-ff` merge does not alter `Cargo.toml` versions, so re-running it on the staging SHA adds noise without signal; it does not run on `push`, so requiring it would deadlock the fast-forward. Remains required on PRs to `main`. |
-| **check-commit-messages** | PR-only (procedural) | Validates commit message format on the feature branch. Does not run on `push` events. |
-| **validate-changelog** | Tag-scoped | Triggers strictly on `refs/tags/**`. No bearing on a `staging-*` or `main` push. |
-| **detect-maintenance** | Informational | Non-blocking maintenance tracker; runs on schedule/main-push and creates Issues, never gates a merge. |
-| **check-msrv** | Scheduled/informational | Opportunistic MSRV-floor detection; schedule-only, non-blocking. |
-| **msrv-features-check** | Scheduled/informational | MSRV feature-matrix check; schedule-only, non-blocking. |
+| Excluded job              | Class                   | Why excluded |
+|---------------------------|-------------------------|--------------|
+| **semver-check**          | PR-only (procedural)    | Validates version strings against commit history on PRs. A local `--no-ff` merge does not alter `Cargo.toml` versions, so re-running it on the staging SHA adds noise without signal; it does not run on `push`, so requiring it would deadlock the fast-forward. Remains required on PRs to `main`. |
+| **check-commit-messages** | PR-only (procedural)    | Validates commit message format on the feature branch. Does not run on `push` events. |
+| **validate-changelog**    | Tag-scoped              | Triggers strictly on `refs/tags/**`. No bearing on a `staging-*` or `main` push. |
+| **detect-maintenance**    | Informational           | Non-blocking maintenance tracker; runs on schedule/main-push and creates Issues, never gates a merge. |
+| **check-msrv**            | Scheduled/informational | Opportunistic MSRV-floor detection; schedule-only, non-blocking. |
+| **msrv-features-check**   | Scheduled/informational | MSRV feature-matrix check; schedule-only, non-blocking. |
 
 ## Check Details
 
@@ -217,6 +221,24 @@ Generates workspace documentation and enforces `missing_docs` linting.
 **Runs on**: Rust code changes, infrastructure changes, or scheduled.
 **Purpose**: Ensure all public API items are documented.
 
+#### docs-internal
+Builds the internal `design_docs` rationale layer (private items under `--cfg design_docs`) to confirm it compiles clean under `-D warnings`. Verify-only: the output is never published, and docs.rs remains public-only.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Catch a broken internal-docs build (a bad fragment `include_str!` path, or a `--cfg design_docs` warning) that the public `docs` build does not exercise.
+
+#### coverage
+Enforces per-crate code coverage floors with `cargo-llvm-cov` (`just coverage-gate`). The per-crate thresholds are the gate; the Codecov upload is a non-blocking nice-to-have.
+
+**Runs on**: Rust code changes, infrastructure changes, or scheduled.
+**Purpose**: Keep each crate above its minimum coverage floor.
+
+#### changes
+The path-filter engine (`dorny/paths-filter`): computes which file categories changed (`rust`, `scripts`, `docs`, `infra`, `xsd`, `decisionrefs`, `cigate`) so every path-gated job knows whether to run. It is a load-bearing gate, not background infrastructure — the `ci-gate` aggregator asserts `changes` itself succeeded before trusting any job that legitimately skipped (the fail-closed invariant above).
+
+**Runs on**: Every PR and push — it is the first job, and every other job declares `needs: [changes]`.
+**Purpose**: Drive path-based job selection and anchor the aggregator's fail-closed check.
+
 ### Mandatory-When-Triggered Checks
 
 #### nix-check
@@ -257,6 +279,18 @@ Verifies that repository scaffolding (crate structure, required files, workspace
 
 **Runs on**: Rust code changes, infrastructure changes, or scheduled.
 **Purpose**: Catch scaffolding drift — missing or malformed crate metadata, workspace member mismatches, or required file absences — before they compound.
+
+#### check-xsd-fragments
+Verifies the vendored XSD contract fragments are fresh (regenerate-and-diff), that every modelled type's `## Specification` cites its symbol and wires its `include_str!`, and that no orphan includes exist (`just check-xsd-fragments`).
+
+**Runs on**: XSD manifest/fragment or crate-source changes, infrastructure changes, or scheduled.
+**Purpose**: Keep the design_docs XSD contracts in lockstep with the pinned schemas.
+
+#### check-decision-refs
+Verifies that every `D-NNNN` decision reference in the crate sources resolves to an entry in `docs/decisions.md` (`just check-decision-refs`).
+
+**Runs on**: Crate-source or `decisions.md` changes, infrastructure changes, or scheduled.
+**Purpose**: Prevent dangling decision references in the code from reaching `main`.
 
 ### Release Path Gate Checks
 

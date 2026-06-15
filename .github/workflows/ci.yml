@@ -69,6 +69,7 @@ jobs:
       infra: ${{ steps.filter.outputs.infra }}
       xsd: ${{ steps.filter.outputs.xsd }}
       decisionrefs: ${{ steps.filter.outputs.decisionrefs }}
+      cigate: ${{ steps.filter.outputs.cigate }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -108,6 +109,14 @@ jobs:
               - 'crates/**/*.rs'
               - 'docs/decisions.md'
               - 'scripts/check-decision-refs.sh'
+            cigate:
+              # The CI Quality Gate's own definition + cross-check inputs, so an edit
+              # to the gate manifest, its prose doc, or the checker re-runs
+              # verify-ci-gate (which check-workflows runs). ci.yml itself is already
+              # covered by `infra`.
+              - 'forge/github/ci-gating-jobs.json'
+              - 'docs/project/ci-gating.md'
+              - 'scripts/verify-ci-gate.sh'
 
   check-formatting:
     name: Formatting & Import Sort Check
@@ -784,7 +793,9 @@ jobs:
     # Validates GitHub Actions workflow syntax and security (actionlint).
     # Runs on infra changes (.github/workflows/) or scheduled validation.
     # Mandatory-when-triggered: ensures workflow modifications are validated before merge.
-    if: needs.changes.outputs.infra == 'true' || github.event_name == 'schedule'
+    # Also runs on `cigate` changes so an edit to the gate manifest / ci-gating.md /
+    # verify-ci-gate.sh re-runs the gate cross-check (verify-ci-gate, via test-workflows).
+    if: needs.changes.outputs.infra == 'true' || needs.changes.outputs.cigate == 'true' || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
