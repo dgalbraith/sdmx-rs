@@ -30,6 +30,7 @@
     { "job": "test-matrix",          "why": "Build & test on Linux/macOS/Windows; core correctness." },
     { "job": "check-wasm",           "why": "WASM target portability." },
     { "job": "docs",                 "why": "Rustdoc generation + missing_docs lint." },
+    { "job": "docs-internal",        "why": "Internal design_docs layer builds clean (verify-only; never published)." },
     { "job": "check-security",       "why": "Supply-chain audit (cargo deny + machete)." },
     { "job": "check-secrets",        "why": "Secret leak scan over full git history." },
     { "job": "validate-scaffolding", "why": "Repository scaffolding conformance." },

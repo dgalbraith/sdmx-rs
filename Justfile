@@ -56,8 +56,8 @@ verify: verify-rust verify-scripts verify-docs verify-security verify-infra veri
 verify-linear: verify-rust verify-scripts verify-docs verify-security verify-infra verify-maintenance
     @./scripts/lib/log.sh log_ok "verify: all verification phases passed"
 
-# Verify Rust codebase formatting, clippy, docs build, wasm target, semver, and test coverage
-verify-rust: check-format clippy check-wasm docs semver-check coverage-gate release-dry-run
+# Verify Rust codebase formatting, clippy, public + internal docs build, wasm target, semver, and test coverage
+verify-rust: check-format clippy check-wasm docs docs-internal semver-check coverage-gate release-dry-run
     @./scripts/lib/log.sh log_ok "verify-rust: all gates passed"
 
 # Verify repository shell script linting and testing
