@@ -516,20 +516,14 @@ impl core::fmt::Display for SdmxVersion {
 impl PartialEq for SdmxVersion { fn eq(&self, o: &Self) -> bool { self.raw == o.raw } }
 impl Eq for SdmxVersion {}
 
-// Ordering ADHERES to the published Semantic Versioning §11 precedence rules — NOT invented:
-//   1. compare major, then minor, then patch numerically (legacy patch=None treated as 0,
-//      since legacy `1.2` ≡ `1.2.0`);
-//   2. a version WITH a prerelease (`extension`) is LOWER than the same version without one
-//      (`1.0.0-rc` < `1.0.0`);
-//   3. two prereleases compare identifier-by-identifier (dot-separated): numeric identifiers
-//      compare numerically, alphanumeric lexically, numeric < alphanumeric, more fields > fewer.
-// See <https://semver.org/#spec-item-11>. PartialOrd delegates to Ord (total order).
-impl Ord for SdmxVersion {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering { /* semver §11 precedence */ }
-}
-impl PartialOrd for SdmxVersion {
-    fn partial_cmp(&self, o: &Self) -> Option<core::cmp::Ordering> { Some(self.cmp(o)) }
-}
+// Ordering is DEFERRED past Phase 1 (D-0060): no `Ord`/`PartialOrd` is implemented on the type.
+// SemVer §11 precedence (<https://semver.org/#spec-item-11>) is the intended basis, but the
+// legacy/semantic-equivalence question (`3.1` vs `3.1.0`: equal under precedence, distinct under
+// the raw-based `Eq` above) is undecided and premature to lock, and a precedence `Ord` bound to
+// raw-`Eq` would violate the `Ord`/`Eq` consistency contract (the lossy collision D-0024/D-0027
+// avoid). The likely future shape is an explicit precedence-comparison convenience (a method or a
+// comparison wrapper) rather than an `Ord` impl, so raw-`Eq` and SemVer precedence coexist without
+// an `Ord`/`Eq` contract: distinct under equality, equal under precedence.
 
 // Display adapter for the OPTIONAL version. The `<unversioned>` sentinel lives ONLY here,
 // reachable only through `VersionableArtefact::version_display()` (§5.3). The angle brackets
