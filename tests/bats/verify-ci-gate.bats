@@ -23,11 +23,12 @@ setup() {
     TMPDIR=$(mktemp -d)
     cd "$TMPDIR" || exit 1
 
-    mkdir -p scripts/lib forge/github .github/workflows
+    mkdir -p scripts/lib forge/github .github/workflows docs/project
     cp "$REPO_ROOT/scripts/verify-ci-gate.sh" scripts/
     cp "$REPO_ROOT/scripts/lib/log.sh" scripts/lib/
     cp "$REPO_ROOT/forge/github/ci-gating-jobs.json" forge/github/
     cp "$REPO_ROOT/.github/workflows/ci.yml" .github/workflows/
+    cp "$REPO_ROOT/docs/project/ci-gating.md" docs/project/
 }
 
 teardown() {
@@ -52,7 +53,7 @@ CI=".github/workflows/ci.yml"
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"matches the gating manifest"* ]]
+    [[ "$output" == *"in sync across"* ]]
 }
 
 # ==============================================================================
@@ -123,6 +124,26 @@ CI=".github/workflows/ci.yml"
 }
 
 # ==============================================================================
+# Doc drift — a gating job is not documented in ci-gating.md
+# ==============================================================================
+
+@test "verify-ci-gate: gating job not documented in ci-gating.md -> exit 1" {
+    # Remove the `#### clippy` Check Details heading from the prose doc. clippy
+    # stays in the manifest AND the ci-gate needs: list, so it is a real gating
+    # job that is now undocumented — the drift the prose check must catch and the
+    # needs:/manifest check cannot see.
+    DOC="docs/project/ci-gating.md"
+    grep -v '^#### clippy$' "$DOC" > "$DOC.tmp" && mv "$DOC.tmp" "$DOC"
+
+    run_verify
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"not documented"* ]]
+    [[ "$output" == *"clippy"* ]]
+}
+
+# ==============================================================================
 # Missing inputs fail closed
 # ==============================================================================
 
@@ -133,6 +154,15 @@ CI=".github/workflows/ci.yml"
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 1 ]
     [[ "$output" == *"Manifest not found"* ]]
+}
+
+@test "verify-ci-gate: missing ci-gating.md -> exit 1" {
+    rm -f docs/project/ci-gating.md
+    run_verify
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Gate documentation not found"* ]]
 }
 
 @test "verify-ci-gate: empty manifest jobs array -> exit 1" {

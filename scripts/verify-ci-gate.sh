@@ -2,10 +2,14 @@
 # ==============================================================================
 # scripts/verify-ci-gate.sh
 #
-# Cross-checks the CI Quality Gate's coverage: the `ci-gate` job's `needs:` list
-# in .github/workflows/ci.yml MUST equal the gating set declared in
-# forge/github/ci-gating-jobs.json, and every job named in the manifest MUST
-# actually exist as a job in ci.yml (no ghost gates).
+# Cross-checks the CI Quality Gate's coverage on three fronts:
+#   1. the `ci-gate` job's `needs:` list in .github/workflows/ci.yml MUST equal
+#      the gating set declared in forge/github/ci-gating-jobs.json;
+#   2. every job named in the manifest MUST actually exist as a job in ci.yml
+#      (no ghost gates); and
+#   3. every gating job MUST be documented in docs/project/ci-gating.md as a
+#      `#### <job>` Check Details heading (manifest is a SUBSET of documented —
+#      the doc legitimately documents more, e.g. the deliberately-excluded jobs).
 #
 # WHY a separate manifest: the manifest is the declared INTENT (what must gate
 # main); the workflow `needs:` is the EXECUTION (what actually gates). Verifying
@@ -24,8 +28,8 @@
 # POSIX sh; uses jq (manifest parse) + grep/sed/sort/comm. No bashisms.
 #
 # Exit codes:
-#   0 = manifest and ci-gate needs: match, no ghost gates
-#   1 = drift (mismatch) or ghost gate detected, or inputs missing
+#   0 = needs:, manifest, and ci-gating.md all in sync; no ghost gates
+#   1 = drift, ghost gate, undocumented gating job, or a missing input
 # ==============================================================================
 
 set -u
@@ -36,6 +40,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 MANIFEST="forge/github/ci-gating-jobs.json"
 CI=".github/workflows/ci.yml"
+DOC="docs/project/ci-gating.md"
 
 log_section "Verifying CI Quality Gate coverage..."
 
@@ -47,13 +52,18 @@ if [ ! -f "$CI" ]; then
     log_fail "Workflow not found: $CI"
     exit 1
 fi
+if [ ! -f "$DOC" ]; then
+    log_fail "Gate documentation not found: $DOC"
+    exit 1
+fi
 
 # Temp files (POSIX: no process substitution). LC_ALL=C pins sort collation so
 # `comm` cannot report phantom drift from a locale-dependent ordering mismatch.
 TMP_WANT=$(mktemp)
 TMP_HAVE=$(mktemp)
 TMP_ALL=$(mktemp)
-trap 'rm -f "$TMP_WANT" "$TMP_HAVE" "$TMP_ALL"' EXIT
+TMP_DOC=$(mktemp)
+trap 'rm -f "$TMP_WANT" "$TMP_HAVE" "$TMP_ALL" "$TMP_DOC"' EXIT
 
 # WANT — the declared gating set from the manifest.
 if ! jq -e '.jobs | type == "array" and length > 0' "$MANIFEST" > /dev/null 2>&1; then
@@ -111,8 +121,27 @@ if [ -n "$missing_from_gate" ] || [ -n "$undeclared_in_manifest" ]; then
     rc=1
 fi
 
+# Assertion C — every gating job is DOCUMENTED in ci-gating.md as a
+# `#### <job>` Check Details heading. The doc legitimately documents MORE than
+# the gating set (the deliberately-excluded jobs — semver-check, check-msrv, …
+# — each have a heading too), so this is a subset assertion (manifest ⊆
+# documented), NOT equality. It catches a gating job added to the manifest +
+# ci-gate needs: but never written up in the prose doc — the drift class the
+# `needs:` ↔ manifest check above cannot see.
+grep -E '^#### [A-Za-z0-9_-]+[[:space:]]*$' "$DOC" \
+    | sed -E 's/^#### //; s/[[:space:]]+$//' \
+    | LC_ALL=C sort -u > "$TMP_DOC"
+undocumented=$(LC_ALL=C comm -23 "$TMP_WANT" "$TMP_DOC")
+if [ -n "$undocumented" ]; then
+    log_fail "Gating job(s) not documented in $DOC (need a '#### <job>' Check Details entry):"
+    printf '%s\n' "$undocumented" | while IFS= read -r j; do
+        [ -n "$j" ] && log_err_detail "  $j" 2
+    done
+    rc=1
+fi
+
 if [ "$rc" -eq 0 ]; then
-    log_ok "verify-ci-gate: ci-gate needs: matches the gating manifest ($(wc -l < "$TMP_WANT" | tr -d ' ') jobs)"
+    log_ok "verify-ci-gate: $(wc -l < "$TMP_WANT" | tr -d ' ') gating jobs in sync across the manifest, ci-gate needs:, and ci-gating.md"
 fi
 
 exit "$rc"

@@ -65,7 +65,7 @@ verify-scripts: shellcheck verify-test-manifests test-scripts check-shebangs
     @./scripts/lib/log.sh log_ok "verify-scripts: all gates passed"
 
 # Verify documentation integrity: code comments, commit messages, markdown, ADRs, design docs
-verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check check-decision-refs check-xsd-fragments
+verify-docs: check-commits _verify-adr-quiet _verify-design-quiet _verify-guide-quiet md-check link-check check-decision-refs check-xsd-fragments verify-ci-gate
     @./scripts/lib/log.sh log_ok "verify-docs: all gates passed"
 
 # Verify security & supply chain: secret leak scan, dependency advisories/licenses, unused dependencies
@@ -123,8 +123,11 @@ verify-test-manifests:
 # --- verify-infra sub-gate helpers ---
 
 # Validate GitHub Action workflows for syntax errors and SHA-pinning compliance
-test-workflows:
+test-workflows: verify-ci-gate
     @actionlint
+
+# Cross-check the CI Quality Gate: the ci-gate needs: list and ci-gating.md against the gating manifest
+verify-ci-gate:
     @./scripts/verify-ci-gate.sh
 
 # --- verify-maintenance sub-gate helpers ---
