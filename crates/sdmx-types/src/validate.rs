@@ -6,11 +6,12 @@
 //! rather than regex-backed to stay `no_std` with no extra dependency; each mirrors the exact
 //! `xs:pattern` from `SDMXCommonReferences.xsd`.
 //!
-//! Only the two tiers with a Milestone 1 caller live here: `validate_id`
-//! ([`IdentifiableMetadata`](crate::IdentifiableMetadata)) and `validate_nested_ncname`
-//! ([`MaintainableMetadata`](crate::MaintainableMetadata)). The `NCNameIDType` tier
-//! (`validate_ncname`) and the fixed-value check (`validate_fixed`) join when their first callers,
-//! the scheme items and wrappers, land in a later milestone.
+//! All three tiers now have callers: `validate_id` ([`IdentifiableMetadata`](crate::IdentifiableMetadata)),
+//! `validate_ncname` (the scheme items and wrappers whose ids the spec types as `NCNameIDType`:
+//! [`Concept`](crate::Concept), [`Codelist`](crate::Codelist), [`ConceptScheme`](crate::ConceptScheme)),
+//! and `validate_nested_ncname` ([`MaintainableMetadata`](crate::MaintainableMetadata)). The
+//! fixed-value check `validate_fixed` arrives alongside them, owned by
+//! [`AgencyScheme`](crate::AgencyScheme) (the `fixed="AGENCIES"` scheme id).
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -62,6 +63,39 @@ pub fn validate_id(id: &str) -> Result<(), Error> {
     }
 }
 
+/// Validates an identifier against SDMX `NCNameIDType` (`[A-Za-z][A-Za-z0-9_\-]*`), the middle
+/// tier: a single `NCName` (no dots). Stricter than `IDType` (a leading digit, `@`, `$`, or `.`
+/// are rejected here), looser than `NestedNCNameIDType` (which permits dot-delimited segments).
+///
+/// # Errors
+///
+/// Returns [`Error::InvalidNcNameIdentifier`] if `id` is not a single valid `NCName` segment
+/// (which also rejects an empty string and any embedded dot).
+pub fn validate_ncname(id: &str) -> Result<(), Error> {
+    if is_ncname_segment(id) { Ok(()) } else { Err(Error::InvalidNcNameIdentifier(id.to_string())) }
+}
+
+/// Checks a stated value against an XSD `fixed` value. A value that is stated and differs from
+/// the schema-fixed one is mechanically schema-invalid (an XSD validator would itself reject the
+/// mismatch); an absent value is always accepted (the attribute may be omitted, taking the fixed
+/// value by default).
+///
+/// `attribute` names the site for the diagnostic (the convention shared with
+/// [`FixedInclude::new`](crate::FixedInclude::new), which reports `"include"`); pass the attribute name,
+/// for example `"id"`.
+///
+/// # Errors
+///
+/// Returns [`Error::FixedAttributeMismatch`] if `stated` is `Some(v)` with `v != expected`.
+pub fn validate_fixed(attribute: &str, stated: Option<&str>, expected: &str) -> Result<(), Error> {
+    match stated {
+        Some(value) if value != expected => {
+            Err(Error::FixedAttributeMismatch(attribute.to_string(), value.to_string()))
+        }
+        _ => Ok(()),
+    }
+}
+
 /// Validates an identifier against SDMX `NestedNCNameIDType`
 /// (`[A-Za-z][A-Za-z0-9_\-]*(\.[A-Za-z][A-Za-z0-9_\-]*)*`), a dot-delimited sequence of
 /// one or more `NCName` segments. This is the `agencyID` tier.
@@ -98,6 +132,30 @@ mod tests {
         for bad in ["", "a b", "a.b", "naïve", "a/b"] {
             assert_eq!(validate_id(bad), Err(Error::InvalidIdentifier(bad.into())));
         }
+    }
+
+    #[test]
+    fn ncname_accepts_single_segment_only() {
+        // NCNameIDType is a single NCName: a leading letter, then letters/digits/_/-.
+        for ok in ["SDMX", "ESTAT", "A_1-2", "Concept"] {
+            assert!(validate_ncname(ok).is_ok(), "expected {ok:?} to be a valid NCNameIDType");
+        }
+        // Stricter than IDType (leading digit, @, $) and looser-tier dots are all rejected.
+        for bad in ["", "1ABC", "@X", "EUR$", "A.B", "a b"] {
+            assert_eq!(validate_ncname(bad), Err(Error::InvalidNcNameIdentifier(bad.into())));
+        }
+    }
+
+    #[test]
+    fn fixed_accepts_absent_and_matching_rejects_mismatch() {
+        // Absent ⟹ takes the fixed value by default; a matching stated value is fine.
+        assert!(validate_fixed("id", None, "AGENCIES").is_ok());
+        assert!(validate_fixed("id", Some("AGENCIES"), "AGENCIES").is_ok());
+        // A stated value differing from the fixed one is a mechanical mismatch.
+        assert_eq!(
+            validate_fixed("id", Some("OTHER"), "AGENCIES"),
+            Err(Error::FixedAttributeMismatch("id".into(), "OTHER".into()))
+        );
     }
 
     #[test]

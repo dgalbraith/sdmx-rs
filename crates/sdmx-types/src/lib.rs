@@ -16,8 +16,9 @@
 //!
 //! Implementation follows the milestones of design document 0010. The foundation layer
 //! (identifier validators, lexical newtypes, localised strings, the annotation and metadata
-//! leaves, and the artefact trait hierarchy) is in place; the item schemes, components,
-//! descriptors, and constraints arrive in later milestones.
+//! leaves, and the artefact trait hierarchy) and the item-scheme layer (the generic item scheme,
+//! codes and codelists, concepts, agencies, value lists, and the component representation system)
+//! are in place; the components, descriptors, and constraints arrive in later milestones.
 
 #![no_std]
 
@@ -25,24 +26,43 @@ extern crate alloc;
 
 mod annotation;
 mod artefact;
+mod codelist;
+mod concept;
 mod error;
 mod fixed;
 mod lexical;
 mod localised;
 mod metadata;
+mod organisation;
+mod reference;
+mod representation;
+mod scheme;
 mod validate;
+mod valuelist;
 
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
+    codelist::{
+        Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
+    },
+    concept::{Concept, ConceptScheme},
     error::Error,
-    fixed::FixedTrue,
+    fixed::FixedInclude,
     lexical::{
         Granularity, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxTimePeriodKind, SdmxVersion,
         VersionDisplay,
     },
     localised::LocalisedString,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
+    organisation::{Agency, AgencyScheme, Contact, ContactDetail},
+    reference::{CodelistReference, ValueListReference},
+    representation::{
+        DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
+        RepresentationChoice, TextFormat,
+    },
+    scheme::{ItemScheme, SchemeItem},
+    valuelist::{ValueItem, ValueList},
 };
 
 #[cfg(test)]

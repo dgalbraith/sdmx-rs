@@ -59,6 +59,18 @@ pub enum Error {
     #[error("Invalid agency identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
     InvalidAgencyIdentifier(String),
 
+    /// An identifier failed the SDMX `NCNameIDType` grammar (`[A-Za-z][A-Za-z0-9_\-]*`):
+    /// the middle tier, stricter than `IDType` (a leading digit, `@`, `$`, or `.` are all
+    /// rejected here even though `IDType` permits them).
+    ///
+    /// Produced by the constructors whose ids the spec types as `NCNameIDType`: the validated
+    /// scheme items [`Concept::new`](crate::Concept::new) and [`Agency::new`](crate::Agency::new)
+    /// (their own ids), and the `NCName` scheme wrappers [`Codelist::new`](crate::Codelist::new) and
+    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component-id
+    /// producers join in a later milestone.
+    #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
+    InvalidNcNameIdentifier(String),
+
     /// A value failed the `xs:decimal` lexical grammar (optional sign, digits, at
     /// most one decimal point, no exponent). Produced by
     /// [`SdmxDecimal::new`](crate::SdmxDecimal::new).
@@ -93,11 +105,33 @@ pub enum Error {
     )]
     EmptyLocalisation,
 
+    /// A code selection in a codelist extension was constructed with an empty member-value
+    /// list. The schema requires at least one `MemberValue` per selection (`MemberValue+`),
+    /// so an empty list is mechanically schema-invalid. Produced by
+    /// [`MemberValues::new`](crate::MemberValues::new).
+    #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
+    EmptyMemberValues,
+
+    /// A component's representation states a `textType` outside the subset its position allows.
+    /// The first field names the component kind (for example `"Concept"`), the second the
+    /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
+    /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
+    /// position-rule validators; in this milestone by the Basic-position validator (the
+    /// [`Concept::new`](crate::Concept::new) core-representation check). The dimension- and
+    /// time-position validators, and their `ValueListEnumerationNotAllowed` /
+    /// `EnumerationNotAllowed` / `ProhibitedRepresentationFacet` siblings, join with their
+    /// producers in a later milestone.
+    #[error(
+        "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."
+    )]
+    InvalidTextTypeForComponent(String, String),
+
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
     /// itself reject. The first field names the attribute or site, the
     /// second the offending stated value. Produced by
-    /// [`FixedTrue::new`](crate::FixedTrue::new) in the foundation layer; later
-    /// milestones add the descriptor-id and `AgencyScheme` producers.
+    /// [`FixedInclude::new`](crate::FixedInclude::new) in the foundation layer and, in this milestone,
+    /// by [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id);
+    /// later milestones add the descriptor-id producers.
     #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
     FixedAttributeMismatch(String, String),
 }

@@ -59,11 +59,11 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 
 - [x] **Common base types**: `LocalisedString`, `Annotation`, `Name`, `Description`
 - [x] **Trait hierarchy**: `IdentifiableArtefact` → `NameableArtefact` → `VersionableArtefact` → `MaintainableArtefact` base trait structure underpinning all structural metadata types
-- [ ] **ItemScheme / Item foundations**: Generic base traits underpinning all scheme-based structures
-- [ ] **Codelist**: Enumerated value domains
-- [ ] **ConceptScheme**: Semantic concept definitions
-- [ ] **AgencyScheme**: Maintenance agency registry
-- [ ] **ValueList**: Closed value domains for dimensions, measures, and attributes
+- [x] **ItemScheme / Item foundations**: Generic base traits underpinning all scheme-based structures
+- [x] **Codelist**: Enumerated value domains
+- [x] **ConceptScheme**: Semantic concept definitions
+- [x] **AgencyScheme**: Maintenance agency registry
+- [x] **ValueList**: Closed value domains for dimensions, measures, and attributes
 - [ ] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
 - [ ] **Dataflow**: The primary REST query target, referencing a DSD
 - [ ] **Constraints**: Version-split data constraints for SDMX 3.0 and 3.1 via a unified `ConstraintModel`.
