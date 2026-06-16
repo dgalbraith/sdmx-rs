@@ -171,6 +171,8 @@ pub trait SdmxSerialize: private::Sealed {}
 
 Only approved domain types implement this trait, allowing the `sdmx-writers` crate to accept them safely under a unified serialization API.
 
+The crate's own derived `serde::Serialize`/`Deserialize` are an **internal, lossless infoset round-trip, not the SDMX-ML/SDMX-JSON wire format**. They read and write the Rust composition directly: nested metadata leaves (`Codelist → scheme → metadata → versionable → …`), `LocalisedString` as ordered `(language, value)` pairs, and externally-tagged enums. A round-trip therefore preserves the stored statedness exactly, but the emitted shape is Rust-structural, not the flat SDMX wire object. The wire shape is owned by `sdmx-writers` / `sdmx-parsers`, which map between these types (through their accessors and validated `new()`) and SDMX-ML / SDMX-JSON. Whether the types' own `serde` should later converge to SDMX-JSON, or remain an internal projection, is a Phase-2 entry-gate decision (see ROADMAP Phase 2 → Parsers).
+
 #### 7. Deserialization Construction Contract
 
 Domain types with stated invariants (e.g. `LocalisedString` must contain at least one entry; `IdentifiableMetadata` must carry a valid `IDType` identifier — with `Agency`/`Concept` tightening to `NCNameIDType` in their own constructors, D-0023; a `DimensionList` must contain at least one dimension — D-0049) use **private fields and `Result`-returning constructors** as the single write path. This applies regardless of which caller is constructing the type.

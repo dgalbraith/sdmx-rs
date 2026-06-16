@@ -69,6 +69,7 @@ Decisions: D-0051, D-0059.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
 pub struct LocalisedString(Vec<(Option<String>, String)>);
 
 impl LocalisedString {
@@ -108,7 +109,10 @@ impl LocalisedString {
     #[must_use]
     pub fn first(&self) -> &str {
         // The empty branch is unreachable: `new` rejects an empty entry list and there is no
-        // mutating path, so a constructed `LocalisedString` always has a first entry.
+        // mutating path, so a constructed `LocalisedString` always has a first entry. The crate is
+        // panic-free by contract (workspace clippy `unwrap_used`/`expect_used`), so the unreachable
+        // case degrades to "" rather than `expect`-panicking; that default is never observed (and a
+        // genuine blank first value is `""` regardless).
         self.0.first().map_or("", |(_, value)| value.as_str())
     }
 
@@ -180,6 +184,19 @@ mod tests {
     #[test]
     fn first_is_wire_first() {
         assert_eq!(sample().first(), "Name");
+    }
+
+    #[test]
+    fn get_returns_first_match_for_duplicate_effective_language() {
+        // Three entries that all resolve to effective "en" (the middle one untagged); first-match
+        // in wire order wins, the behaviour the design's duplicate-language handling relies on.
+        let ls = LocalisedString::new(vec![
+            (Some("en".into()), "First".into()),
+            (None, "Second".into()),
+            (Some("en".into()), "Third".into()),
+        ])
+        .unwrap();
+        assert_eq!(ls.get("en"), Some("First"));
     }
 
     #[test]

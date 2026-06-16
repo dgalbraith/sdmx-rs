@@ -61,6 +61,7 @@ use crate::error::{Error, to_de_error};
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
 pub struct FixedInclude(Option<bool>);
 
 impl FixedInclude {
