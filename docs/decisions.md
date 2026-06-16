@@ -141,6 +141,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole              |
 | [D-0059](#d-0059) | Localisation                | LocalisedString key: statedness stored (xml:lang default en) + blank/off-pattern keys held; parsable-within-spec amends the reject-line            |
 | [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl    |
+| [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check  |
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
 
 ## Entries
@@ -1403,6 +1404,26 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A type-level `Ord` would force a single answer to the legacy-equivalence question and bind it to `Eq`, the lossy collision D-0024/D-0027 avoid. Deferring keeps the raw store faithful and leaves the precedence semantics to be settled with samples when a consumer actually needs sorting; pre-1.0 an additive `Ord`-or-method is a clean MINOR bump.
 
 **Consequences**: (1) 0010 §5.1 drops the `Ord`/`PartialOrd` pseudocode (corrected). (2) No code change: the shipped `SdmxVersion` already omits `Ord` and documents the deferral; its Design Notes now cite this entry. (3) Sorting/precedence consumers (for example "latest version") wait for the future convenience; none exists in Phase 1.
+
+---
+
+### D-0061 — MemberValue content held verbatim; WildcardedMemberValueType well-formedness is a Layer-2 lint
+
+| **Area**     | Codelist |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | codelist-extension, member-value, wildcard, pattern, parsable-within-spec, lint, carrier, spec-alignment |
+| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](../specs/3.1/schemas/SDMXStructureCodelist.xsd) (`WildcardedMemberValueType`, `xs:pattern` `[A-Za-z0-9_@$-%]+`); [3.0](../specs/3.0/schemas/SDMXStructureCodelist.xsd) (identical) |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5, §5.11 |
+| **Related**  | [D-0023](#d-0023), [D-0031](#d-0031), [D-0054](#d-0054), [D-0059](#d-0059) |
+
+**Observation**: `MemberValueType` extends `WildcardedMemberValueType`, an `xs:string` restricted by the pattern `[A-Za-z0-9_@$-%]+`. The `+` makes the empty string mechanically schema-invalid, and the class constrains the characters (the `%` is the selection wildcard). Because `MemberValue` is a pub-field carrier (§5.5), a consumer or a lenient parse can nonetheless materialise `MemberValue { value: "".., .. }` or an off-pattern value.
+
+**Decision**: `MemberValue` stays a pub-field carrier, stored verbatim; member-value well-formedness (non-empty, and the `WildcardedMemberValueType` character pattern) is a **catalogued Layer-2 lint** (design §5.11 #16), not a `new()` rejection. This applies the ADR-0023 ceiling-not-mandate principle exactly as [D-0059](#d-0059) did for the `xml:lang` key: a value-level lexeme in a content slot the store can hold verbatim is ruled stored-plus-linted, not refused.
+
+**Rationale**: Three reasons converge. (1) Consistency: the member value is on the *content* side of the identity-vs-content fork (nothing structural depends on its grammar), the same place D-0059 put the `xml:lang` key and where `ValueItem.id` (lint #9) already sits. (2) Faithfulness: the XSD pattern reads `$-%` as a range (`$`..`%`), excluding the literal `-`, yet `IDType` code ids admit `-`, so a strict pattern check would reject a member value referencing a valid code id containing `-`; holding verbatim avoids refusing parsable wire. (3) Phase scope: §5.11 lints are deliberately unbuilt in Phase 1, so the correct action is to catalogue, not to add a rejection.
+
+**Consequences**: (1) Design §5.11 gains lint #16 (member-value well-formedness). (2) §5.5's "stored verbatim" gains a cite to this decision. (3) No code change and no new `Error` variant (the no-producerless-variants policy holds). (4) A future wire-conformant writer is responsible for emitting only pattern-valid member values; the store does not guarantee it.
 
 ---
 

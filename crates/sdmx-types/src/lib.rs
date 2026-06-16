@@ -25,6 +25,7 @@ extern crate alloc;
 
 mod annotation;
 mod artefact;
+mod codelist;
 mod error;
 mod fixed;
 mod lexical;
@@ -37,6 +38,9 @@ mod validate;
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
+    codelist::{
+        Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
+    },
     error::Error,
     fixed::FixedInclude,
     lexical::{

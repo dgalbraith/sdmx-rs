@@ -115,3 +115,41 @@ symbol = "ItemSchemeType"
 file = "schemas/SDMXStructureBase.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ItemScheme"]
+
+# --- Codes and codelists (codelist.rs) ---
+
+[[fragment]]
+symbol = "CascadeSelectionType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Cascade"]
+
+[[fragment]]
+symbol = "MemberValueType"
+file = "schemas/SDMXStructureCodelist.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MemberValue"]
+
+[[fragment]]
+symbol = "CodeSelectionType"
+file = "schemas/SDMXStructureCodelist.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CodeSelection"]
+
+[[fragment]]
+symbol = "CodelistExtensionType"
+file = "schemas/SDMXStructureCodelist.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CodelistExtension"]
+
+[[fragment]]
+symbol = "CodeType"
+file = "schemas/SDMXStructureCodelist.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Code"]
+
+[[fragment]]
+symbol = "CodelistType"
+file = "schemas/SDMXStructureCodelist.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Codelist"]

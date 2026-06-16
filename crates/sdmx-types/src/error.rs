@@ -105,6 +105,13 @@ pub enum Error {
     )]
     EmptyLocalisation,
 
+    /// A code selection in a codelist extension was constructed with an empty member-value
+    /// list. The schema requires at least one `MemberValue` per selection (`MemberValue+`),
+    /// so an empty list is mechanically schema-invalid. Produced by
+    /// [`MemberValues::new`](crate::MemberValues::new).
+    #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
+    EmptyMemberValues,
+
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
     /// itself reject. The first field names the attribute or site, the
     /// second the offending stated value. Produced by

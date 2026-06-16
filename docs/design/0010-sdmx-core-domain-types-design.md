@@ -871,7 +871,8 @@ impl SchemeItem for Code {}
 // ===== Codelist extensions (D-0054) =====
 // CodelistType carries CodelistExtension 0..unbounded (both versions): a codelist composed by
 // extending others (official `codelist - extended.xml` sample). Selection content values are
-// wildcardable strings, stored verbatim; `cascade` is Option with NO effective-view default
+// wildcardable strings, stored verbatim (their WildcardedMemberValueType well-formedness is a
+// §5.11 Layer-2 lint, not a new() check — D-0061); `cascade` is Option with NO effective-view default
 // (the schema declares none — contrast the D-0052 defaulted sites). `prefix` is what the
 // selection-level removePrefix flag (D-0038) refers to.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -924,8 +925,9 @@ impl Codelist {
     pub fn insert(&mut self, code: Code) { self.scheme.insert(code) }
     pub fn get(&self, id: &str) -> Option<&Code> { self.scheme.get(id) }
     pub fn iter(&self) -> impl Iterator<Item = &Code> { self.scheme.iter() }
-    // `isPartial` is not a maintainable-trait method (no item-scheme trait); forwarded directly
-    // (the effective view — D-0052).
+    // `isPartial` is not a maintainable-trait method (no item-scheme trait yet — the shared
+    // ItemSchemeArtefact trait is deferred to its first generic consumer, D-0062); forwarded
+    // directly (the effective view — D-0052).
     pub fn is_partial(&self) -> bool { self.scheme.is_partial() }
 }
 // Custom Deserialize calls Codelist::new() (enforces the NCName scheme-id invariant).
@@ -2589,6 +2591,7 @@ The two-layer architecture (ADR-0023) gives coherence and quality concerns a non
 13. **`ReleaseCalendar` duration grammar** — three unvalidated `String`s (D-0042).
 14. **Two both-`@include`-absent cube regions** — `*_CubeRegionInclusion` `xs:unique` (on `@include`) makes two regions with the same *stated* direction schema-invalid; the residue a lint may flag is the pair that both omit `@include`, whose equality under the `default="true"` value is validator-dependent (D-0036).
 15. **Language-key well-formedness** — a blank or off-pattern stated `xs:language` key, preserved verbatim under the parsable-within-spec principle; validity is this view (D-0059).
+16. **Member-value well-formedness** — a blank or off-pattern `WildcardedMemberValueType` selection value (its `[A-Za-z0-9_@$-%]+` pattern forbids the empty string), preserved verbatim under the parsable-within-spec principle; validity is this view (D-0061).
 
 The surface grows as decisions catalogue new members; a lint is added here (with its source D-number) at the moment a decision names it, so the catalogue and the register never diverge.
 
