@@ -16,8 +16,9 @@
 //!
 //! Implementation follows the milestones of design document 0010. The foundation layer
 //! (identifier validators, lexical newtypes, localised strings, the annotation and metadata
-//! leaves, and the artefact trait hierarchy) is in place; the item schemes, components,
-//! descriptors, and constraints arrive in later milestones.
+//! leaves, and the artefact trait hierarchy) and the item-scheme layer (the generic item scheme,
+//! codes and codelists, concepts, agencies, value lists, and the component representation system)
+//! are in place; the components, descriptors, and constraints arrive in later milestones.
 
 #![no_std]
 

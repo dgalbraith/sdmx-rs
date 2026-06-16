@@ -2428,12 +2428,14 @@ operation actually lands.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     // Three id-validation variants, one per spec lexical type (D-0023). The base/Code/generic
-    // tier reports InvalidIdentifier (IDType); Agency/Concept report InvalidNcNameIdentifier;
-    // the agencyID field reports InvalidAgencyIdentifier.
+    // tier reports InvalidIdentifier (IDType); the NCNameIDType tier (Concept/Agency item ids,
+    // Codelist/ConceptScheme scheme ids, and component ids) reports InvalidNcNameIdentifier; the
+    // agencyID field reports InvalidAgencyIdentifier. The messages state the format only, not the
+    // producer set (which grows milestone by milestone), matching the sibling variants.
     #[error("Invalid artifact identifier: {0}. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
-    #[error("Invalid NCName identifier: {0}. Agency and Concept ids must match SDMX NCNameIDType format.")]
+    #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 
     #[error("Invalid agency identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
