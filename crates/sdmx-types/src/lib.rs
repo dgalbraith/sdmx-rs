@@ -35,6 +35,7 @@ mod reference;
 mod representation;
 mod scheme;
 mod validate;
+mod valuelist;
 
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
@@ -56,6 +57,7 @@ pub use crate::{
         RepresentationChoice, TextFormat,
     },
     scheme::{ItemScheme, SchemeItem},
+    valuelist::{ValueItem, ValueList},
 };
 
 #[cfg(test)]
