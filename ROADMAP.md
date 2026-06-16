@@ -4,6 +4,13 @@ This document records the planned development phases for `sdmx-rs`. It reflects 
 
 **For explicit phase completion criteria and policy promotion schedule, see [docs/project/phases.md](docs/project/phases.md).**
 
+<!--
+Maintenance: roadmap bullets stay at planning altitude: deliverable, phase, and a
+one-line scope; status is the checkbox alone. No decision-register (D-NNNN)
+references and no per-item delivery narrative; that detail lives in design 0010,
+the decision register, and code Design Notes.
+-->
+
 ---
 
 ## Versioning Strategy
@@ -56,15 +63,12 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 - [ ] **Codelist**: Enumerated value domains
 - [ ] **ConceptScheme**: Semantic concept definitions
 - [ ] **AgencyScheme**: Maintenance agency registry
+- [ ] **ValueList**: Closed value domains for dimensions, measures, and attributes
 - [ ] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
 - [ ] **Dataflow**: The primary REST query target, referencing a DSD
-- [ ] **Constraints**: Version-split modelling:
-  - SDMX 3.0: unified `DataConstraint` with a required `role` attribute (`Actual` / `Allowed`)
-  - SDMX 3.1: decoupled `DataConstraint` (allowed-content semantics only) and new `AvailabilityConstraint` (actual data holdings) — the `role` attribute eliminated
-  - Version variance modelled via a `ConstraintModel` enum carrying the 3.0 role as a verbatim superset field (D-0037); mechanical schema invariants enforced at construction using `thiserror`-based errors
-- [ ] **Property-based testing**: Introduce the `proptest` crate to validate SDMX structures and invariants; focus on construction invariants — invalid identifiers, empty mechanical collections, and `ConstraintModel` construction must fail with the correct `thiserror` variants, and serde round-trips of valid values must be lossless (the verbatim-store contract, [ADR-0023](docs/adr/0023-two-layer-infoset-store-and-derived-views-architecture.md)); the full store-fidelity property against parsed wire input is Phase-2 territory per ADR-0008's adapter guardrail
-- [ ] **WASM Test Execution**: Integrate `wasm-pack test --node` into a `just test-wasm` recipe, wire it into `just verify`, and add a dedicated CI job; annotate tests with `#[wasm_bindgen_test]` to verify behavioral correctness under the Node.js WASM runtime beyond just compilation (see [ADR-0007](docs/adr/0007-headless-webassembly-execution-verification.md)).
-  *(Scaffolding laid in Phase 0: `wasm-pack` and `nodejs` provisioned in the Nix devShell; `wasm-bindgen-test` added as a target-conditional dev-dependency in `sdmx-types` and `sdmx-parsers`.)*
+- [ ] **Constraints**: Version-split data constraints for SDMX 3.0 and 3.1 via a unified `ConstraintModel`.
+- [ ] **Property-based testing**: `proptest` for construction invariants and lossless serde round-trips.
+- [ ] **WASM Test Execution**: `wasm-pack test --node` wired into `just verify` and a CI job.
 - [ ] **Framework publication to crates.io**: Publish `0.1.0` full project scaffolding and data types to crates.io
 
 ---
