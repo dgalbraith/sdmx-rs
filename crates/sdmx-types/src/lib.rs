@@ -32,6 +32,7 @@ mod fixed;
 mod lexical;
 mod localised;
 mod metadata;
+mod organisation;
 mod reference;
 mod representation;
 mod scheme;
@@ -53,6 +54,7 @@ pub use crate::{
     },
     localised::LocalisedString,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
+    organisation::{Agency, AgencyScheme, Contact, ContactDetail},
     reference::{CodelistReference, ValueListReference},
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,

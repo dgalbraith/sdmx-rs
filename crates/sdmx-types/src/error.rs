@@ -129,8 +129,9 @@ pub enum Error {
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
     /// itself reject. The first field names the attribute or site, the
     /// second the offending stated value. Produced by
-    /// [`FixedInclude::new`](crate::FixedInclude::new) in the foundation layer; later
-    /// milestones add the descriptor-id and `AgencyScheme` producers.
+    /// [`FixedInclude::new`](crate::FixedInclude::new) in the foundation layer and, in this milestone,
+    /// by [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id);
+    /// later milestones add the descriptor-id producers.
     #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
     FixedAttributeMismatch(String, String),
 }
