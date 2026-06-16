@@ -32,6 +32,7 @@ mod lexical;
 mod localised;
 mod metadata;
 mod reference;
+mod representation;
 mod scheme;
 mod validate;
 
@@ -50,6 +51,10 @@ pub use crate::{
     localised::LocalisedString,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     reference::{CodelistReference, ValueListReference},
+    representation::{
+        DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
+        RepresentationChoice, TextFormat,
+    },
     scheme::{ItemScheme, SchemeItem},
 };
 

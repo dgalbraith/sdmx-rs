@@ -112,6 +112,20 @@ pub enum Error {
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
 
+    /// A component's representation states a `textType` outside the subset its position allows.
+    /// The first field names the component kind (for example `"Concept"`), the second the
+    /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
+    /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
+    /// position-rule validators; in this milestone by the Basic-position validator (the
+    /// [`Concept::new`](crate::Concept::new) core-representation check). The dimension- and
+    /// time-position validators, and their `ValueListEnumerationNotAllowed` /
+    /// `EnumerationNotAllowed` / `ProhibitedRepresentationFacet` siblings, join with their
+    /// producers in a later milestone.
+    #[error(
+        "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."
+    )]
+    InvalidTextTypeForComponent(String, String),
+
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
     /// itself reject. The first field names the attribute or site, the
     /// second the offending stated value. Produced by
