@@ -143,6 +143,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl    |
 | [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check  |
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
+| [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate    |
 
 ## Entries
 
@@ -1443,5 +1444,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: The crate's build-at-first-caller discipline applies — the no-producerless-variants policy (D-0021), plus validators and `DataType::is_simple`/`is_time` deferred to their first callers — and the generic-over-schemes consumer lives above this crate, so the trait has no Phase-1 caller. An additive trait is a clean MINOR bump (phases.md), so deferral costs nothing now and avoids freezing speculative surface into the 0.1.0 API.
 
 **Consequences**: (1) 0010 §5.5's "no shared item-scheme trait" note is reframed as deferred-not-rejected, recording this shape. (2) No code change; the wrappers' inherent methods stand. (3) When added, the trait is not object-safe (RPITIT `iter_items`), so it serves generic bounds, not `dyn` — unlike the existing artefact traits the tests use as trait objects.
+
+---
+
+### D-0063 — Internal serde projection: a lossless Rust round-trip, not the SDMX wire format
+
+| **Area**     | Serialisation |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | serde, transparent, projection, wire-format, lossless, round-trip, phase-2-gate, foundation |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §6 |
+| **Related**  | [D-0016](#d-0016), [D-0052](#d-0052), [D-0059](#d-0059) |
+
+**Observation**: The domain types derive `serde::Serialize`/`Deserialize`, but it was unstated what that serialisation represents. Serde's default newtype-struct behaviour silently flattens to the inner value for JSON. This leaves the projection unpinned on the type and undefined for non-self-describing formats; consumers and the future parsers/writers have no stated contract to rely on.
+
+**Decision**: The crate's derived serde is an **internal, lossless infoset round-trip** (the Rust composition, read and written directly), **not** the SDMX-ML/SDMX-JSON wire format. The within-field wrapper newtypes (`LocalisedString`, `FixedInclude`) carry `#[serde(transparent)]` to pin that projection explicitly and format-agnostically. The wire mapping is owned by `sdmx-parsers`/`sdmx-writers`. Whether the types' own serde should later converge to SDMX-JSON, or remain an internal projection, is **deferred** to a Phase-2 entry gate (ROADMAP Phase 2 -> Parsers).
+
+**Rationale**: A lossless round-trip preserves the stored statedness exactly (the document-integrity contract, D-0052/D-0059). The wire shape is a separate concern owned by the serialisation crates. `#[serde(transparent)]` is JSON-output-neutral today while giving a defined projection for the non-JSON formats Phase 2 introduces. Converging the types' serde to the wire now would cross cut concerns and require reopening the Phase-1 foundation types, risking breaking changes.
+
+**Consequences**: (1) 0010 §6 documents the projection model and cites this entry. (2) `LocalisedString` and `FixedInclude` carry `#[serde(transparent)]`, with no consumer-visible JSON change. (3) ROADMAP records the Phase-2 convergence entry gate, including the null-vs-omitted statedness sub-decision. (4) The convergence decision, when taken, reopens this entry.
 
 ---
