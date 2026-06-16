@@ -186,7 +186,7 @@ Types with no invariants (reference structs, `Annotation`, `SimpleComponentValue
 
 **The custom-vs-derived test is sharper than "invariant-bearing → custom."** Derived `Deserialize` calls each field's own `Deserialize` in turn; it bypasses nothing. It is therefore *correct* for any type whose every field enforces its own invariants, because the composite is enforced for free by the inner impls. A custom impl is required only when the invariant is **between fields** — a relationship that field-by-field deserialization cannot see. Concretely:
 
-- **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedTrue` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `Code` — which merely *composes* `NameableMetadata` with pub fields — uses derived `Deserialize`, delegating correctly to those inner custom impls; `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) likewise derives. No extra rule exists at the composing level for these, so a hand-written impl would add nothing.
+- **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedInclude` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `Code` — which merely *composes* `NameableMetadata` with pub fields — uses derived `Deserialize`, delegating correctly to those inner custom impls; `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) likewise derives. No extra rule exists at the composing level for these, so a hand-written impl would add nothing.
 - **Tightened-within-field invariant → custom on the wrapper.** Several types carry a *stricter* id rule than their inner metadata enforces (NCNameIDType, not just IDType — D-0023), so the tighter check lives on the wrapper's own validated `new()` and a **custom `Deserialize`** that routes through it: the scheme *items* `Concept`/`Agency` (vs. their inner `NameableMetadata`); and the scheme *wrappers* `Codelist`/`ConceptScheme` (whose scheme id is NCName, vs. the IDType the inner `ItemScheme`/`MaintainableMetadata` enforces). The *components* `Dimension`/`TimeDimension`/`Attribute`/`Measure` (D-0025/D-0029) carry their NCName rule on their **own** `ComponentMetadata` leaf instead (the component id is `use="optional"`, so the check is conditional-on-stated and lives where the field lives — D-0057); their custom impls remain for the per-position representation rules (D-0048). All are NOT in the derive list above even though they look structurally like their derived cousins (`Code`, `AgencyScheme`). The inner type cannot know it sits inside a stricter wrapper — hence the check climbs one level.
 - **Cross-field invariant → custom on the composite.** The DSD descriptor lists — `DimensionList` (`Dimension+`), `AttributeList` (choice ≥1, fixed id), `MeasureList` (`Measure+`), all D-0049 — own relationships *between* their fields that the XSD enforces mechanically (`minOccurs`, fixed-value mismatch), so they require custom impls. `DataStructureDefinition` itself, post-D-0049, composes *self-enforcing* descriptors and carries **no** cross-field invariant — so by this section's own sharper test it is a pub-field carrier with derived `Deserialize` (the A1 contradiction was resolved by changing both sides: the invariant moved into `DimensionList::new()`, and this section's earlier listing of the DSD in the custom category was the outdated section). `ItemScheme<I>` left this category under D-0051: with items in an ordered `Vec` there is no derived map key and no key/id invariant, so it derives too. (The dimension `position`-vs-order rule is *not* such an invariant: the spec states it only in prose, so under D-0031 it is a lint, not a construction rejection — see §5.6/D-0022.)
 
@@ -2066,9 +2066,9 @@ pub struct DataKeySet {
 // containers stay derived pub-field carriers, and §7's "every field enforces its own
 // invariants" is genuinely true of them.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
-pub struct FixedTrue(Option<bool>);
+pub struct FixedInclude(Option<bool>);
 
-impl FixedTrue {
+impl FixedInclude {
     pub fn new(stated: Option<bool>) -> Result<Self, Error> {
         if stated == Some(false) {
             return Err(Error::FixedAttributeMismatch("include".into(), "false".into()));
@@ -2080,7 +2080,7 @@ impl FixedTrue {
     /// Layer-2 (view): the effective value is always the fixed value.
     pub fn effective(&self) -> bool { true }
 }
-// Custom Deserialize calls FixedTrue::new() — the wire path rejects a stated "false" too.
+// Custom Deserialize calls FixedInclude::new() — the wire path rejects a stated "false" too.
 
 // DataKeyType is a RESTRICTION of RegionType — a data key is itself a region: annotable (the
 // D-0033 bare-field placement; a non-identifiable annotable type, exactly the new case D-0033's
@@ -2088,13 +2088,13 @@ impl FixedTrue {
 // then Component* — so two Vecs provide a verbatim mapping, D-0051), and — unlike CubeRegionType,
 // which prohibits them — it INHERITS RegionType's optional validFrom/validTo. Its `include` is
 // `use="optional" fixed="true"`: statedness stored, stated-false unconstructible — both
-// enforced by the FixedTrue wrapper (D-0052/D-0039). Pub-field carrier with derived
+// enforced by the FixedInclude wrapper (D-0052/D-0039). Pub-field carrier with derived
 // Deserialize (the rejection rides the wrapper's own custom impl — §7 within-field rule).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DataKey {
     pub key_values: Vec<DataKeyValue>,           // dimensions (spec: KeyValue), wire order
     pub components: Vec<DataComponentValueSet>,  // attrs/measures (spec: Component), wire order
-    pub include: FixedTrue,                      // fixed="true" (D-0052); wrapper enforces it
+    pub include: FixedInclude,                      // fixed="true" (D-0052); wrapper enforces it
     pub annotations: Vec<Annotation>,            // empty ⟺ absent (D-0033)
     pub valid_from: Option<SdmxTimePeriod>,
     pub valid_to: Option<SdmxTimePeriod>,
@@ -2119,13 +2119,13 @@ impl SimpleKeyValues {
 // Custom Deserialize calls SimpleKeyValues::new().
 
 // spec DataKeyValueType. `id` carried on the struct (D-0051; SingleNCNameIDType ref,
-// structural-only); `include` is fixed="true" → the FixedTrue wrapper (statedness stored,
+// structural-only); `include` is fixed="true" → the FixedInclude wrapper (statedness stored,
 // stated-false unconstructible — D-0052); validFrom/validTo PROHIBITED → no fields.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DataKeyValue {
     pub id: String,
     pub values: SimpleKeyValues,
-    pub include: FixedTrue,           // fixed="true" (D-0052); wrapper enforces it
+    pub include: FixedInclude,           // fixed="true" (D-0052); wrapper enforces it
     pub remove_prefix: Option<bool>,  // inherited from MemberSelectionType (no default — D-0038)
 }
 
@@ -2527,7 +2527,7 @@ pub enum Error {
     // D-0052: a STATED value differing from an XSD fixed value is mechanically schema-invalid
     // (an XSD validator rejects the mismatch). First String names the attribute/site, second
     // the offending stated value. Producers: AgencyScheme id ("AGENCIES"), the DSD descriptor
-    // ids, TimeDimension's stated id ("TIME_PERIOD" — D-0057), and FixedTrue::new() (the
+    // ids, TimeDimension's stated id ("TIME_PERIOD" — D-0057), and FixedInclude::new() (the
     // DataKey/DataKeyValue fixed-true includes — the V-3 wrapper).
     #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
     FixedAttributeMismatch(String, String),

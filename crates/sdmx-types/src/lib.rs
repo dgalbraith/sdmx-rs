@@ -36,7 +36,7 @@ pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     error::Error,
-    fixed::FixedTrue,
+    fixed::FixedInclude,
     lexical::{
         Granularity, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxTimePeriodKind, SdmxVersion,
         VersionDisplay,

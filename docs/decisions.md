@@ -942,7 +942,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 > **Amended by [D-0051](#d-0051)/[D-0052](#d-0052)**: the key/component selection collections are ordered `Vec`s with ids on the structs (not keyed maps), and the `fixed="true"` `include`s are stored as `Option<bool>` with `Some(false)` rejected — the "not stored" reasoning below collapsed statedness, which the document-integrity contract preserves.
 >
-> **Mechanism drawn**: the fixed-include rejection's producer now exists — the `FixedTrue` within-field wrapper (custom Deserialize; `new()` rejects a stated `false` with `FixedAttributeMismatch`) carried by `DataKey.include`/`DataKeyValue.include`; the containers stay derived pub-field carriers. The earlier blueprint claimed the check without drawing it.
+> **Mechanism drawn**: the fixed-include rejection's producer now exists — the `FixedInclude` within-field wrapper (custom Deserialize; `new()` rejects a stated `false` with `FixedAttributeMismatch`) carried by `DataKey.include`/`DataKeyValue.include`; the containers stay derived pub-field carriers. The earlier blueprint claimed the check without drawing it.
 
 | **Area**     | Constraints |
 | **Phase**    | Phase-1 |
