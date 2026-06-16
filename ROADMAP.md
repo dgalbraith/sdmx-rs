@@ -50,8 +50,8 @@ Establishing the workspace foundation before any domain code is written.
 
 Modelling the SDMX structural metadata in pure Rust with minimal external dependencies (`serde`, `thiserror`) and strict `#![no_std]` compatibility. Resources are implemented in spec dependency order.
 
-- [ ] **Common base types**: `LocalisedString`, `Annotation`, `Name`, `Description`
-- [ ] **Trait hierarchy**: `IdentifiableArtefact` → `NameableArtefact` → `VersionableArtefact` → `MaintainableArtefact` base trait structure underpinning all structural metadata types
+- [x] **Common base types**: `LocalisedString`, `Annotation`, `Name`, `Description`
+- [x] **Trait hierarchy**: `IdentifiableArtefact` → `NameableArtefact` → `VersionableArtefact` → `MaintainableArtefact` base trait structure underpinning all structural metadata types
 - [ ] **ItemScheme / Item foundations**: Generic base traits underpinning all scheme-based structures
 - [ ] **Codelist**: Enumerated value domains
 - [ ] **ConceptScheme**: Semantic concept definitions
