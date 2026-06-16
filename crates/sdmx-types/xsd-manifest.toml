@@ -205,3 +205,17 @@ symbol = "ValueItemType"
 file = "schemas/SDMXStructureCodelist.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ValueItem"]
+
+# --- Concepts (concept.rs) ---
+
+[[fragment]]
+symbol = "ConceptType"
+file = "schemas/SDMXStructureConcept.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Concept"]
+
+[[fragment]]
+symbol = "ConceptSchemeType"
+file = "schemas/SDMXStructureConcept.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ConceptScheme"]

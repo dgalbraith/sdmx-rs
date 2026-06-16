@@ -26,6 +26,7 @@ extern crate alloc;
 mod annotation;
 mod artefact;
 mod codelist;
+mod concept;
 mod error;
 mod fixed;
 mod lexical;
@@ -43,6 +44,7 @@ pub use crate::{
     codelist::{
         Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
     },
+    concept::{Concept, ConceptScheme},
     error::Error,
     fixed::FixedInclude,
     lexical::{
