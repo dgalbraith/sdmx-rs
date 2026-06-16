@@ -796,9 +796,11 @@ impl<I: SchemeItem> ItemScheme<I> {
     }
     pub fn iter(&self) -> impl Iterator<Item = &I> { self.items.iter() }
     /// EFFECTIVE view of the spec's `isPartial` (schema default false — D-0052): `true` if
-    /// only the relevant portion of the scheme is communicated. Not on a trait: there is no
-    /// shared item-scheme trait, and the maintainable hierarchy must not surface it
-    /// (non-scheme maintainables lack it). Wrappers delegate here.
+    /// only the relevant portion of the scheme is communicated. Not on the maintainable
+    /// hierarchy: that must not surface it (non-scheme maintainables — DSD/Dataflow/DataConstraint
+    /// — lack it). A dedicated `ItemSchemeArtefact` trait (mandating `is_partial`/`get`/`iter_items`
+    /// across the scheme wrappers) is DEFERRED to its first generic consumer, not rejected (D-0062);
+    /// until then the wrappers delegate here via inherent methods.
     pub fn is_partial(&self) -> bool { self.is_partial.unwrap_or(false) }
 }
 

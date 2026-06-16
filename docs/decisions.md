@@ -141,6 +141,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole              |
 | [D-0059](#d-0059) | Localisation                | LocalisedString key: statedness stored (xml:lang default en) + blank/off-pattern keys held; parsable-within-spec amends the reject-line            |
 | [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl    |
+| [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
 
 ## Entries
 
@@ -1402,5 +1403,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A type-level `Ord` would force a single answer to the legacy-equivalence question and bind it to `Eq`, the lossy collision D-0024/D-0027 avoid. Deferring keeps the raw store faithful and leaves the precedence semantics to be settled with samples when a consumer actually needs sorting; pre-1.0 an additive `Ord`-or-method is a clean MINOR bump.
 
 **Consequences**: (1) 0010 §5.1 drops the `Ord`/`PartialOrd` pseudocode (corrected). (2) No code change: the shipped `SdmxVersion` already omits `Ord` and documents the deferral; its Design Notes now cite this entry. (3) Sorting/precedence consumers (for example "latest version") wait for the future convenience; none exists in Phase 1.
+
+---
+
+### D-0062 — ItemSchemeArtefact trait deferred to its first generic consumer
+
+| **Area**     | Item schemes |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | item-scheme, traits, generics, build-at-first-caller, deferral, api-surface, object-safety |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
+| **Related**  | [D-0021](#d-0021), [D-0032](#d-0032), [D-0051](#d-0051) |
+
+**Observation**: The scheme wrappers (`Codelist`/`ConceptScheme`/`AgencyScheme`) each forward `is_partial`/`get`/`iter`/`insert` to their inner `ItemScheme<I>` via inherent methods. The artefact interfaces are otherwise exposed as traits (`IdentifiableArtefact` … `MaintainableArtefact`), so a shared `ItemSchemeArtefact` trait (an associated `Item` type plus `is_partial`/`get`/`iter_items`) would let generic code operate over any scheme without naming the wrapper. `isPartial` cannot ride the maintainable hierarchy — non-scheme maintainables (DSD/Dataflow/DataConstraint) lack it — so any such trait must be a dedicated one.
+
+**Decision**: The shared scheme trait is **deferred to its first generic consumer**, not built in Phase 1. The wrappers keep their inherent forwarding methods. When a caller that iterates schemes generically appears (parsers/writers/applications, Phase 2+), introduce `ItemSchemeArtefact: MaintainableArtefact` with `type Item: SchemeItem` and `is_partial`/`get`/`iter_items` (the last via RPITIT, so the trait is not object-safe).
+
+**Rationale**: The crate's build-at-first-caller discipline applies — the no-producerless-variants policy (D-0021), plus validators and `DataType::is_simple`/`is_time` deferred to their first callers — and the generic-over-schemes consumer lives above this crate, so the trait has no Phase-1 caller. An additive trait is a clean MINOR bump (phases.md), so deferral costs nothing now and avoids freezing speculative surface into the 0.1.0 API.
+
+**Consequences**: (1) 0010 §5.5's "no shared item-scheme trait" note is reframed as deferred-not-rejected, recording this shape. (2) No code change; the wrappers' inherent methods stand. (3) When added, the trait is not object-safe (RPITIT `iter_items`), so it serves generic bounds, not `dyn` — unlike the existing artefact traits the tests use as trait objects.
 
 ---

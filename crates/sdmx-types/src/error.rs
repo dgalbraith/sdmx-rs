@@ -59,6 +59,18 @@ pub enum Error {
     #[error("Invalid agency identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
     InvalidAgencyIdentifier(String),
 
+    /// An identifier failed the SDMX `NCNameIDType` grammar (`[A-Za-z][A-Za-z0-9_\-]*`):
+    /// the middle tier, stricter than `IDType` (a leading digit, `@`, `$`, or `.` are all
+    /// rejected here even though `IDType` permits them).
+    ///
+    /// Produced by the constructors whose ids the spec types as `NCNameIDType`: the validated
+    /// scheme items [`Concept::new`](crate::Concept::new) and [`Agency::new`](crate::Agency::new)
+    /// (their own ids), and the `NCName` scheme wrappers [`Codelist::new`](crate::Codelist::new) and
+    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component-id
+    /// producers join in a later milestone.
+    #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
+    InvalidNcNameIdentifier(String),
+
     /// A value failed the `xs:decimal` lexical grammar (optional sign, digits, at
     /// most one decimal point, no exponent). Produced by
     /// [`SdmxDecimal::new`](crate::SdmxDecimal::new).

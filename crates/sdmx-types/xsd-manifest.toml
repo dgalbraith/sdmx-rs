@@ -93,3 +93,25 @@ symbol = "MaintainableType"
 file = "schemas/SDMXCommon.xsd"
 editions = ["3.0", "3.1"]
 rust = ["MaintainableArtefact"]
+
+# --- Cross-references (reference.rs) ---
+
+[[fragment]]
+symbol = "CodelistReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CodelistReference"]
+
+[[fragment]]
+symbol = "ValueListReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ValueListReference"]
+
+# --- Item scheme framework (scheme.rs) ---
+
+[[fragment]]
+symbol = "ItemSchemeType"
+file = "schemas/SDMXStructureBase.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ItemScheme"]

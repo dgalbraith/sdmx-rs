@@ -30,6 +30,8 @@ mod fixed;
 mod lexical;
 mod localised;
 mod metadata;
+mod reference;
+mod scheme;
 mod validate;
 
 pub use crate::{
@@ -43,6 +45,8 @@ pub use crate::{
     },
     localised::LocalisedString,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
+    reference::{CodelistReference, ValueListReference},
+    scheme::{ItemScheme, SchemeItem},
 };
 
 #[cfg(test)]
