@@ -251,7 +251,7 @@
 !/docs/design/0005-synchronous-and-blocking-api-execution-bridge.md
 !/docs/design/0006-builder-field-storage.md
 !/docs/design/0007-typestate-query-validation.md
-!/docs/design/0008-target-version-policy-for-serialization.md
+!/docs/design/0008-target-version-policy-for-serialisation.md
 !/docs/design/0009-maintenance-obligation-tracking-system-design.md
 !/docs/design/0010-sdmx-core-domain-types-design.md
 
@@ -266,7 +266,7 @@
 !/docs/adr/0006-standardise-error-handling-with-thiserror-per-crate.md
 !/docs/adr/0007-headless-webassembly-execution-verification.md
 !/docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md
-!/docs/adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md
+!/docs/adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md
 !/docs/adr/0010-parser-fuzzing-suite-and-panic-profile-configuration.md
 !/docs/adr/0011-use-tokio-as-the-primary-async-runtime.md
 !/docs/adr/0012-use-reqwest-over-hyper-and-ureq-for-the-http-client.md
@@ -364,7 +364,7 @@
 # ==============================================================================
 # XIII. Forge Configuration Artifacts
 # ==============================================================================
-# Machine-readable realization of docs/project/forge-setup.md (the "what" the
+# Machine-readable realisation of docs/project/forge-setup.md (the "what" the
 # forge tooling consumes). Top-level, forge-neutral, per-forge subdirectories.
 !/forge/
 /forge/*
@@ -373,7 +373,7 @@
 !/forge/github/*.json
 
 # Registry Configuration Artifacts — the crates.io (registry) plane, sibling of
-# forge/. Machine-readable realization of docs/project/registry-setup.md.
+# forge/. Machine-readable realisation of docs/project/registry-setup.md.
 !/registry/
 /registry/*
 !/registry/README.md

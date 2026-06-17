@@ -71,7 +71,7 @@ EOF
 # ADR and Design Document Test Helpers
 # ============================================================================
 
-# Initialize test environment for ADR tests
+# Initialise test environment for ADR tests
 # Creates git repo, directories, and copies templates/scripts
 setup_adr_test() {
     git init --initial-branch=main -q
@@ -90,7 +90,7 @@ setup_adr_test() {
     create_adr_gitignore
 }
 
-# Initialize test environment for design document tests
+# Initialise test environment for design document tests
 setup_design_test() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
@@ -108,7 +108,7 @@ setup_design_test() {
     create_design_gitignore
 }
 
-# Initialize test environment for guide tests
+# Initialise test environment for guide tests
 setup_guide_test() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"

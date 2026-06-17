@@ -10,15 +10,15 @@ Accepted
 
 ## Context
 
-The `sdmx-types` domain model carries mechanical invariants taken directly from the XSDs: identifier grammars (per-artefact lexical tiers), non-empty lists (`Dimension+`, chosen choice arms), bounded cardinalities (`CubeRegion maxOccurs="2"`), and fixed-value attributes. Three intertwined questions determine whether those invariants actually hold for every value in every program: *where* validation runs, *how* serde deserialization interacts with constructors, and *which* fields are public.
+The `sdmx-types` domain model carries mechanical invariants taken directly from the XSDs: identifier grammars (per-artefact lexical tiers), non-empty lists (`Dimension+`, chosen choice arms), bounded cardinalities (`CubeRegion maxOccurs="2"`), and fixed-value attributes. Three intertwined questions determine whether those invariants actually hold for every value in every program: *where* validation runs, *how* serde deserialisation interacts with constructors, and *which* fields are public.
 
-Mechanically, serde's derived `Deserialize` constructs structs directly, field by field, bypassing any user-defined constructor. Consequently, a type whose invariant is enforced only in `new()` bypasses those checks during deserialization if it uses the derive macro. Conversely, invariant-free types gain nothing from custom boilerplate.
+Mechanically, serde's derived `Deserialize` constructs structs directly, field by field, bypassing any user-defined constructor. Consequently, a type whose invariant is enforced only in `new()` bypasses those checks during deserialisation if it uses the derive macro. Conversely, invariant-free types gain nothing from custom boilerplate.
 
 Register decisions D-0004 (validate at construction), D-0005 (private fields + custom `Deserialize` for invariant-bearing types), and D-0017 (the field-visibility rule) settled this during M0 as three separate records. This ADR consolidates and promotes them as one cross-cutting strategy, since together they constitute the crate's construction contract — relied on by every parser, every writer, and every hand-construction site.
 
 ## Decision Drivers
 
-* Invariants must hold for **all** callers — hand construction, serde-driven deserialization, and future streaming accumulators — identically.
+* Invariants must hold for **all** callers — hand construction, serde-driven deserialisation, and future streaming accumulators — identically.
 * Serde's derive-bypasses-constructors behaviour must be explicitly addressed, not obscured.
 * Invariant-free carrier types should remain transparent (no boilerplate without functional benefit).
 * `no_std` + `alloc`; no new dependencies; validators hand-rolled.

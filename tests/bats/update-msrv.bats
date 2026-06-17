@@ -4,7 +4,7 @@
 #
 # Testing approach: Integration tests for MSRV updates (raise or lower).
 # Validates configuration updates, version verification, error handling,
-# and different behavior between raising (breaking) and lowering (feature).
+# and different behaviour between raising (breaking) and lowering (feature).
 #
 # Run with: bats tests/bats/update-msrv.bats
 # Or: just test-maintenance (part of full suite)
@@ -77,7 +77,7 @@ teardown() {
     [[ "$output" =~ "Invalid version format" ]]
 }
 
-@test "update-msrv: --downgrade flag is recognized" {
+@test "update-msrv: --downgrade flag is recognised" {
     run_isolated "scripts/update-msrv.sh" --help
     [ "$status" -eq 0 ]
     [[ "$output" =~ "--downgrade" ]]
@@ -261,7 +261,7 @@ teardown() {
 }
 
 # ==============================================================================
-# Upgrade-Specific Behavior
+# Upgrade-Specific Behaviour
 # ==============================================================================
 
 @test "update-msrv (upgrade): updates maintenance.toml dates" {
@@ -288,7 +288,7 @@ teardown() {
 }
 
 # ==============================================================================
-# Downgrade-Specific Behavior
+# Downgrade-Specific Behaviour
 # ==============================================================================
 
 @test "update-msrv --downgrade: skips maintenance.toml updates" {

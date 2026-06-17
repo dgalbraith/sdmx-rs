@@ -3,7 +3,7 @@
 # Test suite for scripts/check-changelog.sh
 #
 # Testing approach: Integration tests for changelog validation.
-# Validates synchronization with git history and repository state.
+# Validates synchronisation with git history and repository state.
 #
 # Run with: bats tests/bats/check-changelog.bats
 # ==============================================================================
@@ -21,7 +21,7 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
     cp "$BATS_TEST_DIRNAME/../../cliff.toml" .
 
-    # Initialize mock git repository
+    # Initialise mock git repository
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
@@ -135,7 +135,7 @@ EOF
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
-    [[ "$output" == *"changelog: all crate changelogs synchronized"* ]]
+    [[ "$output" == *"changelog: all crate changelogs synchronised"* ]]
 }
 
 @test "check-changelog: fails if a changelog is out of sync" {

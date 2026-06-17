@@ -77,10 +77,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "rename-design: sanitize new title" {
+@test "rename-design: sanitise new title" {
     ./doc-engine.sh rename design -f 0001 "New/Title With Spaces" > /dev/null
     assert_design_file_exists "0001-new-title-with-spaces.md"
 }

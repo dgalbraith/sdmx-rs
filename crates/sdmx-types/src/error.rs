@@ -48,7 +48,7 @@ pub enum Error {
     /// This is the loosest of the three identifier tiers: the base check
     /// every identifiable artefact shares (codes, generic ids, and the maintainable
     /// artefacts whose ids the spec leaves at `IDType`).
-    #[error("Invalid artifact identifier: {0}. Must match SDMX IDType format.")]
+    #[error("Invalid artefact identifier: {0}. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
     /// An `agencyID` failed the SDMX `NestedNCNameIDType` grammar (dotted `NCName`:
@@ -101,7 +101,7 @@ pub enum Error {
     /// is mechanically schema-invalid. Produced by
     /// [`LocalisedString::new`](crate::LocalisedString::new).
     #[error(
-        "Empty localized string. Artifact name or description must contain at least one language variant."
+        "Empty localised string. Artefact name or description must contain at least one language variant."
     )]
     EmptyLocalisation,
 
@@ -140,7 +140,7 @@ pub enum Error {
 ///
 /// The custom `Deserialize` impls throughout the crate route a rejected value through their
 /// type's validated `new()` and then through this helper, so a schema-invalid document fails
-/// deserialization with the same diagnostic a direct constructor call would produce.
+/// deserialisation with the same diagnostic a direct constructor call would produce.
 pub fn to_de_error<E: serde::de::Error>(e: Error) -> E {
     E::custom(e)
 }

@@ -3,7 +3,7 @@
 
   inputs = {
     # Nix inputs are cryptographically pinned to the May 2026 milestone via commit SHAs
-    # to guarantee absolute reproducible environments and freeze compiler-floating tool behaviors
+    # to guarantee absolute reproducible environments and freeze compiler-floating tool behaviours
     # while ensuring stable 1.91.0 is fully indexed and available in the rust-overlay.
     nixpkgs.url = "github:NixOS/nixpkgs/d233902339c02a9c334e7e593de68855ad26c4cb";
     rust-overlay = {
@@ -184,7 +184,7 @@
             pkgs.cargo-geiger                   # Scans compilation dependency tree for unsafe Rust code
             pkgs.cargo-llvm-cov                 # Instrument-free cargo code coverage generator
             pkgs.cargo-machete                  # Fast detector of unused dependencies in Cargo.toml
-            pkgs.cargo-nextest                  # Concurrent test runner optimized for Rust workspaces
+            pkgs.cargo-nextest                  # Concurrent test runner optimised for Rust workspaces
             pkgs.cargo-outdated                 # Scans dependency tree for outdated package versions
             pkgs.cargo-semver-checks            # Validates public API changes for SemVer compliance
 
@@ -212,7 +212,7 @@
             pkgs.pre-commit                     # Git hooks manager running verification gates
 
             # ==================================================================
-            # 5. Specialized Test Runtimes
+            # 5. Specialised Test Runtimes
             # ==================================================================
             # Shell script testing framework for maintenance and diagnostic scripts
             pkgs.bash

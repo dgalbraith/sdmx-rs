@@ -26,13 +26,13 @@ See [ROADMAP.md](ROADMAP.md) for detailed phase schedules, milestone versions, a
 |----------------|---------------------------------------------------------------|
 | `sdmx-rs`      | Facade meta-crate re-exporting all layers under feature flags |
 | `sdmx-types`   | Core domain types, data structures, and validation invariants |
-| `sdmx-parsers` | Streaming XML and JSON serialization/deserialization engine   |
-| `sdmx-writers` | Structured serialization to SDMX formats (CSV, JSON, XML)     |
+| `sdmx-parsers` | Streaming XML and JSON serialisation/deserialisation engine   |
+| `sdmx-writers` | Structured serialisation to SDMX formats (CSV, JSON, XML)     |
 | `sdmx-client`  | Async HTTP client for SDMX REST endpoints                     |
 
 > **Specification Scope**: This workspace targets **SDMX 3.0 and 3.1 specifications only**. SDMX 2.1 is explicitly out of scope. The library handles structural metadata divergence between 3.0 and 3.1 transparently via unified abstractions (see [ADR-0008](docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) for details).
 >
-> **Note**: The `sdmx-types` and `sdmx-parsers` crates are `#![no_std]` (requiring `alloc`). Use `sdmx-rs` with `default-features = false` for an embedded/WASM types-only build, or add `features = ["parsers"]` to include serialization support on `no_std` targets.
+> **Note**: The `sdmx-types` and `sdmx-parsers` crates are `#![no_std]` (requiring `alloc`). Use `sdmx-rs` with `default-features = false` for an embedded/WASM types-only build, or add `features = ["parsers"]` to include serialisation support on `no_std` targets.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions, dependency boundaries, and invariants.
 See [ROADMAP.md](ROADMAP.md) for the planned development phases.
@@ -48,7 +48,7 @@ See [ROADMAP.md](ROADMAP.md) for the planned development phases.
 | **Understand the design** | [ARCHITECTURE.md](ARCHITECTURE.md) — Crate boundaries, API patterns, design decisions |
 | **Maintain this project** | [ROADMAP.md](ROADMAP.md) — Phases, milestones, releases                               |
 
-For comprehensive documentation organized by audience, see the [**Documentation Index**](docs/README.md).
+For comprehensive documentation organised by audience, see the [**Documentation Index**](docs/README.md).
 
 ## What's Coming
 

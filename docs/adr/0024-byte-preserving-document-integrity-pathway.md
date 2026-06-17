@@ -29,7 +29,7 @@ A direct ecosystem precedent is `toml` (semantic model) versus `toml_edit` (loss
 
 ### Option A — Make the domain store byte-exact
 
-Extend `sdmx-types` until re-serialization reproduces input bytes exactly.
+Extend `sdmx-types` until re-serialisation reproduces input bytes exactly.
 
 **Pros**:
 
@@ -43,7 +43,7 @@ Extend `sdmx-types` until re-serialization reproduces input bytes exactly.
 
 ### Option B — Canonical pathway only; accept the diff overhead
 
-Declare canonical re-serialization the only output form; document the diff overhead.
+Declare canonical re-serialisation the only output form; document the diff overhead.
 
 **Pros**:
 
@@ -57,12 +57,12 @@ Declare canonical re-serialization the only output form; document the diff overh
 
 ### Option C — A dedicated lossless document layer
 
-A document-integrity pathway alongside the canonical one: a lossless representation of the source (retained original bytes with surgical patching, or a lossless syntax tree), with the typed domain model acting as a *view/projection* over it. Edits are expressed against the typed view and applied as localized splices to the underlying document; untouched regions pass through byte-identical.
+A document-integrity pathway alongside the canonical one: a lossless representation of the source (retained original bytes with surgical patching, or a lossless syntax tree), with the typed domain model acting as a *view/projection* over it. Edits are expressed against the typed view and applied as localised splices to the underlying document; untouched regions pass through byte-identical.
 
 **Pros**:
 
 * Satisfies the invariant exactly, including comments, PIs, and formatting.
-* Leaves the canonical pathway free to canonicalize (deterministic output, ADR-0023's contract).
+* Leaves the canonical pathway free to canonicalise (deterministic output, ADR-0023's contract).
 * Proven architecture (`toml_edit`, lossless-CST editors).
 
 **Cons**:
@@ -75,7 +75,7 @@ A document-integrity pathway alongside the canonical one: a lossless representat
 
 ## Decision
 
-**Adopt Option C as an architectural commitment.** The workspace will provide two read/write pathways over one set of domain types: the **canonical pathway** (parse → Infoset Store → canonical serialization; ADR-0023's contract) and the **document-integrity pathway** (lossless document layer with the domain model as a typed view; byte in == byte out outside edits). The domain store's obligation to this pathway is ADR-0023's Layer 1: representing every schema-content distinction verbatim so that the model never *forces* a document change. Implementation is deferred to the parser/writer phases, but their designs are constrained by this commitment from now on.
+**Adopt Option C as an architectural commitment.** The workspace will provide two read/write pathways over one set of domain types: the **canonical pathway** (parse → Infoset Store → canonical serialisation; ADR-0023's contract) and the **document-integrity pathway** (lossless document layer with the domain model as a typed view; byte in == byte out outside edits). The domain store's obligation to this pathway is ADR-0023's Layer 1: representing every schema-content distinction verbatim so that the model never *forces* a document change. Implementation is deferred to the parser/writer phases, but their designs are constrained by this commitment from now on.
 
 ---
 

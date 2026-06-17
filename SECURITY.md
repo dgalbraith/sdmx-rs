@@ -18,7 +18,7 @@ Currently, `sdmx-rs` is in active, pre-1.0 early development. As such, there are
 ### Detection & Response
 
 - **Monitoring**: Check [Rust Security Advisories](https://rustsec.org/) and [Rust GitHub Releases](https://github.com/rust-lang/rust/releases) for compiler CVEs affecting the `sdmx-rs` MSRV version
-- **Impact Assessment**: A compiler vulnerability affects all binaries compiled with that Rust version and may be unfixable from userland (e.g., incorrect optimizations, code-generation bugs)
+- **Impact Assessment**: A compiler vulnerability affects all binaries compiled with that Rust version and may be unfixable from userland (e.g., incorrect optimisations, code-generation bugs)
 - **Emergency Response**: An **emergency MSRV bump** may be issued immediately, outside the normal 6-month policy window, with a corresponding MAJOR version increment to `sdmx-rs`
 
 ### For Users

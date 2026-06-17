@@ -65,7 +65,7 @@ Utilising `reqwest::Client`, an async client built natively on Tokio and hyper.
 
 ## Decision
 
-**We will use `reqwest` as our primary async HTTP client within `sdmx-client`, utilizing its native Tokio integration, built-in connection pooler, and middleware compatibility.**
+**We will use `reqwest` as our primary async HTTP client within `sdmx-client`, utilising its native Tokio integration, built-in connection pooler, and middleware compatibility.**
 
 ---
 

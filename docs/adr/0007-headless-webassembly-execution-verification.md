@@ -16,7 +16,7 @@ While `cargo check --target wasm32-unknown-unknown` validates that the code comp
 
 ## Decision Drivers
 
-* **Execution Parity**: Ensuring parser logic and serialization constraints behave identically under WASM as they do on native platforms.
+* **Execution Parity**: Ensuring parser logic and serialisation constraints behave identically under WASM as they do on native platforms.
 * **Panic Detection**: Automatically catching unsupported platform-specific API calls (like thread-local storage or file IO) before releasing packages.
 * **CI Integration**: Running these tests deterministically in local workspaces and remote CI pipelines.
 
@@ -60,7 +60,7 @@ If a future `sdmx-js` crate introduces `wasm-bindgen` JS bindings, browser-mode 
 ## Consequences
 
 * **Positive**: The library guarantees runtime compatibility for serverless WASM workers and backend WASM runtimes. The Nix devShell requires only `wasm-pack` and `nodejs` — no browser binary or driver.
-* **Negative**: Browser JS engine behavior (SpiderMonkey, V8 in Chromium) is not exercised. This is an acceptable trade-off given the absence of any JS interop in the tested crates.
+* **Negative**: Browser JS engine behaviour (SpiderMonkey, V8 in Chromium) is not exercised. This is an acceptable trade-off given the absence of any JS interop in the tested crates.
 * **Neutral**: Tests require duplicate annotations if they need to be run on both native and WebAssembly engines.
 
 ---

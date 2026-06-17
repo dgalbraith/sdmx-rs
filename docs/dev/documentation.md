@@ -52,7 +52,7 @@ Documentation flows naturally from design exploration through user guidance. Eac
 
 ### Code Comments and Rustdoc
 
-**Question answered**: How do I use this? What's non-obvious about its behavior?
+**Question answered**: How do I use this? What's non-obvious about its behaviour?
 
 **Audience**: Developers reading or maintaining the code
 
@@ -60,13 +60,13 @@ Documentation flows naturally from design exploration through user guidance. Eac
 
 **Content**:
 - What the function/type does (rustdoc)
-- Why behavior is non-obvious (comments)
+- Why behaviour is non-obvious (comments)
 - Links back to design decisions and design exploration
 - Usage patterns, gotchas, clone semantics, thread-safety
 
 **Guideline**: Explain *why*, not *what*. Don't over-comment simple code. `struct UserId(u64)` needs just a one-line doc comment.
 
-**When to add**: Any type or function with non-obvious behavior. Always for public items (CI enforces rustdoc).
+**When to add**: Any type or function with non-obvious behaviour. Always for public items (CI enforces rustdoc).
 
 **How**: For the authoring conventions (the public `///` versus `design_docs` split, the `## Specification` citation discipline, and the heading, example, and `## Guarantees` idioms), see [Rustdoc Conventions](rustdoc.md).
 
@@ -123,7 +123,7 @@ Each builds on the previous:
 - **Design Doc**: Explore what's possible and trade-offs
 - **ADR**: Decide why you're choosing this approach
 - **Implementation**: Write the code
-- **Code Comments**: Explain non-obvious behavior; link back to the decision
+- **Code Comments**: Explain non-obvious behaviour; link back to the decision
 - **Guide**: Help users understand and use the feature
 - **ARCHITECTURE.md**: Reflect system-wide principles if applicable
 
@@ -138,7 +138,7 @@ Exploring a complex design problem?
 Decided on an approach after exploration?
   → Write an ADR
 
-Implementing code with non-obvious behavior?
+Implementing code with non-obvious behaviour?
   → Add rustdoc + inline comments
 
 Feature shipped, users need guidance?
@@ -161,7 +161,7 @@ Simple, straightforward code?
 - If you're explaining line-by-line what the code does, you're over-commenting
 
 **Document complexity where it exists**:
-- Non-obvious behavior? Explain why
+- Non-obvious behaviour? Explain why
 - Shared state? Explain concurrency assumptions
 - New feature? Provide user guidance
 - Major design choice? Explore and record the decision

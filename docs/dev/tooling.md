@@ -137,7 +137,7 @@ just design "Your Design Title"
 
 ---
 
-## Categorized Justfile Recipe Table
+## Categorised Justfile Recipe Table
 
 All recipes must be executed from within the active Nix devShell (automatic under `direnv`).
 

@@ -5,7 +5,7 @@
 #
 # Asserts that the LIVE crates.io Trusted Publishing (TP) configuration matches
 # the desired spec in scripts/lib/registry-spec.sh (the machine-readable
-# realization of docs/project/registry-setup.md). This script NEVER mutates
+# realisation of docs/project/registry-setup.md). This script NEVER mutates
 # registry state — it only reads. To converge drift, use scripts/registry-tp.sh,
 # which PRINTS the exact register/enforce commands for a human to run (this
 # tooling never holds a crates.io token).

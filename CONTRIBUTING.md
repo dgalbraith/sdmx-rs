@@ -82,7 +82,7 @@ This installs the following security and quality check hooks to run automaticall
 
 | Hook Suite            | Tool / Checks                                                                                                                                                   | Stage        | Objective                                                                                                                                                           |
 |-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------:|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Code Sanitization** | `check-yaml`, `check-json`, `check-added-large-files`, `check-case-conflict`, `check-symlinks`, `end-of-file-fixer`, `trailing-whitespace`, `mixed-line-ending` | `pre-commit` | Enforces uniform whitespaces, validates YAML/JSON syntax, blocks bloated binary commits, prevents cross-platform filesystem case conflicts, and ensures LF endings. |
+| **Code Sanitisation** | `check-yaml`, `check-json`, `check-added-large-files`, `check-case-conflict`, `check-symlinks`, `end-of-file-fixer`, `trailing-whitespace`, `mixed-line-ending` | `pre-commit` | Enforces uniform whitespaces, validates YAML/JSON syntax, blocks bloated binary commits, prevents cross-platform filesystem case conflicts, and ensures LF endings. |
 | **Security Guard**    | `detect-private-key` *(via core hooks)*, `gitleaks`                                                                                                             | `pre-commit` | Scans all staging changes to block GPG/SSH private keys or secrets from leaking into the commit.                                                                    |
 | **Commit Linting**    | `commitlint`                                                                                                                                                    | `commit-msg` | Validates commit messages against Conventional Commit rules to guarantee flawless `git-cliff` changelog generation.                                                 |
 | **Workspace Gate**    | `just verify`                                                                                                                                                   | `pre-push`   | Decoupled compile/lint/test suite run; executes automatically during `git push` to keep local commits instantaneous.                                                |
@@ -132,9 +132,9 @@ Nix is a mandatory prerequisite to develop, build, or verify this repository. Th
 
 ### 1. Issue First
 
-Every change — feature, fix, chore, or documentation update — must have a corresponding issue opened before work begins. The issue is the authoritative record of intent and must be referenced in your PR description to connect the code changes. Issues labeled `good first issue` are pre-triaged and highly suitable for first-time contributors looking to get familiar with the codebase!
+Every change — feature, fix, chore, or documentation update — must have a corresponding issue opened before work begins. The issue is the authoritative record of intent and must be referenced in your PR description to connect the code changes. Issues labelled `good first issue` are pre-triaged and highly suitable for first-time contributors looking to get familiar with the codebase!
 
-Please open an issue before starting any significant work to avoid duplication and ensure alignment with the roadmap. Check [ROADMAP.md](ROADMAP.md) for planned phases and current focus areas — issues aligned with the current development phase will be prioritized for discussion.
+Please open an issue before starting any significant work to avoid duplication and ensure alignment with the roadmap. Check [ROADMAP.md](ROADMAP.md) for planned phases and current focus areas — issues aligned with the current development phase will be prioritised for discussion.
 
 Structured templates are provided for both **Bug Reports** and **Feature Requests** on GitHub to help compile details (including environment details and authoritative SDMX specification references). Please select the appropriate template when filing new issues.
 
@@ -209,7 +209,7 @@ This repository uses [`git-cliff`](https://github.com/orhun/git-cliff) for chang
 The `scope` is informational — it appears in changelog entries and `git log` to attribute changes to their area of the codebase. Use the affected crate's scope (`types`, `parsers`, `client`, `writers`) or `facade` (specifically for the facade crate at `crates/sdmx-rs`) for crate-specific work, or a descriptive term for cross-cutting changes (e.g., `ci`, `docs`, `deps`). The `facade` scope clearly distinguishes facade-specific changes from global repository-wide modifications. The authoritative list of permitted scopes is defined in [`commitlint.config.cjs`](commitlint.config.cjs); the names here are illustrative.
 
 > [!NOTE]
-> **Cross-Crate Commit Scopes**: When a commit spans multiple workspace crates (for example, introducing a core structural type in `sdmx-types` that requires a serialization update in `sdmx-parsers`), apply the scope of the lowest-level affected crate in the dependency chain (e.g., `feat(types): ...`). If the change uniformly changes the high-level API entry point without isolated low-level additions, use the `facade` scope.
+> **Cross-Crate Commit Scopes**: When a commit spans multiple workspace crates (for example, introducing a core structural type in `sdmx-types` that requires a serialisation update in `sdmx-parsers`), apply the scope of the lowest-level affected crate in the dependency chain (e.g., `feat(types): ...`). If the change uniformly changes the high-level API entry point without isolated low-level additions, use the `facade` scope.
 
 Examples of valid commit messages:
 * `feat(types): add codelist representation`
@@ -246,7 +246,7 @@ Every ignored dependency **must** include a comment:
 ```toml
 [package.metadata.cargo-machete]
 ignored = [
-  "serde",             # Phase 1: serialization trait derives and type annotations
+  "serde",             # Phase 1: serialisation trait derives and type annotations
   "tokio",             # Phase 3: async runtime for HTTP client
   "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32))
 ]
@@ -283,7 +283,7 @@ Before submitting, verify your code adheres to the style guide:
 - [ ] Comments explain WHY, not WHAT
 - [ ] No unnecessary comments or commented-out code
 - [ ] Error types defined in `error.rs` using `thiserror`
-- [ ] Imports organized (stdlib → external → internal) and not redundant
+- [ ] Imports organised (stdlib → external → internal) and not redundant
 - [ ] Private by default; `pub` used intentionally
 - [ ] Safety comments (`// SAFETY:`) explain invariants for all `unsafe` blocks
 
@@ -470,7 +470,7 @@ A breaking change is any modification that requires consumer code to update. Bre
 - Removing or renaming public types, functions, traits, modules
 - Changing function signatures (parameter types, return type)
 - Removing enum variants (adding variants is not breaking; removing is)
-- Changing behavior of existing functions (even if signature stays the same)
+- Changing behaviour of existing functions (even if signature stays the same)
 - Upgrading MSRV (consumers may be pinned to older compiler versions)
 
 **When breaking changes happen**:

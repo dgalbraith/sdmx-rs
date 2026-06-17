@@ -18,7 +18,7 @@ During initial BATS test runs, 4 tests consistently failed in CI but passed loca
 - "--dry-run mode exits 0 even if items are overdue"
 - "overdue item fails by default but warns and exits 0 with --warn-overdue"
 
-Root cause: GitHub Actions runner sets `GITHUB_EVENT_NAME=pull_request` in the CI environment. Script logic checked this variable and auto-enabled behavior (`--warn-overdue`) that tests didn't expect. Locally, `GITHUB_EVENT_NAME` isn't set, so tests passed.
+Root cause: GitHub Actions runner sets `GITHUB_EVENT_NAME=pull_request` in the CI environment. Script logic checked this variable and auto-enabled behaviour (`--warn-overdue`) that tests didn't expect. Locally, `GITHUB_EVENT_NAME` isn't set, so tests passed.
 
 The symptom was subtle: tests reported "OVERDUE WARNING" instead of "OVERDUE", causing assertions to fail silently without obvious cause.
 
@@ -109,19 +109,19 @@ run_isolated "scripts/update-msrv.sh" --dry-run 1.91.0 1.92.0
 ```
 
 This ensures:
-1. No inherited CI variables (e.g., `GITHUB_EVENT_NAME`) affect test behavior
+1. No inherited CI variables (e.g., `GITHUB_EVENT_NAME`) affect test behaviour
 2. Tests preserve their own environment variables (e.g., `RELEASE_MERGE_NO_SIGN=1`)
 3. Tests are reproducible locally and in CI
 4. System paths and git configuration remain accessible
 5. Consistent test isolation policy across all BATS tests
 
-Rationale: The root cause of CI-only test failures was `GITHUB_EVENT_NAME` leakage. Rather than aggressive environment clearing (`env -i`), we selectively unset only the problematic CI variables. This eliminates silent failures while preserving test flexibility and system functionality. Scripts are tested with `sh` (POSIX shell) to match their production behavior.
+Rationale: The root cause of CI-only test failures was `GITHUB_EVENT_NAME` leakage. Rather than aggressive environment clearing (`env -i`), we selectively unset only the problematic CI variables. This eliminates silent failures while preserving test flexibility and system functionality. Scripts are tested with `sh` (POSIX shell) to match their production behaviour.
 
 ---
 
 ## Consequences
 
-* **Positive**: Reproducibility — tests now have identical behavior locally and in CI; environment is predictable and isolated
+* **Positive**: Reproducibility — tests now have identical behaviour locally and in CI; environment is predictable and isolated
 * **Positive**: Debuggability — CI-only failures are eliminated; root causes are visible in logs (not silent)
 * **Positive**: Maintainability — future CI environment changes don't break tests; new variables won't leak through
 * **Negative**: Boilerplate — each test invocation requires explicit environment setup (minimal; ~2 lines per test)
@@ -165,7 +165,7 @@ run_isolated bash -c 'echo "no" | ./doc-engine.sh remove design "0001-test.md"'
 - Access system paths and git configuration
 - Work identically in both CI and local environments
 
-**Shell choice**: Scripts are invoked with `sh` (POSIX shell), not `bash`, because all shell scripts in the codebase are written for `sh` portability. BATS itself requires `bash`, but the tested scripts are `#!/bin/sh` and should be tested with `sh` to match production behavior.
+**Shell choice**: Scripts are invoked with `sh` (POSIX shell), not `bash`, because all shell scripts in the codebase are written for `sh` portability. BATS itself requires `bash`, but the tested scripts are `#!/bin/sh` and should be tested with `sh` to match production behaviour.
 
 ### Implementation Impact
 

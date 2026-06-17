@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The `sdmx-rs` library is structured as a multi-crate workspace, separating core types (`sdmx-types`), serialization logic (`sdmx-parsers`), and HTTP client protocols (`sdmx-client`).
+The `sdmx-rs` library is structured as a multi-crate workspace, separating core types (`sdmx-types`), serialisation logic (`sdmx-parsers`), and HTTP client protocols (`sdmx-client`).
 
 If downstream consumers import these sub-crates directly, minor version mismatches (e.g., using `sdmx-types 1.1` alongside a client compiled with `sdmx-types 1.0`) will cause compiler errors due to incompatible Rust types. To prevent "dependency hell" and simplify integration, we need a unified interface and a way to guarantee version compatibility across the workspace.
 
@@ -34,7 +34,7 @@ Instruct users to import `sdmx-types`, `sdmx-parsers`, or `sdmx-client` directly
 ### Option B — Workspace Facade with Exact Version Pinning
 Use the main `sdmx-rs` crate as a facade that re-exports `sdmx-types`, `sdmx-parsers`, and `sdmx-client` under feature flags. Pin workspace dependencies to exact versions (`=x.y.z`) within the facade crate.
 
-* **Pros**: Standardizes usage to a single dependency (`sdmx-rs`). Eliminates version drift between crates by forcing absolute lockstep version matches.
+* **Pros**: Standardises usage to a single dependency (`sdmx-rs`). Eliminates version drift between crates by forcing absolute lockstep version matches.
 * **Cons**: Every change to a sub-crate requires publishing a matching facade version.
 * **Verdict**: Accepted.
 
@@ -66,9 +66,9 @@ sdmx-client  = { version = "=0.1.0", path = "../sdmx-client", optional = true }
 ## Consequences
 
 * **Positive**: Downstream consumers interact with a unified interface and are completely insulated from internal crate version drift.
-* **Negative**: Releases require publishing the workspace crates in topological order (`types` → `parsers` → `writers` → `client` → `rs`) with synchronized version matching.
+* **Negative**: Releases require publishing the workspace crates in topological order (`types` → `parsers` → `writers` → `client` → `rs`) with synchronised version matching.
 
-* **Neutral**: Feature flags are centralized at the facade level, giving users control over compilation sizes.
+* **Neutral**: Feature flags are centralised at the facade level, giving users control over compilation sizes.
 
 ---
 

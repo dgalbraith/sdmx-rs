@@ -12,11 +12,11 @@ This crate provides the foundational, dependency-free domain representations for
 ## Design Constraints
 - Strict `#![no_std]` compatibility with minimal dependencies (`serde`, `thiserror`).
 - No unsafe code.
-- Pure domain model (no binary output, no serialization logic).
+- Pure domain model (no binary output, no serialisation logic).
 
 ## Usage
 
-<!-- Usage examples will be added as the API stabilizes. -->
+<!-- Usage examples will be added as the API stabilises. -->
 
 ---
 

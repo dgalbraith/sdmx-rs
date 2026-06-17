@@ -102,7 +102,7 @@ is the authoritative SDMX specification version discriminant.**
 
 ### Namespace URI Constants
 
-The following namespace URIs are recognized and mapped to SDMX specification
+The following namespace URIs are recognised and mapped to SDMX specification
 versions:
 
 ```
@@ -129,7 +129,7 @@ To achieve $O(1)$ memory consumption in native production environments, `sdmx-pa
 
 ### Error Handling
 
-An unrecognized or unbound namespace on the `<Structure>` root element is a
+An unrecognised or unbound namespace on the `<Structure>` root element is a
 hard error. The parser returns `ParseError::UnsupportedSchemaNamespace(String)`
 carrying the raw or decoded namespace URI. No fallback parsing is attempted —
 misrouting is not tolerated.

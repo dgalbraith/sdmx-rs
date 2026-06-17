@@ -4,7 +4,7 @@
 # Forge configuration diagnostics (READ-ONLY)
 #
 # Asserts that the LIVE forge configuration matches the desired spec in
-# scripts/lib/forge-spec.sh (the machine-readable realization of the declarative
+# scripts/lib/forge-spec.sh (the machine-readable realisation of the declarative
 # parts of docs/project/forge-setup.md). This script NEVER mutates forge state —
 # it only reads. To converge drift, run scripts/forge-apply.sh (guarded one-shot
 # setup) or deliberately re-baseline a committed ruleset file from live.

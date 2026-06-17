@@ -3,7 +3,7 @@
 # Test suite for scripts/add-adr.sh
 #
 # Testing approach: Integration tests that verify ADR creation, numbering,
-# and file organization. Tests validate:
+# and file organisation. Tests validate:
 #   - File creation with correct naming and sequencing
 #   - Metadata generation and frontmatter
 #   - Error handling for invalid inputs
@@ -46,10 +46,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "add-adr: sanitize title with slashes" {
+@test "add-adr: sanitise title with slashes" {
     run_isolated ./doc-engine.sh add adr "Path/To/Feature"
     [ "$status" -eq 0 ]
     assert_adr_file_exists "0001-path-to-feature.md"

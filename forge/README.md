@@ -1,6 +1,6 @@
 # Forge Configuration Artifacts
 
-Machine-readable realizations of the forge configuration described in prose at
+Machine-readable realisations of the forge configuration described in prose at
 [docs/project/forge-setup.md](../docs/project/forge-setup.md). This directory holds
 the **what** (request bodies the tooling consumes); the doc holds the **why**
 (rationale, one-shot/manual steps, invariants explained); the scripts are the **how**:
@@ -167,5 +167,5 @@ The JSON here is GitHub's ruleset schema, but the *intent* it encodes — signed
 history, maintainer-only pushes, protected signed tags — is forge-neutral. On a
 forge migration the rulesets are rebuilt against the target's equivalent feature
 (Forgejo rulesets), not transferred verbatim. A future `forge/spec.toml`
-portable-intent layer could express that intent once and realize it per forge; it
-is deferred until a second forge actually exists to realize against.
+portable-intent layer could express that intent once and realise it per forge; it
+is deferred until a second forge actually exists to realise against.

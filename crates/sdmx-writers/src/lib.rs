@@ -1,28 +1,28 @@
-//! High-performance SDMX serialization adapter for multiple output formats.
+//! High-performance SDMX serialisation adapter for multiple output formats.
 //!
-//! This crate provides the serialization engine for converting domain types
+//! This crate provides the serialisation engine for converting domain types
 //! from [`sdmx-types`](../sdmx_types/index.html) into wire formats (SDMX-ML and
 //! SDMX-JSON). Writing routines target efficient buffer management and support
-//! both streaming and buffered serialization patterns.
+//! both streaming and buffered serialisation patterns.
 //!
 //! # Design Constraints
 //!
 //! - Minimal external dependencies (restricted strictly to `serde`,
-//!   `serde_json`, `quick-xml`, and `thiserror` for serialization and error
-//!   modeling).
+//!   `serde_json`, `quick-xml`, and `thiserror` for serialisation and error
+//!   modelling).
 //! - No unsafe code.
-//! - All serialization must behave deterministically across platform runtimes.
+//! - All serialisation must behave deterministically across platform runtimes.
 //!
-//! # Design & Serialization Mechanics
+//! # Design & Serialisation Mechanics
 //!
-//! The serialization engine is responsible for converting version-agnostic
+//! The serialisation engine is responsible for converting version-agnostic
 //! domain representations back to their wire-format equivalents, handling any
 //! structural differences between SDMX specification versions transparently.
 //!
 //! ### Format Routing
 //!
-//! The writers automatically route to the appropriate serialization target
-//! based on the desired output format. When serializing domain types,
+//! The writers automatically route to the appropriate serialisation target
+//! based on the desired output format. When serialising domain types,
 //! version-specific differences are managed by the encoder, ensuring that the
 //! output conforms to the target SDMX specification version.
 
@@ -37,7 +37,7 @@ mod tests {
 
     #[test]
     fn crate_compiles_in_no_std_mode() {
-        // Smoke test: verify the serialization crate exports are accessible in no_std
+        // Smoke test: verify the serialisation crate exports are accessible in no_std
         // context.
         hint::black_box(());
     }

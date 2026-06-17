@@ -12,7 +12,7 @@ labels: fix
 ## Steps to Reproduce
 
 <!--
-  Describe exactly how to reproduce the unexpected behavior.
+  Describe exactly how to reproduce the unexpected behaviour.
 -->
 
 1. Go to '...'
@@ -25,11 +25,11 @@ labels: fix
 // Paste your standalone MRE code here
 ```
 
-## Expected Behavior
+## Expected Behaviour
 
 <!-- State what you expected to happen instead. -->
 
-## Observed Behavior
+## Observed Behaviour
 
 <!-- Attach error messages, compiler warnings, or stack traces here. -->
 

@@ -5,18 +5,18 @@
 [![MSRV: 1.91.0](https://img.shields.io/badge/MSRV-1.91.0-blue)](https://github.com/dgalbraith/sdmx-rs/blob/main/docs/project/msrv.md)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](https://github.com/dgalbraith/sdmx-rs#license)
 
-The serialization adapter for the `sdmx-rs` workspace.
+The serialisation adapter for the `sdmx-rs` workspace.
 
-This crate provides high-performance serialization of SDMX domain types to multiple output formats, including XML (SDMX-ML) and JSON (SDMX-JSON).
+This crate provides high-performance serialisation of SDMX domain types to multiple output formats, including XML (SDMX-ML) and JSON (SDMX-JSON).
 
 ## Design Constraints
 - Depends only on `sdmx-types`.
 - Targets minimal memory allocations and efficient buffer management.
-- Handles large SDMX metadata structures with streaming serialization where applicable.
+- Handles large SDMX metadata structures with streaming serialisation where applicable.
 
 ## Usage
 
-<!-- Usage examples will be added as the API stabilizes. -->
+<!-- Usage examples will be added as the API stabilises. -->
 
 ---
 

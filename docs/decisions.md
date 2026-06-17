@@ -102,7 +102,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0019](#d-0019) | Data structure              | AttributeRelationship data variants wrap validating newtypes                                                                                       |
 | [D-0020](#d-0020) | Identifiers                 | Identifiers validated at declaration, not at reference                                                                                             |
 | [D-0021](#d-0021) | Conventions                 | #[non_exhaustive] per public enum, not blanket                                                                                                     |
-| [D-0022](#d-0022) | Serialization               | ~~Round-trip fidelity is semantic, not byte-level~~ (superseded by [D-0031](#d-0031), residual clause by [D-0052](#d-0052))                        |
+| [D-0022](#d-0022) | Serialisation               | ~~Round-trip fidelity is semantic, not byte-level~~ (superseded by [D-0031](#d-0031), residual clause by [D-0052](#d-0052))                        |
 | [D-0023](#d-0023) | Identifiers                 | Identifier validation is per-artefact lexical type, not blanket NCName                                                                             |
 | [D-0024](#d-0024) | Versionable artefacts       | version is optional (`Option<Version>`); un-versioned is distinct (amended by [D-0027](#d-0027))                                                   |
 | [D-0025](#d-0025) | Data structure              | DSD has multiple measures (3.x), not a single PrimaryMeasure (2.1) (amended by [D-0049](#d-0049))                                                  |
@@ -188,7 +188,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 **Decision**: Flat mapping with `parent_id: Option<String>` — maps 1-to-1 with the schema representation.
 
-**Rationale**: Avoids `Rc`/`Arc` and the associated multi-threading and serialization complexity; consistent with the wire representation in the spec.
+**Rationale**: Avoids `Rc`/`Arc` and the associated multi-threading and serialisation complexity; consistent with the wire representation in the spec.
 
 ---
 
@@ -232,19 +232,19 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0006 — BTreeMap used throughout
 
-> **SUPERSEDED 2026-06-11 by [D-0051](#d-0051)** (under [ADR-0023](adr/0023-two-layer-infoset-store-and-derived-views-architecture.md)). Keyed `BTreeMap` storage collapses element order always and silently drops schema-valid duplicate-id entries (official samples exhibit them); both are wire distinctions the Infoset Store must preserve. Wire collections are now ordered `Vec`s with first-match lookup views. The `no_std` motivation below stands (`Vec` is even more basic); the sorted-iteration determinism argument is inverted — sorting is itself a normalization, and wire-order-out is the infoset-exact determinism. Body retained for provenance.
+> **SUPERSEDED 2026-06-11 by [D-0051](#d-0051)** (under [ADR-0023](adr/0023-two-layer-infoset-store-and-derived-views-architecture.md)). Keyed `BTreeMap` storage collapses element order always and silently drops schema-valid duplicate-id entries (official samples exhibit them); both are wire distinctions the Infoset Store must preserve. Wire collections are now ordered `Vec`s with first-match lookup views. The `no_std` motivation below stands (`Vec` is even more basic); the sorted-iteration determinism argument is inverted — sorting is itself a normalisation, and wire-order-out is the infoset-exact determinism. Body retained for provenance.
 
 | **Area**     | Collections |
 | **Phase**    | M0 |
 | **Status**   | Superseded(D-0051) |
-| **Keywords** | collections, no_std, determinism, serialization |
+| **Keywords** | collections, no_std, determinism, serialisation |
 | **Source**   | [ADR-0005](adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md) |
 
 **Observation**: `HashMap` is unavailable in `no_std` + `alloc` environments; `BTreeMap` provides deterministic sorted iteration critical for reproducible serialized output.
 
 **Decision**: `BTreeMap` used throughout.
 
-**Rationale**: Satisfies the `no_std` constraint (consequence of ADR-0005), provides deterministic serialization order, and is cache-friendly at SDMX metadata cardinalities (10–5,000 items).
+**Rationale**: Satisfies the `no_std` constraint (consequence of ADR-0005), provides deterministic serialisation order, and is cache-friendly at SDMX metadata cardinalities (10–5,000 items).
 
 ---
 
@@ -262,7 +262,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 **Decision**: Owned `String` throughout.
 
-**Rationale**: Keeps domain structures lifetimeless (`'static`), simplifies consumer code and client caching. Lifetime complexity is confined to parser tokenize loops.
+**Rationale**: Keeps domain structures lifetimeless (`'static`), simplifies consumer code and client caching. Lifetime complexity is confined to parser tokenise loops.
 
 ---
 
@@ -522,10 +522,10 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0022 — Round-trip fidelity is semantic, not byte-level
 
-| **Area**     | Serialization |
+| **Area**     | Serialisation |
 | **Phase**    | M0 |
 | **Status**   | Superseded(D-0031) (canonicalise-in-store → Infoset Store + derived view; residual clause by [D-0052](#d-0052)) |
-| **Keywords** | round-trip, serialization, canonical-model, position, superseded, spec-alignment |
+| **Keywords** | round-trip, serialisation, canonical-model, position, superseded, spec-alignment |
 | **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`BaseDimensionType.position`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6, §7; [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) |
 | **Related**  | [D-0017](#d-0017), [D-0031](#d-0031) |
@@ -536,7 +536,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 **Observation**: The spec marks some fields optional on the wire because they are derivable, not because they are semantically absent — e.g. `Dimension.position` (`xs:int`, optional; derivable from `DimensionList` order). Modelling such a field as `Option`/raw-mirror would carry the wire's explicit-vs-implicit distinction into the domain model.
 
-**Decision (superseded — see note)**: The domain model canonicalises derivable-optional wire fields to a single mandatory in-memory form. The round-trip guaranteed is semantic (`parse(serialise(x))` equals `x` as domain values), not byte-level. `Dimension.position` is made mandatory `u32` and canonicalised on construction.
+**Decision (superseded — see note)**: The domain model canonicalises derivable-optional wire fields to a single mandatory in-memory form. The round-trip guaranteed is semantic (`parse(serialize(x))` equals `x` as domain values), not byte-level. `Dimension.position` is made mandatory `u32` and canonicalised on construction.
 
 **Rationale (of the superseded decision)**: An input that omitted `position` and one that stated it converge on the same model, consistent with `CubeRegion` empty-set normalisation (D-0017). *(Superseded:)* D-0031 holds that this convergence is precisely the information loss to avoid — the convenience belongs in a view, not the store.
 
@@ -655,7 +655,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 
 **Rationale**: Separate `KeyValueSelection`/`ComponentSelection` types (rather than one shared enum) because the spec distinguishes them at the type level — different id grammars *and* cardinalities — so a single type would be wrong for one of the two and would let a spec-invalid dimension-empty be represented. This is the benchmark-impl, make-illegal-states-unrepresentable choice (cf. [D-0019](#d-0019)). `Cascade` is an enum not a bool because the spec axis is tri-state (`boolean | "excluderoot"`), per [D-0018](#d-0018).
 
-**Consequences**: (1) **[D-0017](#d-0017) normalisation clause withdrawn** — `ComponentSelection::Empty` is meaningful, so the old empty-set→absent normalisation would erase it; the visibility rule (public fields) survives, and the custom `Deserialize` remains only for *structural* two-collection mapping. (2) **[D-0022](#d-0022) round-trip is unaffected and in fact improved** — `Empty` and "key absent" are now distinct in-memory states that re-serialise differently, preserving a distinction the old normalisation destroyed; semantic round-trip still holds. (3) `BTreeSet` is no longer used by any domain type (import dropped). (4) Phase-1 scoping cut retained: `TimePeriodRange.period` is the string form of `StandardTimePeriodType` — full time-period typing (and the `TimeRange` endpoint operators beyond inclusive/exclusive) are deferred to the parser layer, consistent with the `version`/grammar deferrals elsewhere.
+**Consequences**: (1) **[D-0017](#d-0017) normalisation clause withdrawn** — `ComponentSelection::Empty` is meaningful, so the old empty-set→absent normalisation would erase it; the visibility rule (public fields) survives, and the custom `Deserialize` remains only for *structural* two-collection mapping. (2) **[D-0022](#d-0022) round-trip is unaffected and in fact improved** — `Empty` and "key absent" are now distinct in-memory states that re-serialize differently, preserving a distinction the old normalisation destroyed; semantic round-trip still holds. (3) `BTreeSet` is no longer used by any domain type (import dropped). (4) Phase-1 scoping cut retained: `TimePeriodRange.period` is the string form of `StandardTimePeriodType` — full time-period typing (and the `TimeRange` endpoint operators beyond inclusive/exclusive) are deferred to the parser layer, consistent with the `version`/grammar deferrals elsewhere.
 
 ---
 
@@ -1035,7 +1035,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6, §5.8 |
 | **Related**  | [D-0022](#d-0022), [D-0027](#d-0027), [D-0031](#d-0031) |
 
-**Observation**: `seriesCount`/`obsCount` are optional `xs:int` — the same wire type as `Dimension.position`, which the model stores as `i32` precisely because "a negative stated position is schema-valid even if meaningless — not ours to reject; a coherence lint flags it". The counts were stored as `Option<u32>`, applying the opposite policy to an identical wire type: a schema-valid negative count became unrepresentable and would be rejected on deserialization.
+**Observation**: `seriesCount`/`obsCount` are optional `xs:int` — the same wire type as `Dimension.position`, which the model stores as `i32` precisely because "a negative stated position is schema-valid even if meaningless — not ours to reject; a coherence lint flags it". The counts were stored as `Option<u32>`, applying the opposite policy to an identical wire type: a schema-valid negative count became unrepresentable and would be rejected on deserialisation.
 
 **Decision**: `series_count`/`obs_count: Option<i32>`, with a negative-count member added to the catalogued coherence-lint surface. The crate-wide rule, stated once: **the Rust integer type mirrors the XSD value space** — `xs:int` → `i32` (the wire mechanically admits negatives); unsigned types only where the lexical space mechanically excludes a sign (`SdmxVersion`'s components, parsed from a digits-only validated grammar; the `xs:positiveInteger` length facets in `TextFormat`).
 
@@ -1095,9 +1095,9 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Source**   | [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) (unified superset guardrail); 0010 quality assessment |
 | **Related**  | [D-0037](#d-0037), [D-0039](#d-0039), [D-0042](#d-0042), [D-0044](#d-0044), [D-0045](#d-0045) |
 
-**Observation**: 3.0↔3.1 divergences had been discovered ad hoc, leaving open whether the divergence set was complete and whether each member had a consistent resolution. A systematic pass settled the question: a normalized structural diff (annotations, namespace and formatting boilerplate stripped) over every in-scope schema, plus a manual sweep of `SDMXStructureConstraint.xsd`, enumerated the full set. `SDMXStructureOrganisation.xsd` and `xml.xsd` have **no divergence at all** (so the `Contact` gap is a both-versions issue, not a divergence); the complete divergence set over the rest is the table below.
+**Observation**: 3.0↔3.1 divergences had been discovered ad hoc, leaving open whether the divergence set was complete and whether each member had a consistent resolution. A systematic pass settled the question: a normalised structural diff (annotations, namespace and formatting boilerplate stripped) over every in-scope schema, plus a manual sweep of `SDMXStructureConstraint.xsd`, enumerated the full set. `SDMXStructureOrganisation.xsd` and `xml.xsd` have **no divergence at all** (so the `Contact` gap is a both-versions issue, not a divergence); the complete divergence set over the rest is the table below.
 
-**Decision**: Every divergence touching a modelled type is resolved by **carrying the superset** — the type set holds the union of what 3.0 and 3.1 can express, each version-specific member tagged with its provenance — never by version-branching the type or dropping a side. This is the per-type application of ADR-0008's unified-superset guardrail. The disposition table records the complete divergence set and how each member is carried, ruled a no-op, or routed out of scope; each "carried" row delegates to the entry that draws it. The table is the **reconciliation baseline**: any future schema re-vendoring re-runs the normalized-diff method and reconciles its result against this set.
+**Decision**: Every divergence touching a modelled type is resolved by **carrying the superset** — the type set holds the union of what 3.0 and 3.1 can express, each version-specific member tagged with its provenance — never by version-branching the type or dropping a side. This is the per-type application of ADR-0008's unified-superset guardrail. The disposition table records the complete divergence set and how each member is carried, ruled a no-op, or routed out of scope; each "carried" row delegates to the entry that draws it. The table is the **reconciliation baseline**: any future schema re-vendoring re-runs the normalised-diff method and reconciles its result against this set.
 
 | Divergence | Disposition |
 |---|---|
@@ -1135,7 +1135,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 **Rationale**: `ItemScheme<I>` is structurally wrong for it (its items must be `IdentifiableArtefact`s with validated ids and required names; `ValueItem` is none of those), so a bespoke type is not a divergence from the framework but the spec's own shape. The `Vec` choice is *not* a decision on thekeyed-collection question for genuine item schemes — there the ids are validated identity keys; here they are explicitly unconstrained strings with duplicate usage in published material.
 
-**Consequences**: (1) D-0023's three-tier table gains a recorded fourth tier (unrestricted `xs:string`, ValueItem only) — no new validator exists, by design. (2) The design's Summary/scope list gains Value Lists. (3) `ValueList` enters §5.10's sealed serialization list. (4) Duplicate-id and blank-id *quality* concerns are lint territory (D-0031), catalogued not built. (5) Unblocks D-0048's `EnumerationReference`.
+**Consequences**: (1) D-0023's three-tier table gains a recorded fourth tier (unrestricted `xs:string`, ValueItem only) — no new validator exists, by design. (2) The design's Summary/scope list gains Value Lists. (3) `ValueList` enters §5.10's sealed serialisation list. (4) Duplicate-id and blank-id *quality* concerns are lint territory (D-0031), catalogued not built. (5) Unblocks D-0048's `EnumerationReference`.
 
 ---
 

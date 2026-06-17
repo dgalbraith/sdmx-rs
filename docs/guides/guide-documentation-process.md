@@ -86,7 +86,7 @@ just guide "Working with Typestate Builders"
 ```
 
 This will:
-1. Sanitize the title and create a slug (e.g., `working-with-typestate-builders`)
+1. Sanitise the title and create a slug (e.g., `working-with-typestate-builders`)
 2. Generate the filename: `docs/guides/working-with-typestate-builders.md`
 3. Render the template with today's date
 4. Register the file in `.gitignore`

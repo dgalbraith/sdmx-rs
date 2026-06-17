@@ -72,13 +72,13 @@ thiserror = { version = "2.0.18", default-features = false }
 # Date / Time
 # no_std + alloc compatible: the `clock` feature (which pulls std / wasm-bindgen) is
 # deliberately NOT enabled, keeping the crate WASM-checkable (ADR-0005). `serde` provides
-# the DateTime (de)serialization used by VersionableMetadata's validity window.
+# the DateTime (de)serialisation used by VersionableMetadata's validity window.
 chrono = { version = "0.4.42", default-features = false, features = [
   "alloc",
   "serde",
 ] }
 
-# Serialization Framework
+# Serialisation Framework
 serde = { version = "1.0.228", default-features = false, features = [
   "derive",
   "alloc",

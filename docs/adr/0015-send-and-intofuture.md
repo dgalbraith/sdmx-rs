@@ -23,7 +23,7 @@ documented path. This choice affects call-site ergonomics, compiler error
 legibility, ecosystem familiarity, and the extensibility of the API.
 
 `IntoFuture` was stabilised in Rust 1.64. It is a legitimate, stable feature
-and its use in builder APIs is a recognized pattern. The decision here is
+and its use in builder APIs is a recognised pattern. The decision here is
 therefore not whether to use it, but what role it plays relative to `.send()`.
 
 **Note on `Send` Guarantee**: Builders store `Cow<'static, str>` for string

@@ -19,7 +19,7 @@ For example, `sdmx-types` defines core domain types and is expected to be highly
 ## Decision Drivers
 
 * **SemVer Adherence**: Ensuring version increments accurately reflect API stability (breaking vs. non-breaking) for each individual crate.
-* **Churn Minimization**: Preventing updates to stable libraries (`sdmx-types`) when only client behaviors change.
+* **Churn Minimisation**: Preventing updates to stable libraries (`sdmx-types`) when only client behaviours change.
 * **Dependency Stability**: Reducing compile times and downstream API breakage for users who only use the domain types or parser engine.
 
 ---
@@ -36,7 +36,7 @@ Force all crates in the workspace (`sdmx-types`, `sdmx-parsers`, `sdmx-client`, 
 ### Option B — Decoupled Versioning with Facade Alignment
 Allow each sub-crate to have its own independent version number. Increment versions individually based on SemVer rules for modifications within that crate. Update the facade `sdmx-rs` dependency locks to match the latest compatible versions.
 
-* **Pros**: Strictly respects SemVer. Minimizes updates to `sdmx-types`, which is the foundation of the library.
+* **Pros**: Strictly respects SemVer. Minimises updates to `sdmx-types`, which is the foundation of the library.
 * **Cons**: Requires release management scripts to handle publishing order and dependencies between crates.
 * **Verdict**: Accepted.
 
@@ -54,7 +54,7 @@ When sub-crates are released, the master facade crate `sdmx-rs` is updated to pi
 
 ## Consequences
 
-* **Positive**: `sdmx-types` remains highly stable and version-isolated, avoiding dependency churn. Downstream code using only parsing or type modeling is protected from network-layer updates.
+* **Positive**: `sdmx-types` remains highly stable and version-isolated, avoiding dependency churn. Downstream code using only parsing or type modelling is protected from network-layer updates.
 * **Negative**: Workspace release automation is more complex. Crates must be published individually in topological order (`sdmx-types` → `sdmx-parsers` → `sdmx-writers` → `sdmx-client` → `sdmx-rs`). Post-1.0 internal dependencies cannot use exact pinning (`=`); keeping exact pins on internal dependencies would cause a Cargo resolution deadlock when updating base crates, forcing a lockstep release cascade anyway.
 
 * **Neutral**: The unified facade ensures that consumers do not need to manage these individual version pairings themselves.

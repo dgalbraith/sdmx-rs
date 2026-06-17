@@ -244,7 +244,7 @@ test-help:
 test:
     cargo nextest run --workspace --locked
 
-# Run BATS tests for shell scripts and maintenance system (summarized)
+# Run BATS tests for shell scripts and maintenance system (summarised)
 test-scripts:
     @./scripts/run-bats.sh tests/bats/
 
@@ -339,7 +339,7 @@ msrv-features:
 nix-check:
     @nix flake check --quiet 2> >(grep -v -E "warning: The check omitted these incompatible systems|Use '--all-systems' to check all" >&2)
 
-# Analyze compiled binary size and functions taking up the most space
+# Analyse compiled binary size and functions taking up the most space
 bloat target="wasm32-unknown-unknown":
     cargo bloat --workspace --target {{target}} --release
 

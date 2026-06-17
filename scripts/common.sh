@@ -44,7 +44,7 @@ CRATES="sdmx-types sdmx-parsers sdmx-writers sdmx-client sdmx-rs"
 # When called with specific crate names, returns those crates as specified
 # (allowing scripts to override ordering if needed, e.g., for subset tests).
 #
-# Note: Most callers should use the default behavior (no arguments) to ensure
+# Note: Most callers should use the default behaviour (no arguments) to ensure
 # topological ordering is preserved for publish/release workflows.
 get_crates() {
     if [ $# -eq 0 ] || [ "$1" = "all" ]; then

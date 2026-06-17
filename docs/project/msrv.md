@@ -36,7 +36,7 @@ If a **critical security vulnerability** is discovered in a Rust compiler versio
 
 **Rationale**: Compiler security vulnerabilities affect all code compiled with that Rust version. Holding MSRV stable in the face of a compiler CVE would expose downstream consumers to unmitigable risk. User safety takes priority over stability guarantees.
 
-**Example**: If Rust 1.91.0 is discovered to have a critical code-generation bug (e.g., incorrect optimization affecting cryptographic operations), `sdmx-rs` would immediately bump MSRV to the next stable release with the fix, even if the current MSRV is only 2 months old.
+**Example**: If Rust 1.91.0 is discovered to have a critical code-generation bug (e.g., incorrect optimisation affecting cryptographic operations), `sdmx-rs` would immediately bump MSRV to the next stable release with the fix, even if the current MSRV is only 2 months old.
 
 ## MSRV Update Procedures
 

@@ -1,18 +1,18 @@
 # Performance Guide
 
-This guide documents how we measure, optimize, and reason about performance in sdmx-rs. As a high-performance exemplar library, performance is not an afterthought—it's a design goal baked into architecture decisions and enforced through benchmarking.
+This guide documents how we measure, optimise, and reason about performance in sdmx-rs. As a high-performance exemplar library, performance is not an afterthought—it's a design goal baked into architecture decisions and enforced through benchmarking.
 
 ## Performance Philosophy
 
-**What we optimize for**:
+**What we optimise for**:
 - **Throughput over latency**: Parse gigabytes of SDMX data efficiently; total time matters more than response time of a single operation.
 - **Memory efficiency**: Streaming, not DOM accumulation. Large payloads should not require proportional memory.
 - **Predictable allocation**: Allocations should be visible and intentional, not hidden in library internals.
 - **Zero-cost abstractions**: Type safety and ergonomics should not require runtime overhead.
 
-**What we don't optimize for**:
+**What we don't optimise for**:
 - Microsecond-level latency (we're I/O-bound, not CPU-bound)
-- Every possible edge case (80/20 rule: optimize the common path)
+- Every possible edge case (80/20 rule: optimise the common path)
 - Over-engineering for hypothetical future use cases
 
 ---
@@ -43,7 +43,7 @@ cargo bench -- --save-baseline baseline_v0.1.0
 
 Benchmark targets:
 - **sdmx-parsers**: Parsing throughput (MB/s) for XML and JSON payloads
-- **sdmx-writers**: Serialization throughput for large collections
+- **sdmx-writers**: Serialisation throughput for large collections
 - **sdmx-client**: End-to-end query latency (network I/O is dominant)
 
 **Benchmark sources**:
@@ -51,7 +51,7 @@ Benchmark targets:
 - Synthetic payloads at scale boundaries (1KB, 100KB, 10MB)
 - Pathological inputs (deeply nested, many rules)
 
-**CI behavior**:
+**CI behaviour**:
 - Benchmarks run on stable infrastructure (GitHub Actions)
 - Regressions >5% throughput loss trigger a warning (not a failure)
 - Baseline stored in git for reproducibility
@@ -62,7 +62,7 @@ Benchmark targets:
 
 ### Allocation Awareness (Always)
 
-Code review emphasizes visible, intentional allocations:
+Code review emphasises visible, intentional allocations:
 
 ```rust
 // Good: Allocation is explicit and necessary
@@ -118,7 +118,7 @@ The `sdmx-parsers` crate is designed for **streaming, not DOM accumulation**. Th
 
 Instead of:
 ```rust
-// ❌ Materializes entire document in memory
+// ❌ Materialises entire document in memory
 pub fn parse(input: &str) -> Result<Document> {
     let dom = build_full_dom(input)?;
     Ok(dom)
@@ -142,7 +142,7 @@ pub fn parse(input: &str) -> Result<impl Iterator<Item = Item>> {
 
 ### Verification
 
-Run memory-intensive tests to verify streaming behavior:
+Run memory-intensive tests to verify streaming behaviour:
 
 ```bash
 # This should not OOM even with 100MB+ SDMX payloads
@@ -155,7 +155,7 @@ cargo test --lib parse_large_payloads -- --nocapture
 
 ### Design Goals
 
-- **Share, don't serialize**: `SdmxClient` is `Send` + `Sync`; clone and share directly without `Arc` or `Mutex`
+- **Share, don't serialise**: `SdmxClient` is `Send` + `Sync`; clone and share directly without `Arc` or `Mutex`
 - **Non-blocking I/O**: All HTTP operations are async; no `block_on()` in hot paths
 - **Task spawning safety**: Builders are unconditionally `'static`; can be spawned on background tasks
 

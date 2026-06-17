@@ -40,8 +40,8 @@ wasm-bindgen-test = "0.3"
 [package.metadata.cargo-machete]
 ignored = [
   "sdmx-types",        # Phase 1: depends on core types; unignore when type stubs are available
-  "serde",             # Phase 2: serialization support for XML/JSON parsing
-  "serde_json",        # Phase 2: JSON deserialization
+  "serde",             # Phase 2: serialisation support for XML/JSON parsing
+  "serde_json",        # Phase 2: JSON deserialisation
   "quick-xml",         # Phase 2: streaming XML parsing
   "thiserror",         # Phase 1: error type definitions
   "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32) for WASM testing)

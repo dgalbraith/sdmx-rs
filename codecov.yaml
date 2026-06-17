@@ -30,7 +30,7 @@ coverage:
           - "crates/sdmx-parsers"
 
       sdmx-writers:
-        target: 80% # Serialization is straightforward; high coverage expected
+        target: 80% # Serialisation is straightforward; high coverage expected
         threshold: 1% # Allow 1% fluctuation for non-critical paths
         paths:
           - "crates/sdmx-writers"

@@ -25,7 +25,7 @@ if [ ! -f "$ci_workflow" ]; then
     exit 1
 fi
 
-log_info "Analyzing: $ci_workflow"
+log_info "Analysing: $ci_workflow"
 echo ""
 
 # Extract job names from CI workflow (simple YAML parsing)

@@ -74,7 +74,24 @@ pub enum CT { }
 ### Modules
 - **snake_case** (Rust idiom)
 - Single word when possible; compound words are acceptable if clear: `constraint_model`, `client`, `parsers`
-- Organize hierarchically: `crates/sdmx-types/src/constraint/mod.rs` for the `constraint` module
+- Organise hierarchically: `crates/sdmx-types/src/constraint/mod.rs` for the `constraint` module
+
+## Spelling Convention
+
+Use British by default; use American for anything owned by an external ecosystem.
+
+- **British** — SDMX information-model terms (`Artefact`, `Organisation`, `Localised`) and all project prose (serialisation, modelling, behaviour, optimisation).
+- **American** — externally-owned vocabulary: Rust/serde API identifiers (`Serialize`, the `serialize` method, `#[serde(...)]`), tool names (`rust-analyzer`), protocol tokens (the HTTP `Authorization` header), and the crates.io `serialization` keyword.
+
+Tie-breaker: in a comment about a specific external trait's action, use the trait's spelling; for the concept broadly, British.
+
+Two homographs turn on the referent, not the spelling:
+- **`artefact`/`artifact`**: An SDMX metadata object (`IdentifiableArtefact`) is British **artefact**. A build or supply-chain output (`.crate`, GitHub Actions artifacts) is American **artifact**.
+- **`licence`/`license`**: The SPDX field, `LICENSE-*` files, and proper nouns (`MIT License`) are American **license**. General project prose uses British **licence**.
+
+Resolve both by what the word refers to, not by its surface form.
+
+Generated and vendored content is exempt and follows its source verbatim: the vendored `specs/`, the generated XSD fragments under `crates/sdmx-types/docs/xsd-fragments/` (run `just gen-xsd-fragments`), the `CODE_OF_CONDUCT.md` (the adopted Contributor Covenant), and the `LICENSE-*` files.
 
 ## Commenting Philosophy
 
@@ -95,7 +112,7 @@ pub enum CT { }
   let _ = response.text().await;
   ```
 
-- **Always**: Non-standard or surprising behavior
+- **Always**: Non-standard or surprising behaviour
   ```rust
   // Intentionally panic on invalid config; this is not a recoverable error.
   // Operator must fix the configuration file.
@@ -147,7 +164,7 @@ Every `unsafe` block must have a `// SAFETY:` comment explaining why the unsafe 
 // Good: Explains the invariant that makes this safe
 unsafe {
     // SAFETY: We verified that ptr is valid and aligned before this call.
-    // The data it points to is initialized and will not be mutated while this
+    // The data it points to is initialised and will not be mutated while this
     // reference is alive (we hold an exclusive lock).
     &*ptr
 }
@@ -251,14 +268,14 @@ Examples that are expected to fail should use `should_panic` or `ignore`:
 pub fn from_xml(input: &str) -> Self { }
 ```
 
-## Module & File Organization
+## Module & File Organisation
 
 ### Crate Structure
 
 Each crate has a clear purpose:
 - **sdmx-types**: Domain types and data structures (no I/O, no async)
-- **sdmx-parsers**: Streaming deserialization of SDMX payloads (XML/JSON/CSV) into domain types
-- **sdmx-writers**: Serialization of domain types to SDMX formats (XML/JSON/CSV)
+- **sdmx-parsers**: Streaming deserialisation of SDMX payloads (XML/JSON/CSV) into domain types
+- **sdmx-writers**: Serialisation of domain types to SDMX formats (XML/JSON/CSV)
 - **sdmx-client**: HTTP client for fetching and managing SDMX data
 - **sdmx-rs**: Unified facade crate (re-exports key types and builders)
 
@@ -306,7 +323,7 @@ crates/sdmx-parsers/src/
   src/constraint.rs (used only for single-file modules with no submodules)
   ```
 
-- Split large modules into submodules and organize logically:
+- Split large modules into submodules and organise logically:
   ```
   src/constraint/
   ├── mod.rs           # Declares submodules, re-exports public types
@@ -315,11 +332,11 @@ crates/sdmx-parsers/src/
   └── validation.rs    # Validation logic
   ```
 
-## Code Organization Patterns
+## Code Organisation Patterns
 
 ### Imports
 
-- **Organize imports**: stdlib → external crates → internal crates
+- **Organise imports**: stdlib → external crates → internal crates
   ```rust
   use std::collections::HashMap;
 
@@ -533,7 +550,7 @@ impl ClientBuilder {
 
 ### Derive Traits
 
-Prefer deriving standard traits when they make semantic sense. Manual implementations should be reserved for types with non-obvious behavior.
+Prefer deriving standard traits when they make semantic sense. Manual implementations should be reserved for types with non-obvious behaviour.
 
 **Standard derives (prefer when applicable)**:
 
@@ -553,7 +570,7 @@ pub struct ConstraintModel {
 | ------------------|:------:|--------------------------------------|-----------------------------------------------------------------------------|
 | `Clone`           | ✅     | Needed for non-trivial cloning logic | Most types; use manual for expensive clones that need custom logic          |
 | `Debug`           | ✅     | Rarely                               | Most types; manual only if you want custom formatting                       |
-| `Default`         | ✅     | For complex initialization           | Simple types; use manual when `Default` has non-obvious behavior            |
+| `Default`         | ✅     | For complex initialisation           | Simple types; use manual when `Default` has non-obvious behaviour            |
 | `PartialEq`, `Eq` | ✅     | Often needed                         | If all fields are `PartialEq`, derive; manual for custom equality semantics |
 | `Display`         | ❌     | ✅ Always                            | No derive; requires explicit `fmt` implementation                           |
 | `From`, `Into`    | ❌     | ✅ Always                            | Implement `From`; `Into` is automatic                                       |
@@ -575,7 +592,7 @@ impl PartialEq for Client {
 ```
 
 **Guidelines**:
-- Derive when the behavior is obvious and correct
+- Derive when the behaviour is obvious and correct
 - Document why you manually implement a trait (unusual semantics)
 - `#[derive(Debug)]` is almost always desirable for debugging
 
@@ -609,14 +626,14 @@ pub const fn model_id(id: u64) -> u64 {
     id
 }
 
-// Avoid: Runtime initialization
+// Avoid: Runtime initialisation
 pub const PATHS: Vec<&'static str> = vec!["a", "b"];  // Error: vec! not const
 ```
 
 **When to use `const fn`**:
 - Simple computations (arithmetic, bitwise, comparisons)
 - Type-level programming (const generics, type constants)
-- Initialization of `const` values
+- Initialisation of `const` values
 
 **When NOT to use `const fn`**:
 - Any heap allocation (Vec, String, Box)
@@ -627,7 +644,7 @@ pub const PATHS: Vec<&'static str> = vec!["a", "b"];  // Error: vec! not const
 **Guidelines**:
 - Only mark a function `const fn` if its body can actually be evaluated at compile time
 - Const functions must not panic; errors are compile-time errors, not runtime panics
-- Use `const fn` sparingly; prioritize clarity over compile-time evaluation unless there's a clear benefit
+- Use `const fn` sparingly; prioritise clarity over compile-time evaluation unless there's a clear benefit
 
 ## Core Trade-offs
 
@@ -639,7 +656,7 @@ This guide documents conventions, but they serve readability and maintainability
 
 **Trade-off**: Many small modules (fine granularity) vs fewer large modules (coarse granularity)
 
-**Decision**: Start coarse; split when a module exceeds ~500 lines or has clearly separable concerns. Prefer keeping related logic together over perfect organization.
+**Decision**: Start coarse; split when a module exceeds ~500 lines or has clearly separable concerns. Prefer keeping related logic together over perfect organisation.
 
 ```rust
 // Coarse: Related parsing logic stays together
@@ -827,7 +844,7 @@ For synchronous APIs that need async implementations, see [Design 0005](../desig
 
 ## Feature-Gated Code
 
-Organize feature-gated code to minimize complexity:
+Organise feature-gated code to minimise complexity:
 
 ```rust
 // Good: Feature guard at module level

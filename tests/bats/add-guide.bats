@@ -41,10 +41,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "add-guide: sanitize title with slashes" {
+@test "add-guide: sanitise title with slashes" {
     run_isolated ./doc-engine.sh add guide "Getting Started/Setup/Configuration"
     [ "$status" -eq 0 ]
     assert_guide_file_exists "getting-started-setup-configuration.md"

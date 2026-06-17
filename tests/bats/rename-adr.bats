@@ -77,10 +77,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "rename-adr: sanitize new title" {
+@test "rename-adr: sanitise new title" {
     ./doc-engine.sh rename adr -f 0001 "New/Title With Spaces" > /dev/null
     assert_adr_file_exists "0001-new-title-with-spaces.md"
 }

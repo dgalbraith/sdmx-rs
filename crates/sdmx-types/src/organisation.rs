@@ -402,7 +402,7 @@ mod tests {
         let agency = Agency::new(nameable("ESTAT"), vec![]).unwrap();
         let json = serde_json::to_string(&agency).unwrap();
         // The validated-item contract holds on the wire: a leading-digit id (valid IDType, invalid
-        // NCName) is rejected on deserialization, routing through new().
+        // NCName) is rejected on deserialisation, routing through new().
         let bad = json.replace("ESTAT", "9ESTAT");
         assert!(serde_json::from_str::<Agency>(&bad).is_err());
     }

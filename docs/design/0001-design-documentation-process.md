@@ -16,7 +16,7 @@ Establish a design documentation system for exploring and ratifying detailed des
 
 ## Problem / Motivation
 
-ADRs are effective for recording *architectural decisions*—but design work often requires exploration and detailed planning *before* a decision is finalized. We need a way to:
+ADRs are effective for recording *architectural decisions*—but design work often requires exploration and detailed planning *before* a decision is finalised. We need a way to:
 
 - Explore complex design spaces and evaluate alternatives during planning
 - Capture detailed design rationale, constraints, and trade-offs for a specific component or system
