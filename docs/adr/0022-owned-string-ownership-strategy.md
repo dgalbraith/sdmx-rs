@@ -43,7 +43,7 @@ Domain structs borrow from the parse buffer (`&'a str` / `Cow<'a, str>`), avoidi
 
 ### Option B — Owned `String` throughout
 
-Every text field owns its data; lifetimes are confined to parser tokenize loops.
+Every text field owns its data; lifetimes are confined to parser tokenise loops.
 
 **Pros**:
 
@@ -60,7 +60,7 @@ Every text field owns its data; lifetimes are confined to parser tokenize loops.
 
 ## Decision
 
-**Adopt Option B: owned `String` for all text fields.** The domain model owns its data; lifetime complexity is confined strictly to the parsers' internal tokenize loops. This is a deliberate trade-off prioritizing workspace-wide API simplicity and cacheability over parse-time allocation overhead.
+**Adopt Option B: owned `String` for all text fields.** The domain model owns its data; lifetime complexity is confined strictly to the parsers' internal tokenise loops. This is a deliberate trade-off prioritising workspace-wide API simplicity and cacheability over parse-time allocation overhead.
 
 ---
 

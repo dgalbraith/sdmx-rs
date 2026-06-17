@@ -139,7 +139,7 @@ and related types throughout. All external dependencies are constrained to
 
 **Pros**:
 
-- Full WASM portability for the domain core and serialization engine.
+- Full WASM portability for the domain core and serialisation engine.
 - Provides a structural compile-time guard: the WASM check gate
   (`cargo check -p sdmx-types --target wasm32-unknown-unknown` and
   `cargo check -p sdmx-parsers --target wasm32-unknown-unknown`) enforces
@@ -187,7 +187,7 @@ aligned with SDMX's operational profile:
 
 **Deterministic Ordering**: SDMX structures (codelists, concept schemes, dimension
 definitions) benefit from canonical, sorted representation. `BTreeMap`'s inherent
-ordering guarantees consistent serialization, which is essential for data
+ordering guarantees consistent serialisation, which is essential for data
 validation and interchange.
 
 **Predictable Performance**: For typical SDMX workloads, `BTreeMap` lookups on
@@ -237,7 +237,7 @@ confirm the performance profile meets expectations at scale.
 
 - `ARCHITECTURE.md` — Crate Dependency Graph, `sdmx-types` Design Constraints
 - [ADR-0006](0006-standardise-error-handling-with-thiserror-per-crate.md): Error handling with `thiserror`; `no_std` compatibility of error types is a dependency of this decision
-- [ADR-0009](0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md): `quick-xml` and `serde_json` `alloc`-mode usage
+- [ADR-0009](0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md): `quick-xml` and `serde_json` `alloc`-mode usage
 - `crates/sdmx-types/src/lib.rs`
 - `crates/sdmx-parsers/src/lib.rs`
 - `Justfile` — `check-wasm` recipe

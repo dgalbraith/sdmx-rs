@@ -1,6 +1,6 @@
 # Benchmarks
 
-This directory will contain performance benchmarks for the `sdmx-parsers` serialization and deserialization engine, built using Criterion.
+This directory will contain performance benchmarks for the `sdmx-parsers` serialisation and deserialisation engine, built using Criterion.
 
 ## Planned Benchmarks
 

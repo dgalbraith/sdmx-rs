@@ -37,7 +37,7 @@ labels: feat
 -->
 
 - [ ] <!-- e.g., Define core trait abstractions or data model structures -->
-- [ ] <!-- e.g., Implement target parsing/serialization logic for the component -->
+- [ ] <!-- e.g., Implement target parsing/serialisation logic for the component -->
 - [ ] <!-- e.g., Expose functional public API endpoints or configuration options -->
 
 ## Verification

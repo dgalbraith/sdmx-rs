@@ -6,7 +6,7 @@ Code review is a collaborative teaching opportunity—reviewers help maintainers
 
 Reviewers use this guide to evaluate code consistently. These standards are not punitive but serve to maintain the project's high architectural and engineering standards.
 
-### What Reviewers Prioritize
+### What Reviewers Prioritise
 
 1. **Type Safety & Correctness**
    - Does the type system enforce the invariant being addressed?
@@ -36,13 +36,13 @@ Reviewers use this guide to evaluate code consistently. These standards are not 
 
 6. **Documentation Completeness**
    - Do public APIs have rustdoc comments with examples?
-   - Do complex behaviors document the WHY (not the WHAT)?
+   - Do complex behaviours document the WHY (not the WHAT)?
    - Are invariants and safety concerns documented?
 
 7. **Testing Coverage**
    - Does the PR maintain or improve the crate-specific coverage floors (ranging from 70% to 85%; see CONTRIBUTING.md)?
    - Are error cases tested, not just happy paths?
-   - Do tests verify behavior, not just "it compiles"?
+   - Do tests verify behaviour, not just "it compiles"?
 
 8. **Architecture & Dependency Boundaries**
    - Does the change respect crate boundaries (types → parsers → client)?
@@ -76,7 +76,7 @@ A PR is ready to merge when:
 
 ## For Contributors
 
-Contributors should familiarize themselves with these review standards **before** submission. Use them for self-review:
+Contributors should familiarise themselves with these review standards **before** submission. Use them for self-review:
 
 ### Pre-Submission Self-Review Checklist
 
@@ -87,8 +87,8 @@ Before opening a PR, verify your code against the review priorities above:
 - [ ] **Memory**: Allocations explicit and intentional? No unnecessary clones across boundaries? No DOM accumulation in parsers?
 - [ ] **Async Safety (if applicable)**: All tasks awaited? No locks across .await? Clean lifetimes?
 - [ ] **Concurrency**: Send/Sync claims justified? Shared types behind abstractions?
-- [ ] **Documentation**: Public APIs have rustdoc? Complex behaviors document WHY?
-- [ ] **Tests**: Maintain crate-specific coverage floors? Error cases tested? Tests verify behavior?
+- [ ] **Documentation**: Public APIs have rustdoc? Complex behaviours document WHY?
+- [ ] **Tests**: Maintain crate-specific coverage floors? Error cases tested? Tests verify behaviour?
 - [ ] **Architecture**: Respects crate boundaries? Complexity isolated?
 - [ ] **No red flags**: No unwrap, no undocumented dependencies, no coverage regressions
 
@@ -104,4 +104,4 @@ See [CONTRIBUTING.md § Style Checklist](../../CONTRIBUTING.md#style-checklist) 
 4. **Approval**: Maintainer approves when all standards are met
 5. **Merge**: Merge to `main` via standard merge commit (`--no-ff`) to preserve cryptographic provenance
 
-Reviewers prioritize thoroughness over speed—expect substantive feedback on non-trivial changes.
+Reviewers prioritise thoroughness over speed—expect substantive feedback on non-trivial changes.

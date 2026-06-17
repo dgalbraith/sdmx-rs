@@ -40,10 +40,10 @@ Guidance for maintainers and decision-makers on running and governing this proje
 |---------|:-------:|:-----------:|------------------------------------------|
 | Phase 0 | 0.0.0   | ✅ Complete | Infrastructure, ADRs, scaffolding        |
 | Phase 1 | 0.1.0   | 📅 Planned  | Core domain types, validation            |
-| Phase 2 | 0.2.0   | 📅 Planned  | Serialization engines, streaming parsers |
+| Phase 2 | 0.2.0   | 📅 Planned  | Serialisation engines, streaming parsers |
 | Phase 3 | 0.3.0   | 📅 Planned  | HTTP client, REST endpoints              |
-| Phase 4 | 0.4.0   | 📅 Planned  | Extended queries, optimization           |
-| Phase 5 | 1.0.0   | 📅 Planned  | Stabilization, 1.0 release               |
+| Phase 4 | 0.4.0   | 📅 Planned  | Extended queries, optimisation           |
+| Phase 5 | 1.0.0   | 📅 Planned  | Stabilisation, 1.0 release               |
 
 See [ROADMAP.md](../../ROADMAP.md) for detailed phase schedule and version strategy.
 

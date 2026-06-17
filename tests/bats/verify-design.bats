@@ -131,7 +131,7 @@ EOF
 }
 
 # ==============================================================================
-# Ledger Synchronization
+# Ledger Synchronisation
 # ==============================================================================
 
 @test "verify-design: detects physical file not in .gitignore" {

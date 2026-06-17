@@ -3,7 +3,7 @@
 //!
 //! This crate provides the high-level orchestrator managing connectivity to
 //! remote SDMX REST endpoints, coordinating with
-//! [`sdmx-parsers`](../sdmx_parsers/index.html) for payload deserialization and
+//! [`sdmx-parsers`](../sdmx_parsers/index.html) for payload deserialisation and
 //! [`sdmx-types`](../sdmx_types/index.html) for domain representation.
 //!
 //! # API Design & Builder Pattern
@@ -24,7 +24,7 @@
 //!
 //! # Concurrency Guarantees
 //!
-//! The `SdmxClient` utilizes thread-safe connection pooling via an underlying
+//! The `SdmxClient` utilises thread-safe connection pooling via an underlying
 //! HTTP client design (`reqwest`). All public client endpoints are `Send` and
 //! `Sync`, facilitating safe concurrent sharing across thread boundaries:
 //!
@@ -52,7 +52,7 @@
 //! - **Metadata Queries:** Requests prefer SDMX-JSON or SDMX-ML XML
 //!   representation.
 //! - **Data Queries:** Prefers modern SDMX-CSV or SDMX-JSON payloads to
-//!   minimize deserialization overhead.
+//!   minimise deserialisation overhead.
 //!
 //! # Design Constraints
 //!
@@ -71,7 +71,7 @@
 ///
 /// - **No Tokio runtime active:** A private `current_thread` Tokio runtime is
 ///   created and owned by the client. This enables CLI tools and scripts to use
-///   the blocking API without manual runtime initialization.
+///   the blocking API without manual runtime initialisation.
 /// - **Tokio runtime active:** The ambient runtime handle is captured. The
 ///   client delegates blocking calls through the active runtime using
 ///   `BlockingStrategy` (see below).

@@ -1,7 +1,7 @@
 //! High-performance streaming XML and JSON deserializer for SDMX data and
 //! metadata.
 //!
-//! This crate provides the core serialization and deserialization engine for
+//! This crate provides the core serialisation and deserialisation engine for
 //! SDMX payloads. Parsing routines target minimal memory allocations and
 //! zero-copy slicing where safe, consuming types from
 //! [`sdmx-types`](../sdmx_types/index.html).
@@ -11,7 +11,7 @@
 //! - Minimal dependencies: the workspace-internal
 //!   [`sdmx-types`](../sdmx_types/index.html) crate for the core domain model,
 //!   plus external dependencies restricted strictly to `serde`, `serde_json`,
-//!   `quick-xml`, and `thiserror` for serialization and error modeling.
+//!   `quick-xml`, and `thiserror` for serialisation and error modelling.
 //! - No unsafe code.
 //! - All parsing must behave deterministically across platform runtimes.
 //!
@@ -19,7 +19,7 @@
 //!
 //! To shield downstream consumers and user-facing APIs from the intricate
 //! details of SDMX specification changes (such as version-specific structural
-//! variances), the serialization engine is responsible for dynamically routing
+//! variances), the serialisation engine is responsible for dynamically routing
 //! incoming wire-format data families to construct version-agnostic domain
 //! representations.
 //!
@@ -27,7 +27,7 @@
 //!
 //! A core example of this decoupling is the handling of the `ConstraintModel`
 //! domain type:
-//! - **SDMX 3.0** utilizes a unified `DataConstraint` structure containing a
+//! - **SDMX 3.0** utilises a unified `DataConstraint` structure containing a
 //!   `constraint_type` property.
 //! - **SDMX 3.1** decouples this into dedicated `DataConstraint` (reporting
 //!   restrictions only) and `AvailabilityConstraint` structures.
@@ -49,7 +49,7 @@
 //! **For SDMX-JSON and SDMX-CSV:** The top-level `version` field conveys the
 //! SDMX specification version to the respective parser.
 //!
-//! Version-specific structures are then parsed, normalized, and mapped to
+//! Version-specific structures are then parsed, normalised, and mapped to
 //! hydrate the unified, version-agnostic `ConstraintModel` enum, keeping
 //! wire-format versioning out of the downstream client API.
 //!

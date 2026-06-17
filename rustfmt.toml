@@ -1,6 +1,6 @@
 edition = "2024"
 newline_style = "Unix"       # Prevent dirty trees due to CRLF changes
-use_small_heuristics = "Max" # Pack constructs compactly to maximize density
+use_small_heuristics = "Max" # Pack constructs compactly to maximise density
 max_width = 100              # Strict horizontal line limit
 hard_tabs = false            # Disallow tab characters
 tab_spaces = 4               # Standard 4-space indentation

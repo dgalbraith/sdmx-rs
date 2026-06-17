@@ -42,10 +42,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "add-design: sanitize title with slashes" {
+@test "add-design: sanitise title with slashes" {
     run_isolated ./doc-engine.sh add design "Architecture/Design/Notes"
     [ "$status" -eq 0 ]
     assert_design_file_exists "0001-architecture-design-notes.md"

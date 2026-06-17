@@ -21,7 +21,7 @@ Crate versions track phases. All crates move in lockstep at the same version unt
 |:-------:|------------------------------------------------------|
 |   N/A   | Phase 0 complete: Infrastructure                     |
 | `0.1.0` | Phase 1 complete: Core domain types usable           |
-| `0.2.0` | Phase 2 complete: Serialization engine functional    |
+| `0.2.0` | Phase 2 complete: Serialisation engine functional    |
 | `0.3.0` | Phase 3 complete: Async HTTP client functional       |
 | `0.4.0` | Phase 4 complete: Extended queries (schema/metadata) |
 | `1.0.0` | Phase 5 complete: API stabilisation                  |
@@ -73,13 +73,13 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 
 ---
 
-## Phase 2: Serialization Engine (`sdmx-parsers` & `sdmx-writers`)
+## Phase 2: Serialisation Engine (`sdmx-parsers` & `sdmx-writers`)
 
-Streaming CSV, JSON, and XML parsing (deserialization) and writing (serialization) consuming the types defined in Phase 1.
+Streaming CSV, JSON, and XML parsing (deserialisation) and writing (serialisation) consuming the types defined in Phase 1.
 
-### Parsers (Deserialization)
+### Parsers (Deserialisation)
 
-- [ ] **`sdmx-types` serde wire-shape convergence (entry gate)**: Decide whether the domain types' own derived/custom `serde` impls should be made SDMX-JSON-conformant (so `serde_json` parses and emits the wire directly) or remain an internal lossless round-trip projection, with the parsers/writers performing the explicit SDMX-ML/SDMX-JSON mapping. Today they are an internal projection ([0010 §6](docs/design/0010-sdmx-core-domain-types-design.md)): nested metadata composition, `LocalisedString` as `[language, value]` tuples, externally-tagged enums, none of which is the flat SDMX wire object. If convergence is chosen it is cross-cutting, not a per-type tweak: cascade `#[serde(flatten)]` through the metadata composition chain on every maintainable, rework `LocalisedString` and every enum's representation, and add SDMX-JSON sample-conformance tests; it reopens Phase-1 foundation types under the no-breaking-changes-without-a-MINOR-bump rule ([phases.md](docs/project/phases.md)). One concrete sub-decision to settle uniformly here: **absent statedness on the wire (null vs omitted)** — every `Option<_>` statedness field (and `FixedTrue`, a struct wrapping `Option`) currently serialises `None` as `null`, which is correct for the lossless internal round-trip; the wire form (emit `null` or omit the attribute) must be one policy across all such fields, and choosing "omit" requires `#[serde(default)]` on the carriers (plus a `Default` for `FixedTrue`) so an omitted field still round-trips back to `None`. Must be ruled before the SDMX-JSON parser/writer work below.
+- [ ] **`sdmx-types` serde wire-shape convergence (entry gate)**: Decide whether the domain types' own derived/custom `serde` impls should be made SDMX-JSON-conformant (so `serde_json` parses and emits the wire directly) or remain an internal lossless round-trip projection, with the parsers/writers performing the explicit SDMX-ML/SDMX-JSON mapping. Today they are an internal projection ([0010 §6](docs/design/0010-sdmx-core-domain-types-design.md)): nested metadata composition, `LocalisedString` as `[language, value]` tuples, externally-tagged enums, none of which is the flat SDMX wire object. If convergence is chosen it is cross-cutting, not a per-type tweak: cascade `#[serde(flatten)]` through the metadata composition chain on every maintainable, rework `LocalisedString` and every enum's representation, and add SDMX-JSON sample-conformance tests; it reopens Phase-1 foundation types under the no-breaking-changes-without-a-MINOR-bump rule ([phases.md](docs/project/phases.md)). One concrete sub-decision to settle uniformly here: **absent statedness on the wire (null vs omitted)** — every `Option<_>` statedness field (and `FixedTrue`, a struct wrapping `Option`) currently serializes `None` as `null`, which is correct for the lossless internal round-trip; the wire form (emit `null` or omit the attribute) must be one policy across all such fields, and choosing "omit" requires `#[serde(default)]` on the carriers (plus a `Default` for `FixedTrue`) so an omitted field still round-trips back to `None`. Must be ruled before the SDMX-JSON parser/writer work below.
 - [ ] **Reference-types / URN-contract pass (entry gate)**: Must land before any parser work consumes the reference structs, since every wire reference is URN element content the parser must split into the parsed `agency`/`scheme_id`/`id`/`version` fields. Fixed scope: (1) the URN grammar contract per reference shape (maintainable triple vs item-in-scheme, e.g. `CL_AGE(1.0).Y`), with named error variants; (2) the `version: String` → `SdmxVersion`/`Option<SdmxVersion>` decision for the reference structs; (3) the divergent wildcard-reference grammar (3.0 admits `major+`, 3.1 does not), which also intersects [ADR-0024](docs/adr/0024-byte-preserving-document-integrity-pathway.md)'s document pathway (a reference is wire text that must round-trip verbatim); (4) alignment with `TimePeriodRange.period`'s pending `SdmxTimePeriod` adoption as part of the same lexical-typing family — the target must cover the `ObservationalTimePeriodType` union (`StandardTimePeriodType ∪ TimeRangeType`), so a Standard-only newtype would reject schema-valid wire; newtype-vs-raw is this pass's own call
 - [ ] **SDMX-ML (XML) structure message parser**: Streaming deserializer using `quick-xml` with `serde` integration
 - [ ] **SDMX-JSON structure message parser**: Deserializer using `serde_json`
@@ -92,7 +92,7 @@ Data parsers below are ordered by priority per [ADR-0018](docs/adr/0018-content-
 - [ ] **3.0 / 3.1 version routing**: Parser selects constraint model based on declared message version; both wire formats handled within the same parsing pipeline
 - [ ] **`quick-xml` `serialize` feature evaluation**: Determine whether the `serialize` feature (enabling `quick-xml`'s `serde` integration) is actually invoked in the streaming parser implementation; if unused, remove it from `Cargo.toml` to reduce compile time and attack surface
 
-### Writers (Serialization)
+### Writers (Serialisation)
 
 - [ ] **SDMX-ML (XML) structure message writer**: Streaming serializer using `quick-xml`
 - [ ] **SDMX-JSON structure message writer**: Serializer using `serde_json`
@@ -123,7 +123,7 @@ Async REST client consuming the parser and type layers.
 | **Availability** | Phase 3  | Data discoverability without retrieval via `/availability/` path    |
 | **Schema**       | Phase 4  | Data validity/validation queries; requires dedicated design pattern |
 | **Metadata**     | Phase 4  | Reference metadata queries (structure, metadataflow, metadataset)   |
-| **Registration** | Deferred | Registry discovery; deferred pending post-1.0 prioritization        |
+| **Registration** | Deferred | Registry discovery; deferred pending post-1.0 prioritisation        |
 
 ### Tasks
 
@@ -135,7 +135,7 @@ Async REST client consuming the parser and type layers.
 - [ ] **Response routing**: Content-type negotiation directing XML or JSON payloads to the correct parser
 - [ ] **Async Stream support**: Implement `Stream`/`AsyncIterator` for data observation messages to support low-memory, concurrent streaming of large statistical datasets; implement a non-blocking bridge (e.g., using `spawn_blocking` and bounded channel adapters) to pipe the async HTTP response stream into the synchronous parser
 - [ ] **Error propagation**: `sdmx_client::Error` wrapping `sdmx_parsers::Error` and HTTP errors via `thiserror` `#[from]`
-- [ ] **Blocking API implementation gates**: Verify `Handle::try_current()`, `BlockingStrategy` variant behavior, and error cases match [Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md) before declaring blocking feature complete
+- [ ] **Blocking API implementation gates**: Verify `Handle::try_current()`, `BlockingStrategy` variant behaviour, and error cases match [Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md) before declaring blocking feature complete
 - [ ] **Blocking API**: `blocking` feature wrapping the async client for non-async consumers
 - [ ] **Resilience & Middleware**: Add `reqwest-middleware` to implement automatic retries (e.g., `reqwest-retry`) and rate-limit backoffs transparently within the client; `tracing` spans from the instrumentation step above propagate automatically through middleware layers
 - [ ] **Rate-limiting strategy**: Design and document how `Retry-After` headers, per-endpoint quotas, and rate-limit state are handled; decide whether rate-limit state is per-client or per-endpoint and whether exposure via public API is needed
@@ -159,11 +159,11 @@ Enhanced query capabilities for data validation and discovery.
 ## Phase 5: Stabilisation
 
 - [ ] **`sdmx-types` API review**: Confirm structural stability to prepare for the 1.0 milestone
-- [ ] **HTTP Conditional Cache Support (ETags)**: Integrate `If-None-Match` and `If-Modified-Since` header management into the metadata cache manager to allow backend-validated caching and minimize payload transfer overhead
+- [ ] **HTTP Conditional Cache Support (ETags)**: Integrate `If-None-Match` and `If-Modified-Since` header management into the metadata cache manager to allow backend-validated caching and minimise payload transfer overhead
 - [ ] **Feature flags**: `xml`, `json`, and `csv` features in `sdmx-parsers` made optional; all enabled by default
 - [ ] **Strict Clippy Lints Enforcement**: Promote `clippy::missing_errors_doc` and `clippy::missing_panics_doc` to `warn`/`deny` and ensure all error returns and panics are properly documented
 - [ ] **Update `CONTRIBUTING.md` commit table**: Remove pre-1.0 conservative bump guidance; update to standard post-1.0 semver conventions
-- [ ] **Parser Fuzzing Suite (`cargo-fuzz`)**: Establish randomized, coverage-guided fuzz testing for XML, JSON, and CSV payload streams in `sdmx-parsers` to guarantee resilience against malicious inputs
+- [ ] **Parser Fuzzing Suite (`cargo-fuzz`)**: Establish randomised, coverage-guided fuzz testing for XML, JSON, and CSV payload streams in `sdmx-parsers` to guarantee resilience against malicious inputs
 
 - [ ] **Public API Documentation Lock**: Transition `missing_docs` from `warn` to `deny` at the individual crate level (`lib.rs`) for all crates reaching `1.0.0` stability; maintain `warn` at the workspace level for in-progress crates to preserve local development ergonomics
 - [ ] **Workspace Member Pinning Strategy transition**: Change exact version pinning (`=`) to compatible caret requirements (`^`) in internal workspace dependencies between member crates (e.g. [sdmx-parsers](crates/sdmx-parsers/Cargo.toml) depending on [sdmx-types](crates/sdmx-types/Cargo.toml)) to enable decoupled versioning, while maintaining exact pinning (`=`) inside the facade [sdmx-rs](crates/sdmx-rs/Cargo.toml) per [ADR-0003](docs/adr/0003-workspace-crate-facade-and-version-pinning-strategy.md) and [ADR-0004](docs/adr/0004-decoupled-crate-versioning-strategy.md).

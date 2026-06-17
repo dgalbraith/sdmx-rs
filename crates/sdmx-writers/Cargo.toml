@@ -4,7 +4,7 @@ version = "0.0.0"
 edition.workspace = true
 rust-version = "1.91.0"
 authors.workspace = true
-description = "High-performance SDMX serialization adapter for multiple output formats."
+description = "High-performance SDMX serialisation adapter for multiple output formats."
 readme = "README.md"
 categories = ["encoding", "no-std"]
 keywords = ["sdmx", "serialization", "xml", "json"]
@@ -35,9 +35,9 @@ wasm-bindgen-test = "0.3"
 [package.metadata.cargo-machete]
 ignored = [
   "sdmx-types",        # Phase 2: depends on core types; unignore when implementation begins
-  "serde",             # Phase 2: serialization trait derives for output formats
-  "serde_json",        # Phase 2: JSON serialization support
-  "quick-xml",         # Phase 2: XML serialization support
+  "serde",             # Phase 2: serialisation trait derives for output formats
+  "serde_json",        # Phase 2: JSON serialisation support
+  "quick-xml",         # Phase 2: XML serialisation support
   "thiserror",         # Phase 1: error type definitions
   "wasm-bindgen-test", # PERMANENT: platform-specific (cfg(wasm32) for WASM testing)
 ]

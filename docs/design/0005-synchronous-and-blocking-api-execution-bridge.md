@@ -25,8 +25,8 @@ We provide a blocking version of the client while avoiding the duplicate mainten
 ### Decision Drivers
 
 * Maintainability: Sharing request formatting, URL building, and parsing logic.
-* API Usability: Providing a clean, synchronous interface that does not require users to initialize or manage a Tokio runtime.
-* Safety: Preventing panics by utilizing correct Tokio blocking primitives based on the runtime context.
+* API Usability: Providing a clean, synchronous interface that does not require users to initialise or manage a Tokio runtime.
+* Safety: Preventing panics by utilising correct Tokio blocking primitives based on the runtime context.
 * Performance: Enabling high-performance users to opt into block_in_place when they have verified multi-threaded Tokio availability.
 
 ---
@@ -154,7 +154,7 @@ Both variants of `RuntimeHandle` are `Clone`, preserving the "cheap clone" prope
 ### Runtime Safety and Panic Mitigation
 
 * **Zero-Panic Construction**: `build_sync()` uses `Handle::try_current()` to detect an ambient runtime. If one is present it is wrapped as `RuntimeHandle::Active`; if not, a `current_thread` runtime is created and owned as `RuntimeHandle::Owned`. Construction never panics.
-* **Ambient Runtime Path (`Active`)**: By utilizing `tokio::runtime::Handle`, we avoid the overhead of owning a Runtime and ensure we can safely bridge into any existing Tokio environment. When present, `block_in_place` signals to the scheduler that the current thread is performing blocking work, preventing stalls.
+* **Ambient Runtime Path (`Active`)**: By utilising `tokio::runtime::Handle`, we avoid the overhead of owning a Runtime and ensure we can safely bridge into any existing Tokio environment. When present, `block_in_place` signals to the scheduler that the current thread is performing blocking work, preventing stalls.
 * **Owned Runtime Path (`Owned`)**: When the client owns the runtime, `rt.block_on()` is always safe — there are no competing async tasks and no scheduler to negotiate with.
 * **Constraint**: `block_in_place` requires a multi-threaded runtime. If a user selects `BlockingStrategy::BlockInPlace` in the ambient (`Active`) path and the runtime is single-threaded, they receive `Error::BlockingNotSupported` rather than a runtime panic.
 

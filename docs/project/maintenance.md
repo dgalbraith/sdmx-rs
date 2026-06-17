@@ -150,7 +150,7 @@ bash scripts/check-maintenance.sh --dry-run  # Preview without enforcing
 
 5. Commit both files.
 
-### Checking synchronization
+### Checking synchronisation
 
 Detect if maintenance.toml and inline comments are out of sync:
 
@@ -226,13 +226,13 @@ When Phase 2 starts:
 
 `check-maintenance.sh` is run as an informational check in continuous integration:
 
-**CI behavior**:
+**CI behaviour**:
 - **On Pull Requests**: The check is informational (exits 0). This prevents blocking external contributors while maintaining visibility of maintenance status.
 - **On default branch (`main`) pushes (post-merge)**: The check is informational (exits 0). No blocks — visibility only.
 - **Scheduled Weekly Check**: A GitHub Actions cron job runs every **Saturday at 00:00 UTC**.
-  - If any maintenance item is overdue, the job automatically creates a tracking GitHub Issue labeled `maintenance` specifying the exact overdue items.
+  - If any maintenance item is overdue, the job automatically creates a tracking GitHub Issue labelled `maintenance` specifying the exact overdue items.
   - No duplicate issues will be created if a tracking issue is already open.
-  - This is the **primary enforcement mechanism** — maintainers see overdue work via GitHub Issues and prioritize accordingly.
+  - This is the **primary enforcement mechanism** — maintainers see overdue work via GitHub Issues and prioritise accordingly.
 
 This approach maintains discipline (obligations are visible and tracked) without false CI gates. Maintainers see weekly Issues and handle work through their normal workflow.
 
@@ -243,7 +243,7 @@ When the scheduled CI creates a tracking issue for an overdue obligation:
 ### Workflow
 
 1. **CI detects overdue obligation** (Saturday 00:00 UTC)
-   - Creates GitHub Issue labeled `maintenance`
+   - Creates GitHub Issue labelled `maintenance`
    - Example issue title: `chore(maintenance): Scheduled Maintenance Review Overdue`
    - Issue body lists all overdue items
 

@@ -4,7 +4,7 @@ Complete, runnable examples demonstrating library usage.  See individual crates 
 
 - [sdmx-types examples](../crates/sdmx-types/examples/README.md): Type construction and validation
 - [sdmx-parsers examples](../crates/sdmx-parsers/examples/README.md): Parsing CSV/JSON/XML
-- [sdmx-writers examples](../crates/sdmx-writers/examples/README.md): Serialization
+- [sdmx-writers examples](../crates/sdmx-writers/examples/README.md): Serialisation
 - [sdmx-client examples](../crates/sdmx-client/examples/README.md): HTTP queries and streaming
 - [sdmx-rs examples](../crates/sdmx-rs/examples/README.md): End-to-end usage
 

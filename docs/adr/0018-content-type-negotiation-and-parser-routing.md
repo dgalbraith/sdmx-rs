@@ -28,7 +28,7 @@ The format priority ordering, the exact `Accept` header values, and the response
 
 ## Decision Drivers
 
-* **Performance**: Minimize parse overhead and wire transfer size for the common data retrieval use case.
+* **Performance**: Minimise parse overhead and wire transfer size for the common data retrieval use case.
 * **Broad Compatibility**: Maintain fallback to SDMX-ML for endpoints that do not support newer formats, which are common among older national statistical office deployments.
 * **Deterministic Routing**: The parser selected must always match the format returned; ambiguous or incorrect routing is a correctness failure, not just a performance issue.
 * **Testability**: The Accept header construction and response routing logic must be independently testable without a live endpoint.
@@ -59,7 +59,7 @@ Construct a priority-ordered `Accept` header using RFC 7231 quality values (`q=`
 
 **Pros**:
 
-* Maximizes performance on capable endpoints (CSV or JSON) while gracefully degrading to XML on older ones.
+* Maximises performance on capable endpoints (CSV or JSON) while gracefully degrading to XML on older ones.
 * Standard HTTP mechanism — no SDMX-specific negotiation logic required.
 * Response routing is unambiguous: parse the `Content-Type` of the actual response, not the requested format.
 
@@ -175,6 +175,6 @@ Unlike SDMX-ML and SDMX-JSON, SDMX-CSV payloads carry no version envelope. The S
 * ADR-0008 — `ConstraintModel` version routing; version conveyance for CSV is out-of-band (this ADR)
 * ADR-0009 — `quick-xml` and `serde_json` streaming parsers (XML/JSON paths referenced in routing table)
 * ADR-0017 — SDMX-CSV stream parsing strategy
-* [Design Document 0008](../design/0008-target-version-policy-for-serialization.md) — Target version policy for serialization (the `TargetVersion` parameter mirrors the version conveyance problem on the outbound path)
+* [Design Document 0008](../design/0008-target-version-policy-for-serialisation.md) — Target version policy for serialisation (the `TargetVersion` parameter mirrors the version conveyance problem on the outbound path)
 * `crates/sdmx-client/src/lib.rs` — Content-Type negotiation implementation
 * RFC 7231 §5.3.2 — `Accept` header quality weight specification

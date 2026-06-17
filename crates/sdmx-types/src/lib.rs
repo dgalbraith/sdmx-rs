@@ -7,7 +7,7 @@
 //!
 //! # Design Constraints
 //!
-//! - Minimal external dependencies: `serde` (serialization), `thiserror` (error modeling),
+//! - Minimal external dependencies: `serde` (serialisation), `thiserror` (error modelling),
 //!   and `chrono` (the validity-window timestamps), all `no_std` + `alloc` compatible.
 //! - No unsafe code.
 //! - No binary output: this crate is a pure domain model library.

@@ -12,7 +12,7 @@ Accepted
 
 ## Summary
 
-Optimize string field storage in typestate query builders by using `Cow<'static, str>`, eliminating lifetime parameters from the builders and returned futures to enable background task spawning via `tokio::spawn` while maintaining zero-cost allocation for string literals.
+Optimise string field storage in typestate query builders by using `Cow<'static, str>`, eliminating lifetime parameters from the builders and returned futures to enable background task spawning via `tokio::spawn` while maintaining zero-cost allocation for string literals.
 
 ---
 
@@ -102,7 +102,7 @@ This ensures the builder, and all futures it produces, are unconditionally `'sta
 To prevent `Cow` from obscuring the Typestate pattern in `ARCHITECTURE.md`, documentation is structured in two layers:
 
 1. **Primary section (Typestate)**: State machine diagrams and transition logic use simplified type names. The focus is on valid state transitions, not field storage.
-2. **Implementation note (Storage)**: A dedicated subsection and this Design Document explain the `Cow` choice, its rationale, and its behavior at the call site.
+2. **Implementation note (Storage)**: A dedicated subsection and this Design Document explain the `Cow` choice, its rationale, and its behaviour at the call site.
 
 This ensures a reader learning the Typestate pattern is not simultaneously required to understand `Cow`, while a reader implementing or extending the builders has the full picture.
 

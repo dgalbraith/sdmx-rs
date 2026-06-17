@@ -101,7 +101,7 @@ impl<'a> StructureQueryBuilder<'a> {
 ```
 
 **Pros**:
-- Familiar pattern. Developers coming from any language recognize `Option`-checked validation in an execution method.
+- Familiar pattern. Developers coming from any language recognise `Option`-checked validation in an execution method.
 - Simple struct and impl definitions; no phantom types or lifetime proliferation beyond the client reference.
 - Easy to add new mandatory fields without changing the type signature.
 

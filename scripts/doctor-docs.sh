@@ -3,7 +3,7 @@
 # scripts/doctor-docs.sh
 # Documentation structure validation
 #
-# Validates that documentation files follow the expected structure and organization,
+# Validates that documentation files follow the expected structure and organisation,
 # ensuring consistency and discoverability across the project.
 #
 # Usage: scripts/doctor-docs.sh

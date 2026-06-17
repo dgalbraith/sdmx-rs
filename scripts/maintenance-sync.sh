@@ -16,7 +16,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/lib/log.sh"
 
-echo "🔍 Maintenance Synchronization Check"
+echo "🔍 Maintenance Synchronisation Check"
 echo ""
 
 if [ ! -f "maintenance.toml" ]; then
@@ -26,7 +26,7 @@ fi
 
 failed=0
 
-echo "Checking maintenance item synchronization..."
+echo "Checking maintenance item synchronisation..."
 echo ""
 
 # Get all items from maintenance.toml (exclude commented blocks)
@@ -56,17 +56,17 @@ for item in $items; do
         continue
     fi
 
-    log_ok "$item: synchronized" 1
+    log_ok "$item: synchronised" 1
 done
 
 echo ""
 
 if [ "$failed" -eq 0 ]; then
-    log_ok "All maintenance items synchronized"
+    log_ok "All maintenance items synchronised"
     unset failed items item file marker escaped_marker
     exit 0
 else
-    log_fail "Synchronization errors detected (see above)"
+    log_fail "Synchronisation errors detected (see above)"
     echo ""
     echo "Resolution:"
     echo "  1. Add missing inline comments to source files"

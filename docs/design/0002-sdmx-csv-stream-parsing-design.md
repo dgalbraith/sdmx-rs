@@ -20,7 +20,7 @@ Design of a streaming SDMX-CSV data message parser that operates in O(1) memory 
 
 The ROADMAP includes an SDMX-CSV data message parser as a Phase 2 deliverable — a "streaming observation reader for the first-class SDMX-CSV data format." ADR-0018 records that `sdmx-client` will prefer SDMX-CSV over SDMX-JSON for data queries, making the CSV parser a primary hot path for the library.
 
-**SDMX-CSV differs structurally from standard CSV deserialization**:
+**SDMX-CSV differs structurally from standard CSV deserialisation**:
 - **Column semantics are domain-governed**, not positional. The header row encodes keyed dimension identifiers (e.g., `FREQ`, `REF_AREA`, `INDICATOR`) whose meaning is defined by a Data Structure Definition (DSD), not by column order. Column order may vary between responses.
 - **No self-describing version envelope.** Unlike SDMX-ML (XML namespace) and SDMX-JSON (top-level `version` field), SDMX-CSV has no wire-level marker. Version is conveyed out-of-band via the `Accept` header or inferred from `Content-Type` parameters.
 - **Observations are row-per-record**, flat and tabular with all dimension values inline — fundamentally different from the hierarchical structure of SDMX-ML and SDMX-JSON.
@@ -84,7 +84,7 @@ Implement a minimal CSV row scanner directly using `memchr` for delimiter/newlin
 
 ### Option C — Delegate to `serde` + `csv` with Fixed Struct (Rejected)
 
-Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` derive for deserialization.
+Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` derive for deserialisation.
 
 **Verdict**: Rejected. SDMX-CSV column sets are not fixed — they vary by dataset and DSD. A static struct cannot represent arbitrary dimension columns.
 
@@ -120,7 +120,7 @@ Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` derive fo
 
 * [ADR-0005: no_std + alloc Architecture](../adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
 * [ADR-0008: Unified Constraint Model](../adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md)
-* [ADR-0009: quick-xml & serde_json Streaming](../adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md)
+* [ADR-0009: quick-xml & serde_json Streaming](../adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md)
 * [ADR-0018: Content-Type Negotiation and Parser Routing](../adr/0018-content-type-negotiation-and-parser-routing.md)
 * ROADMAP.md — Phase 2 deliverable: SDMX-CSV data message parser
 * RFC 4180 — Common Format and MIME Type for Comma-Separated Values (CSV) Files

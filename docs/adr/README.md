@@ -42,7 +42,7 @@ For design exploration *before* decisions are made, detailed component planning,
 - [ADR-0005: no_std + alloc architecture](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md): Support embedded and resource-constrained environments
 - [ADR-0007: Headless WebAssembly verification](0007-headless-webassembly-execution-verification.md): WASM support and testing strategy
 
-## Domain Modeling
+## Domain Modelling
 - [ADR-0008: Unified constraint model](0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md): Single constraint model for SDMX 3.0 and 3.1
 - [ADR-0021: Domain invariant validation & encapsulation](0021-domain-invariant-validation-and-encapsulation-strategy.md): Single write path, custom Deserialize where invariants demand, visibility by invariant ownership
 - [ADR-0022: Owned string ownership](0022-owned-string-ownership-strategy.md): Lifetimeless `'static` domain types; owned `String` for all text fields
@@ -50,7 +50,7 @@ For design exploration *before* decisions are made, detailed component planning,
 - [ADR-0024: Byte-preserving document integrity pathway](0024-byte-preserving-document-integrity-pathway.md): Lossless document layer for edit-in-place; byte in == byte out outside edits
 
 ## Dependencies & Infrastructure
-- [ADR-0009: quick-xml & serde_json](0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md): Streaming deserialization with quick-xml and serde_json
+- [ADR-0009: quick-xml & serde_json](0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md): Streaming deserialisation with quick-xml and serde_json
 - [ADR-0010: Fuzzing suite & panic profiling](0010-parser-fuzzing-suite-and-panic-profile-configuration.md): Cargo fuzz for parser robustness
 - [ADR-0011: Tokio async runtime](0011-use-tokio-as-the-primary-async-runtime.md): Primary async runtime for concurrency
 - [ADR-0012: reqwest HTTP client](0012-use-reqwest-over-hyper-and-ureq-for-the-http-client.md): High-level HTTP client with connection pooling
@@ -61,7 +61,7 @@ For design exploration *before* decisions are made, detailed component planning,
 - [ADR-0015: Send and IntoFuture](0015-send-and-intofuture.md): Thread-safety requirements and future trait design
 - [ADR-0016: Type parameter count](0016-type-parameter-count.md): Balancing generics for ergonomics vs. flexibility
 
-## Serialization, Parsing & Format Handling
+## Serialisation, Parsing & Format Handling
 - [ADR-0017: SDMX-CSV parser library selection](0017-sdmx-csv-stream-parsing-strategy.md): Choose `csv` crate for SDMX-CSV parsing (fallback to manual byte scanning)
 - [ADR-0018: Content-Type negotiation and parser routing](0018-content-type-negotiation-and-parser-routing.md): Accept header negotiation and format-aware parser dispatch
 - [ADR-0019: XML namespace-aware parsing](0019-xml-namespace-aware-parsing.md): NsReader for SDMX 3.0/3.1 namespace distinction

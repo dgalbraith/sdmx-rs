@@ -1080,7 +1080,7 @@ mod tests {
     #[test]
     fn deserialize_routes_through_new() {
         // Each lexical newtype deserializes from a JSON string and round-trips verbatim;
-        // a value its grammar rejects fails deserialization (the §7 construction contract).
+        // a value its grammar rejects fails deserialisation (the §7 construction contract).
         assert_eq!(serde_json::from_str::<SdmxDecimal>(r#""-3.14""#).unwrap().as_str(), "-3.14");
         assert!(serde_json::from_str::<SdmxDecimal>(r#""banana""#).is_err());
 

@@ -10,14 +10,14 @@ Accepted
 
 ## Context
 
-The `sdmx-rs` library is designed as a multi-crate workspace comprising `sdmx-types` (domain validation), `sdmx-parsers` (XML/JSON deserialization), `sdmx-client` (async HTTP orchestration), and `sdmx-rs` (facade).
+The `sdmx-rs` library is designed as a multi-crate workspace comprising `sdmx-types` (domain validation), `sdmx-parsers` (XML/JSON deserialisation), `sdmx-client` (async HTTP orchestration), and `sdmx-rs` (facade).
 
 Errors occurring within lower-level crates must propagate upward to the user. We must decide how to architect error representation and propagation across these modular boundaries. The system must maintain strict crate separation, prevent dependency leakage (e.g., leaking network library errors into the parsing or types crates), and align with `#![no_std]` targets where appropriate.
 
 ## Decision Drivers
 
 * **Crate Modularity**: Maintain strict unidirectional dependency flow (`sdmx-client` -> `sdmx-parsers` -> `sdmx-types`).
-* **Dependency Leakage Prevention**: Do not allow details of private dependencies (like XML tokenizers or HTTP transport clients) to leak into the public error API of upstream crates.
+* **Dependency Leakage Prevention**: Do not allow details of private dependencies (like XML tokenisers or HTTP transport clients) to leak into the public error API of upstream crates.
 * **no_std Target Support**: Keep error structures in `sdmx-types` and `sdmx-parsers` compatible with `#![no_std]` execution.
 * **Ergonomics & Maintainability**: Minimise manual error mapping boilerplate while providing descriptive, actionable error diagnostics.
 
@@ -52,13 +52,13 @@ Each crate defines its own scoped `Error` type using `thiserror` (e.g., `sdmx_ty
 
 ## Decision
 
-**We will implement localized, crate-specific `Error` enums using `thiserror` for each library in the workspace. Lower-level errors will propagate upward across crate boundaries via explicit `#[from]` conversions or wrapper variants.**
+**We will implement localised, crate-specific `Error` enums using `thiserror` for each library in the workspace. Lower-level errors will propagate upward across crate boundaries via explicit `#[from]` conversions or wrapper variants.**
 
 ---
 
 ## Consequences
 
-* **Positive**: Strict compilation isolation. Changes to the parsing implementation do not affect domain modeling type compilation or error structures.
+* **Positive**: Strict compilation isolation. Changes to the parsing implementation do not affect domain modelling type compilation or error structures.
 * **Positive**: Clear, targeted errors. Consumers using only `sdmx-types` are not exposed to network timeout or XML tag mismatch errors.
 * **Positive**: `#![no_std]` + `alloc` compilation for `sdmx-types` and `sdmx-parsers`. With `default-features = false`, the `thiserror` `std` feature is not activated; the generated derive uses `core::error::Error` instead of `std::error::Error`. `core::error::Error` was stabilised in Rust 1.81 — below the workspace MSRV of 1.91.0 — so this is unconditionally correct. This implicit floor on a viable MSRV is the reason the workspace MSRV must not be lowered below 1.81 without revisiting this dependency.
 * **Negative**: Mild implementation overhead at crate interfaces to define mapping conversions.

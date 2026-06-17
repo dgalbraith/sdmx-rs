@@ -1,6 +1,6 @@
 # Registry Configuration Artifacts
 
-Machine-readable realizations of the **registry** (crates.io) configuration that
+Machine-readable realisations of the **registry** (crates.io) configuration that
 [docs/project/registry-setup.md](../docs/project/registry-setup.md) describes in
 prose. This directory is the registry-plane sibling of [`forge/`](../forge/): the
 docs hold the **why** (rationale, irreversible-ordering, the manual steps that stay

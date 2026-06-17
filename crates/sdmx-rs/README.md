@@ -15,8 +15,8 @@ This crate serves as the top-level facade and entry point for the `sdmx-rs` work
 graph TD
     Facade[sdmx-rs <br/> Facade Meta-Crate]:::facade
     Client[sdmx-client <br/> HTTP Orchestrator]:::feature
-    Parsers[sdmx-parsers <br/> Serialization Engine]:::feature
-    Writers[sdmx-writers <br/> Serialization Adapter]:::feature
+    Parsers[sdmx-parsers <br/> Serialisation Engine]:::feature
+    Writers[sdmx-writers <br/> Serialisation Adapter]:::feature
     Types[sdmx-types <br/> Domain Core]:::core
 
     Facade -.->|client feature| Client
@@ -38,7 +38,7 @@ graph TD
 
 *   **`types`** (Always Compiled): Pure, `#![no_std]`, dependency-free domain models, metadata schemas, and validation invariants.
 *   **`parsers`** (Default Feature): Streaming XML and JSON parser engine.
-*   **`writers`** (Default Feature): Serialization adapter for SDMX output generation (XML, JSON, CSV) via the `TargetVersion` API contract.
+*   **`writers`** (Default Feature): Serialisation adapter for SDMX output generation (XML, JSON, CSV) via the `TargetVersion` API contract.
 *   **`client`** (Default Feature): Tokio-based async HTTP orchestrator managing REST endpoints.
 
 ### TLS (when `client` is enabled)

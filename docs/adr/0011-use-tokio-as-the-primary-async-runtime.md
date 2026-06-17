@@ -16,7 +16,7 @@ The Rust ecosystem offers several approaches to network I/O, including synchrono
 
 ## Decision Drivers
 
-* **Ecosystem Alignment**: Minimize dual-runtime conflicts (executor panic or runtime overhead) for modern production applications.
+* **Ecosystem Alignment**: Minimise dual-runtime conflicts (executor panic or runtime overhead) for modern production applications.
 * **Concurrency Scale**: Enable highly concurrent metadata harvesting without starving system threads.
 * **Resilience Middleware**: Unblock integration with advanced pooling, retries, and rate-limiting stacks (`tower`, `reqwest-middleware`).
 
@@ -39,7 +39,7 @@ An alternative asynchronous execution model aligned with generic futures traits.
 * **Verdict**: Rejected.
 
 ### Option C — `Tokio` + `reqwest`
-Tokio-based asynchronous stack utilizing the `reqwest` client engine.
+Tokio-based asynchronous stack utilising the `reqwest` client engine.
 
 * **Pros**: The de facto industry standard for Rust async networking. Provides native connection pooling, Keep-Alive socket recycling, and middleware coverage out of the box.
 * **Cons**: Synchronous callers cannot consume it directly without an executor bridge.

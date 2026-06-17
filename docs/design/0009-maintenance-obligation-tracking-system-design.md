@@ -54,7 +54,7 @@ Adopt the **Hybrid Approach**: central ledger (`maintenance.toml`) + inline comm
 Maintain a single TOML file with all obligations, check deadlines in CI, but no inline comments in source files.
 
 **Pros**:
-* Single source of truth; centralized visibility
+* Single source of truth; centralised visibility
 * Simple to query and validate
 
 **Cons**:
@@ -71,7 +71,7 @@ Maintain a central `maintenance.toml` ledger listing all obligations. For each o
 **Pros**:
 * Central ledger provides project-wide visibility and enforces deadlines in CI
 * Inline comments preserve local context; readers see "this file needs periodic review" while editing
-* Validation prevents drift; synchronization helpers reduce friction on updates
+* Validation prevents drift; synchronisation helpers reduce friction on updates
 * Scales cleanly; adding a new obligation requires only a ledger entry + inline comment
 * Audit trail: git history shows what was updated and when, inline comments explain why
 * Changes to a file preserve institutional memory about its maintenance obligations

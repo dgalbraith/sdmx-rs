@@ -133,7 +133,7 @@ EOF
 }
 
 # ==============================================================================
-# Ledger Synchronization
+# Ledger Synchronisation
 # ==============================================================================
 
 @test "verify-adr: detects physical file not in .gitignore" {

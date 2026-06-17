@@ -19,7 +19,7 @@ labels: chore
 
 - [ ] <!-- e.g., Bump target dependency versions in Cargo.toml -->
 - [ ] <!-- e.g., Update CI action scripts or lint tool configurations -->
-- [ ] <!-- e.g., Synchronize repository allow-lists or configs -->
+- [ ] <!-- e.g., Synchronise repository allow-lists or configs -->
 
 ## Verification
 

@@ -23,7 +23,7 @@ setup() {
     mkdir -p lib
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
 
-    # Initialize mock git repository
+    # Initialise mock git repository
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"

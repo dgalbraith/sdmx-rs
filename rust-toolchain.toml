@@ -10,10 +10,10 @@ targets = [
 # Development and diagnostic toolchain components
 components = [
   "rustfmt",            # Code style formatter (complemented by nightly rustfmt)
-  "clippy",             # Workspace static analyzer and compiler linter
+  "clippy",             # Workspace static analyser and compiler linter
   "rust-src",           # Standard library source for editor navigation
   "llvm-tools-preview", # Profiling instrumentation for test coverage extraction
 ]
 
-# Restrict dependencies to speed up environment initialization
+# Restrict dependencies to speed up environment initialisation
 profile = "minimal"

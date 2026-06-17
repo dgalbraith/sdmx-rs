@@ -7,7 +7,7 @@
 This guide will cover:
 
 - First query setup
-- Basic client initialization
+- Basic client initialisation
 - Fetching structures and data
 - Error handling and best practices
 

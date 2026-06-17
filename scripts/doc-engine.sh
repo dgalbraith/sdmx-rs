@@ -3,7 +3,7 @@ set -e
 
 # ==============================================================================
 # scripts/doc-engine.sh
-# Centralized document management engine for ADRs, Designs, and Guides.
+# Centralised document management engine for ADRs, Designs, and Guides.
 # ==============================================================================
 
 ACTION="$1"

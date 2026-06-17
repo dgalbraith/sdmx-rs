@@ -2,7 +2,7 @@
 
 This document defines the continuous integration (CI) gates that enforce code quality, compliance, and correctness. All checks must pass before code can be merged to `main`.
 
-## Check Categorization
+## Check Categorisation
 
 Checks are classified into five categories based on when they run and whether they block merge:
 
@@ -120,7 +120,7 @@ infra:
 
 **Scheduled (Weekly, Saturday 00:00 UTC)**:
 - All checks run (including informational)
-- detect-maintenance detects overdue items and creates GitHub Issues labeled `maintenance` for maintainer action
+- detect-maintenance detects overdue items and creates GitHub Issues labelled `maintenance` for maintainer action
 
 ## Status Check Requirements
 
@@ -318,7 +318,7 @@ Validates that maintenance obligations (in `maintenance.toml`) are tracked and c
 - Demoted to informational on PRs (warns but doesn't block external contributions)
 
 **Result**:
-- **Scheduled (Saturday)**: Creates GitHub Issues labeled `maintenance` for any overdue items. This pulls work into maintainers' queue.
+- **Scheduled (Saturday)**: Creates GitHub Issues labelled `maintenance` for any overdue items. This pulls work into maintainers' queue.
 - **Post-merge**: Informational (doesn't fail). Visibility via scheduled issues is the enforcement mechanism.
 
 **Purpose**: Track periodic maintenance obligations and surface overdue work via automated GitHub Issues rather than CI failures.
@@ -362,7 +362,7 @@ Example:
 ```
 feat(sdmx-types): add codelist representation
 
-Implements core structure for SDMX codelists with serialization traits.
+Implements core structure for SDMX codelists with serialisation traits.
 
 Closes #42
 ```

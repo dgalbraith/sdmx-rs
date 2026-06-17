@@ -33,7 +33,7 @@ SDMX REST endpoints require specific mandatory fields (e.g., agency ID for struc
 
 **Constraints**:
 - Must support flexible field-setting order (both `.agency().resource_type()` and `.resource_type().agency()` are valid)
-- Must work with `#[derive]` where possible (minimize boilerplate)
+- Must work with `#[derive]` where possible (minimise boilerplate)
 - Error messages should be understandable to Rust developers (not cryptic type parameter noise)
 
 ---
@@ -195,7 +195,7 @@ Complex queries might have many type parameters, leading to verbose type signatu
 
 ### 3. Compilation Time
 
-Monomorphization of generic builders for each combination of states increases compile times slightly. Mitigation: builder methods are small and inline-friendly; real impact is negligible for most projects.
+Monomorphisation of generic builders for each combination of states increases compile times slightly. Mitigation: builder methods are small and inline-friendly; real impact is negligible for most projects.
 
 ### 4. API Stability
 

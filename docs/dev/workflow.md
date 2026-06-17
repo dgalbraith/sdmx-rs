@@ -1,6 +1,6 @@
 # Developer Workflow Exemplar
 
-This guide documents the standardized end-to-end developer workflow for contributing to the `sdmx-rs` repository. By following this lifecycle, contributors ensure their work integrates smoothly and aligns with the repository's strict quality, cryptographic, and versioning standards.
+This guide documents the standardised end-to-end developer workflow for contributing to the `sdmx-rs` repository. By following this lifecycle, contributors ensure their work integrates smoothly and aligns with the repository's strict quality, cryptographic, and versioning standards.
 
 We use the repository's first foundational baseline milestone (**Issue #1**) as a fully worked real-world exemplar.
 

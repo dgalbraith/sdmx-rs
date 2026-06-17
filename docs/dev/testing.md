@@ -7,18 +7,18 @@ This guide documents the testing strategy, patterns, and infrastructure for sdmx
 **Why we test**:
 - Verify correctness: SDMX parsing must be bulletproof; invalid data should never silently corrupt state
 - Catch regressions: refactoring should be safe; tests are a safety net
-- Document behavior: tests are executable specifications; they clarify intent
+- Document behaviour: tests are executable specifications; they clarify intent
 - Enable confidence: deployments should be boring; comprehensive tests make that possible
 
-**What we optimize for**:
+**What we optimise for**:
 1. **Clarity over coverage chasing** — 80% coverage of important paths beats 100% coverage of trivial code
 2. **Meaningful assertions** — tests that assert useful properties, not just "it runs without crashing"
 3. **Test maintainability** — tests are code; they need the same care as production code
 4. **Realistic scenarios** — use actual SDMX spec examples; avoid synthetic happy-path-only tests
 
 **What we don't do**:
-- Over-mock: real behavior is better than mock behavior; mocks hide integration failures
-- Test internals: test public APIs and behavior, not implementation details
+- Over-mock: real behaviour is better than mock behaviour; mocks hide integration failures
+- Test internals: test public APIs and behaviour, not implementation details
 - Ignore flaky tests: flaky tests are worse than no tests; they destroy confidence
 - Treat coverage as a goal: 80% is a floor, not a ceiling
 
@@ -31,7 +31,7 @@ This guide documents the testing strategy, patterns, and infrastructure for sdmx
         /  \  Integration Tests (Crate-level: API contracts)
        /----\
       /      \
-     /        \  Unit Tests (Function-level: behavior)
+     /        \  Unit Tests (Function-level: behaviour)
     /----------\
    /            \
   /              \ Doc Tests (Examples: API usage)
@@ -47,7 +47,7 @@ This guide documents the testing strategy, patterns, and infrastructure for sdmx
 **Coverage by crate**:
 - **sdmx-types**: 85%+ (domain types are critical; comprehensive validation)
 - **sdmx-parsers**: 75–80% (streaming logic inherently complex; rare branches hard to hit)
-- **sdmx-writers**: 80%+ (serialization is straightforward)
+- **sdmx-writers**: 80%+ (serialisation is straightforward)
 - **sdmx-client**: 80%+ (HTTP logic, error handling well-covered by mocks)
 - **sdmx-rs (facade)**: 70%+ (thin wrapper; coverage is secondary to integration tests)
 
@@ -59,7 +59,7 @@ Coverage is measured via `cargo llvm-cov` and enforced in CI. Thresholds vary by
 
 ---
 
-## Test Organization
+## Test Organisation
 
 ### Unit Tests: Collocated in Modules
 
@@ -194,7 +194,7 @@ pub fn parse_constraint_model(input: &str) -> Result<ConstraintModel> {
 
 ## Fixtures & Test Data
 
-### Fixture Organization
+### Fixture Organisation
 
 Store test data by crate and domain type:
 
@@ -328,7 +328,7 @@ async fn test_fetch_constraint_model_success() {
         .mount(&mock_server)
         .await;
 
-    // Test client behavior
+    // Test client behaviour
     let client = Client::new(mock_server.uri())
         .expect("client creation failed");
     let model = client.fetch_constraint("CM1")
@@ -362,7 +362,7 @@ async fn test_fetch_constraint_model_not_found() {
 **When NOT to mock**:
 - Parser tests: test with real XML/JSON (fixtures, not mocks)
 - Type construction: test with real instances, not mocks
-- Serialization: use actual output, not mocked output
+- Serialisation: use actual output, not mocked output
 
 ### Avoiding Mock Drift
 
@@ -381,7 +381,7 @@ Keep mocks in sync with reality:
 
 ### Fuzzing Strategy (Phase 5)
 
-Fuzz targets exercise parsers with random/malformed input to find panics and undefined behavior:
+Fuzz targets exercise parsers with random/malformed input to find panics and undefined behaviour:
 
 ```
 crates/sdmx-parsers/fuzz/
@@ -450,7 +450,7 @@ mod prop_tests {
 }
 ```
 
-Rationale: Roundtrip tests catch serialization bugs that unit tests miss.
+Rationale: Roundtrip tests catch serialisation bugs that unit tests miss.
 
 ---
 
@@ -534,12 +534,12 @@ Verify that invalid states are impossible:
 
 ```rust
 #[test]
-fn test_constraint_model_always_normalized() {
+fn test_constraint_model_always_normalised() {
     let model = ConstraintModel::new("CM1");
 
-    // The model should be in a normalized state immediately after construction
+    // The model should be in a normalised state immediately after construction
     // (all rules validated, no duplicates, etc.)
-    assert!(model.is_normalized());
+    assert!(model.is_normalised());
 }
 ```
 
@@ -578,7 +578,7 @@ async fn test_fetch_with_timeout() {
     )
     .await;
 
-    // Verify timeout behavior
+    // Verify timeout behaviour
     assert!(result.is_err());
 }
 ```
@@ -795,7 +795,7 @@ Before marking a crate as "complete" in Phase 1:
 - [ ] Integration tests for major workflows
 - [ ] Error cases tested (not just happy path)
 - [ ] Doc tests included for complex APIs
-- [ ] Fixtures organized and documented
+- [ ] Fixtures organised and documented
 - [ ] `just test` passes locally
 - [ ] `just coverage` shows no coverage regressions
 - [ ] `cargo test --no-default-features --lib` passes (no_std check)

@@ -166,7 +166,7 @@ echo ""
 
 # Check 6: Dependency graph summary
 echo "Dependency Graph Summary:"
-echo "  (Run 'cargo tree' for full visualization)"
+echo "  (Run 'cargo tree' for full visualisation)"
 
 top_level=$(cargo tree --depth 0 2>/dev/null | grep "^sdmx" | head -5 || echo "")
 if [ -n "$top_level" ]; then

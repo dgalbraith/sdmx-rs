@@ -635,7 +635,7 @@ mod tests {
     #[test]
     fn deserialize_enforces_identifier_invariants() {
         // The serde path routes through the validated constructors, so a bad id (IDType tier)
-        // and a bad agency (NestedNCName tier) both fail deserialization rather than slipping
+        // and a bad agency (NestedNCName tier) both fail deserialisation rather than slipping
         // past the derive, the §7 construction contract.
         let valid = MaintainableMetadata::new(
             VersionableMetadata::new(

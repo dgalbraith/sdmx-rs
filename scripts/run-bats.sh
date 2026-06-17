@@ -3,7 +3,7 @@ set -eu
 
 # ==============================================================================
 # scripts/run-bats.sh
-# Run the BATS shell-script test suite and summarize its TAP output:
+# Run the BATS shell-script test suite and summarise its TAP output:
 #   - count passed / failed / skipped
 #   - pass failures (and their `#` diagnostic lines) through to the terminal
 #   - suppress the per-test noise of passing tests
@@ -11,12 +11,12 @@ set -eu
 #
 # Reads BATS' TAP stream and reduces it to a digest — invoked by `just
 # test-scripts`. Kept as a script (not inline awk in the Justfile) so the
-# summarization logic is unit-testable; see tests/bats/run-bats.bats.
+# summarisation logic is unit-testable; see tests/bats/run-bats.bats.
 #
 # Usage: scripts/run-bats.sh [bats args...]   (defaults to tests/bats/)
 #
 # Indirection for tests: BATS may be overridden to point at a mock that emits a
-# canned TAP stream, so the summarizer can be exercised without a real suite.
+# canned TAP stream, so the summariser can be exercised without a real suite.
 # ==============================================================================
 
 BATS="${BATS:-bats}"
@@ -28,7 +28,7 @@ fi
 
 # Capture the TAP stream to a temp file rather than piping directly: this repo's
 # /bin/sh (dash) does not portably support `set -o pipefail` (shellcheck SC3040),
-# so the temp-file pattern lets the awk summarizer be the authoritative exit
+# so the temp-file pattern lets the awk summariser be the authoritative exit
 # signal — its END block exits 1 whenever a `not ok` was seen, which is exactly
 # bats' own failure condition. (Mirrors the no-pipefail approach in
 # release-merge.sh.) `|| true` keeps `set -e` from aborting before awk runs.

@@ -5,18 +5,18 @@
 [![MSRV: 1.91.0](https://img.shields.io/badge/MSRV-1.91.0-blue)](https://github.com/dgalbraith/sdmx-rs/blob/main/docs/project/msrv.md)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](https://github.com/dgalbraith/sdmx-rs#license)
 
-The streaming serialization engine for the `sdmx-rs` workspace.
+The streaming serialisation engine for the `sdmx-rs` workspace.
 
-This crate provides streaming serialization and deserialization of SDMX payloads in both XML (SDMX-ML) and JSON (SDMX-JSON) formats.
+This crate provides streaming serialisation and deserialisation of SDMX payloads in both XML (SDMX-ML) and JSON (SDMX-JSON) formats.
 
 ## Design Constraints
 - Depends only on `sdmx-types`.
 - Targets minimal memory allocations and zero-copy slicing where safe.
-- Handles massive SDMX structural metadata documents without full DOM materialization.
+- Handles massive SDMX structural metadata documents without full DOM materialisation.
 
 ## Usage
 
-<!-- Usage examples will be added as the API stabilizes. -->
+<!-- Usage examples will be added as the API stabilises. -->
 
 ---
 

@@ -1,7 +1,7 @@
 minimum_pre_commit_version: '3.3.0'
 
 repos:
-  # 1. Sanitization Suite (Securely SHA-pinned to v6.0.0)
+  # 1. Sanitisation Suite (Securely SHA-pinned to v6.0.0)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
     hooks:

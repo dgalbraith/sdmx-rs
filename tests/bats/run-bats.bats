@@ -3,8 +3,8 @@ bats_require_minimum_version 1.5.0
 # ==============================================================================
 # Test suite for scripts/run-bats.sh
 #
-# Testing approach: the script's job is to summarize a BATS TAP stream. We mock
-# the BATS env hook with shims that emit canned TAP, so the summarizer is
+# Testing approach: the script's job is to summarise a BATS TAP stream. We mock
+# the BATS env hook with shims that emit canned TAP, so the summariser is
 # exercised deterministically without a real (recursive) suite run. Covers:
 #   - all-pass: success summary, exit 0
 #   - failures: `not ok` lines + their `#` diagnostics passed through, exit 1

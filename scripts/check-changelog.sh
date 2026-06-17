@@ -3,7 +3,7 @@ set -e
 
 # ==============================================================================
 # scripts/check-changelog.sh
-# Validates that crate CHANGELOG.md files are synchronized with git history.
+# Validates that crate CHANGELOG.md files are synchronised with git history.
 # Uses git-cliff to generate expected changelogs and compares them to the committed files.
 #
 # Usage: scripts/check-changelog.sh [crate1 crate2 ...] or scripts/check-changelog.sh all
@@ -15,7 +15,7 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/common.sh"
 
-log_section "Changelog Synchronization Validation"
+log_section "Changelog Synchronisation Validation"
 
 TEMP_FILE=$(mktemp)
 trap 'rm -f "$TEMP_FILE"' EXIT
@@ -47,5 +47,5 @@ for crate in $CRATES_TO_CHECK; do
     fi
 done
 
-log_ok "changelog: all crate changelogs synchronized with commit history"
+log_ok "changelog: all crate changelogs synchronised with commit history"
 exit 0

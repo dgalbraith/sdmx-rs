@@ -12,7 +12,7 @@ Accepted
 
 The ROADMAP includes an SDMX-CSV data message parser as a Phase 2 deliverable. ADR-0018 records that `sdmx-client` will prefer SDMX-CSV over SDMX-JSON for data queries, making this parser a primary performance-critical path.
 
-SDMX-CSV data messages require streaming deserialization with O(1) memory consumption and `#![no_std]` + `alloc` compatibility (per ADR-0005). We must select a parsing library that satisfies these constraints without introducing `std` dependencies into `sdmx-parsers`.
+SDMX-CSV data messages require streaming deserialisation with O(1) memory consumption and `#![no_std]` + `alloc` compatibility (per ADR-0005). We must select a parsing library that satisfies these constraints without introducing `std` dependencies into `sdmx-parsers`.
 
 ## Decision Drivers
 
@@ -53,7 +53,7 @@ Implement CSV scanning directly using `memchr` for delimiter/newline detection w
 
 ### Option C — `serde` + `csv` with Fixed Struct (Rejected)
 
-Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` deserialization.
+Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` deserialisation.
 
 **Cons**:
 - SDMX-CSV column sets are dynamic (vary by dataset and DSD)
@@ -72,7 +72,7 @@ Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` deseriali
 ## Consequences
 
 * **Positive**: Maintains strict `#![no_std]` compliance, enabling compilation to `wasm32-unknown-unknown`.
-* **Positive**: Decouples parsing from standard library I/O traits, allowing highly optimized slice and buffer operations.
+* **Positive**: Decouples parsing from standard library I/O traits, allowing highly optimised slice and buffer operations.
 * **Negative**: Operating at a lower level (via `csv-core` or manual byte scanning) requires custom buffer feeding and record management.
 * **Neutral**: Final selection between `csv-core` and manual scanning will be decided based on performance benchmarks and implementation complexity in Phase 2.
 
@@ -83,6 +83,6 @@ Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` deseriali
 ## References
 
 * [ADR-0005](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md) — `no_std + alloc` constraint
-* [ADR-0009](0009-use-quick-xml-and-serde-json-for-streaming-deserialization.md) — Streaming parser pattern (parallel precedent)
+* [ADR-0009](0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md) — Streaming parser pattern (parallel precedent)
 * [ADR-0018](0018-content-type-negotiation-and-parser-routing.md) — CSV as preferred data format
 * [docs/design/0002-sdmx-csv-stream-parsing-design.md](../design/0002-sdmx-csv-stream-parsing-design.md) — Detailed design and implementation strategy

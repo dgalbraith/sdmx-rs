@@ -12,25 +12,25 @@ Proposed
 
 ## Summary
 
-This design document outlines the domain modeling strategy for the `sdmx-types` crate, targeting both the **SDMX 3.0** and **SDMX 3.1** specifications. The crate serves as the foundational core of the `sdmx-rs` workspace, defining the metadata structures (Codelists, Value Lists, Concept Schemes, Agency Schemes, Data Structure Definitions, Dataflows, and Constraints) and validation invariants that underpin all deserialization, serialization, and HTTP transport layers. The design guarantees full `#![no_std]` + `alloc` compatibility, target portability for headless WebAssembly (`wasm32-unknown-unknown`), and clean separation of concerns without runtime overhead.
+This design document outlines the domain modelling strategy for the `sdmx-types` crate, targeting both the **SDMX 3.0** and **SDMX 3.1** specifications. The crate serves as the foundational core of the `sdmx-rs` workspace, defining the metadata structures (Codelists, Value Lists, Concept Schemes, Agency Schemes, Data Structure Definitions, Dataflows, and Constraints) and validation invariants that underpin all deserialisation, serialisation, and HTTP transport layers. The design guarantees full `#![no_std]` + `alloc` compatibility, target portability for headless WebAssembly (`wasm32-unknown-unknown`), and clean separation of concerns without runtime overhead.
 
 ---
 
 ## Problem / Motivation
 
-SDMX (Statistical Data and Metadata Exchange) is an ISO standard representing complex, highly nested, and multi-versioned statistical structures. Transitioning the library to Phase 1 (Core Domain Types) requires addressing several key engineering and domain modeling challenges:
+SDMX (Statistical Data and Metadata Exchange) is an ISO standard representing complex, highly nested, and multi-versioned statistical structures. Transitioning the library to Phase 1 (Core Domain Types) requires addressing several key engineering and domain modelling challenges:
 
 1. **Simulating Object-Oriented Inheritance in Rust:** The SDMX Information Model relies extensively on structural inheritance:
 
    - `Annotable` ➔ `Identifiable` ➔ `Nameable` ➔ `Versionable` ➔ `Maintainable`
 
-   Rust does not support class-based inheritance. Simulating this via naive composition (nesting structs) without formal trait abstractions makes the public API verbose and hard to consume. Conversely, relying on trait objects (`Box<dyn MaintainableArtefact>`) introduces runtime dynamic dispatch overhead (vtable lookup) and heap allocations, violating our zero-cost abstraction philosophy and complicating serialization.
+   Rust does not support class-based inheritance. Simulating this via naive composition (nesting structs) without formal trait abstractions makes the public API verbose and hard to consume. Conversely, relying on trait objects (`Box<dyn MaintainableArtefact>`) introduces runtime dynamic dispatch overhead (vtable lookup) and heap allocations, violating our zero-cost abstraction philosophy and complicating serialisation.
 
 2. **Strict `#![no_std]` + `alloc` Boundary:** As established in ADR-0005, the domain types must compile for WebAssembly targets without accessing hosted OS capabilities. This prohibits the use of standard-library collections like `HashMap` and requires strict dependency hygiene (no transitive standard library dependencies).
 
 3. **Lossless Multi-Version Support:** The structural schema diverges between SDMX 3.0 and SDMX 3.1 (most notably in data constraints, see ADR-0008). The core types must provide a unified, version-agnostic representation — the *Canonical Superset Model* of ADR-0008 — in which every field reachable from any supported version is expressible, so that no version-specific information need be lost. The core types do not themselves normalise or round-trip between versions; the adapter crates (`sdmx-parsers`, `sdmx-writers`) perform that conversion to and from the canonical model. The model's job is to make those round-trips lossless *by construction*.
 
-4. **Lifetimeless Domain API:** To prevent lifetime pollution (`'a`) from propagating throughout the entire workspace API (forcing all user code, parsers, and client configurations to carry complex annotations), domain models must own their data. However, allocations must be minimized.
+4. **Lifetimeless Domain API:** To prevent lifetime pollution (`'a`) from propagating throughout the entire workspace API (forcing all user code, parsers, and client configurations to carry complex annotations), domain models must own their data. However, allocations must be minimised.
 
 5. **Validation Invariants:** Metadata objects must enforce structural invariants at construction time (e.g. a DSD must contain at least one dimension; identifiers must match their per-artefact SDMX lexical type — `IDType` for codes and generic ids, the stricter `NCNameIDType` for agencies and concepts — see D-0023).
 
@@ -89,7 +89,7 @@ SDMX metadata contains multilingual text (e.g. Names and Descriptions). We defin
 
 - `LocalisedString` as an **ordered list** of `(language, text)` entries in wire order, where the key is the spec's `xml:lang` (= `xs:language`) tag (e.g. `"en"`, `"fr"`) — stored as `Option<String>`, because `TextType` declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are different documents, and the default is an effective view (D-0052/D-0059). See D-0016/D-0051/D-0059.
 - **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order is wire information no keyed map preserves (a `BTreeMap` sorts), and so are the duplicate identities the schema actually permits (`ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, cube-region selection ids; official samples exhibit them). Most in-scope schemes *do* carry an `xs:unique` on their explicit `@id` (codes, concepts, agencies, explicit DSD component/group ids), so a duplicate there is schema-invalid rather than wire to preserve, but order-faithfulness alone already dictates `Vec`. Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
-- Determinism is **wire-order-out**: serializing a parsed document reproduces the received order, and programmatic insertion order is itself deterministic. (The earlier `BTreeMap`-everywhere policy bought determinism by sorting — itself a normalization — at the cost of destroying order and duplicates; superseded, D-0006 → D-0051.)
+- Determinism is **wire-order-out**: serialising a parsed document reproduces the received order, and programmatic insertion order is itself deterministic. (The earlier `BTreeMap`-everywhere policy bought determinism by sorting — itself a normalisation — at the cost of destroying order and duplicates; superseded, D-0006 → D-0051.)
 
 #### 3. Generic ItemScheme Framework
 
@@ -101,7 +101,7 @@ Many SDMX structures represent schemes containing items (e.g. `Codelist` contain
 pub trait SchemeItem: IdentifiableArtefact {}
 ```
 
-`SchemeItem` is deliberately left open — it is an inbound structural bound ("this type can supply its own id for use as a map key"), not an outbound capability assertion. There is no invariant or boundary that breaks if a downstream crate implements `SchemeItem` on its own identifiable type; `I: IdentifiableArtefact` already guarantees the only thing `ItemScheme` needs. This is the opposite policy to `SdmxSerialize`, which is sealed because self-approval would defeat the serialization boundary's purpose. The asymmetry is intentional: seal only when openness would let a caller break an invariant you are responsible for. A downstream custom scheme item works in-memory but cannot cross into `sdmx-writers` without explicit `SdmxSerialize` approval — extensibility where it is harmless, sealing where it matters.
+`SchemeItem` is deliberately left open — it is an inbound structural bound ("this type can supply its own id for use as a map key"), not an outbound capability assertion. There is no invariant or boundary that breaks if a downstream crate implements `SchemeItem` on its own identifiable type; `I: IdentifiableArtefact` already guarantees the only thing `ItemScheme` needs. This is the opposite policy to `SdmxSerialize`, which is sealed because self-approval would defeat the serialisation boundary's purpose. The asymmetry is intentional: seal only when openness would let a caller break an invariant you are responsible for. A downstream custom scheme item works in-memory but cannot cross into `sdmx-writers` without explicit `SdmxSerialize` approval — extensibility where it is harmless, sealing where it matters.
 
 `ItemScheme<I>` stores its items as an **ordered `Vec` in wire order** (D-0051). The earlier private-map design existed to make key/id desync impossible by construction; with no derived key there is nothing to desync, so the rationale no longer applies — `ItemScheme` is a transparent pub-field carrier (every field self-enforcing; ADR-0021's sharper test) with derived `Deserialize`:
 
@@ -140,7 +140,7 @@ Concrete domain types wrap or compose this generic container to expose a domain-
 
 #### 4. Data Structure Definition (DSD) & Component Layout
 
-A DSD (`DataStructureDefinition`) is a maintainable artifact defining the dimensions, attributes, and measures of a dataset. The spec's component containers are **identifiable descriptors** (`ComponentListType` extends `IdentifiableType` — each carries annotations/links/urn; their ids are fixed values, except `Group`'s, which is required and user-chosen), modelled as structs that own their content and their mechanical non-empty invariants (D-0049):
+A DSD (`DataStructureDefinition`) is a maintainable artefact defining the dimensions, attributes, and measures of a dataset. The spec's component containers are **identifiable descriptors** (`ComponentListType` extends `IdentifiableType` — each carries annotations/links/urn; their ids are fixed values, except `Group`'s, which is required and user-chosen), modelled as structs that own their content and their mechanical non-empty invariants (D-0049):
 
 - `DimensionList` (required, exactly one): an ordered `Vec` of `Dimension` (the spec's `Dimension+` — at least one, enforced at `DimensionList::new()`), plus an optional `TimeDimension` held in a *separate* `Option` slot on the descriptor — it has no position and is not part of the ordered key (D-0029). Order is preserved because CSV observation coordinates match the dimension declaration order. Each component carries an optional `Representation` (an enumeration reference — codelist, or value list where the position admits it — or text-format facets, plus the representation-level occurs attributes — D-0028/D-0048), replacing the earlier codelist-only field. The per-position mechanical restrictions (dimension: codelist-only; time: TextFormat-only; per-tier facet and textType subsets) are enforced at the component constructors (D-0048).
 - `Group` (0..\*): a named selection of dimensions (`GroupDimension+`) that attributes attach to via `AttributeRelationship::Group`. Carried as `Vec<Group>` to preserve wire order (a keyed map sorts) and stay uniform with the descriptor model. Group `@id` is `use="required"` and shares the `DataStructureUniqueComponent` `xs:unique` scope, so duplicate *group* ids are in fact schema-invalid; the residual duplicate the store must still hold verbatim is the *concept-inherited* component id elsewhere in the DSD, which escapes that `xs:unique` (per the `DataStructureComponents` annotation: such checks fall "outside of the XML validation") (D-0049).
@@ -149,7 +149,7 @@ A DSD (`DataStructureDefinition`) is a maintainable artifact defining the dimens
 
 #### 5. Unified Constraint Model
 
-Symmetric with ADR-0008, data constraints are modeled as a unified enum:
+Symmetric with ADR-0008, data constraints are modelled as a unified enum:
 
 ```rust
 pub enum ConstraintModel {
@@ -161,7 +161,7 @@ pub enum ConstraintModel {
 - `DataConstraint` (`Data` variant) is a maintainable, registerable artefact constraining the data of a dataflow — what is allowed, or (3.0 `role="Actual"`) what is actually present. It carries `MaintainableMetadata`; a `role: Option<ConstraintRole>` (`Allowed`/`Actual`) mirroring the 3.0-only required `role` attribute — `None` is the 3.1 wire, where the attribute does not exist, so all three schema-expressible shapes are stored 1:1 (D-0037); an *optional* `DataConstraintAttachment` (DataProvider / DataStructure / Dataflow / ProvisionAgreement — D-0034; plus the 3.0-only SimpleDataSource arm and QueryableDataSource companions — D-0044; `minOccurs="0"` on the wire, so an unattached constraint can be modelled — D-0041); a 3.0-only `ReleaseCalendar` (D-0042); unbounded `DataKeySet`s (full or partial data keys, each set flagged inclusive/exclusive via its required `isIncluded` — D-0039); and up to two `CubeRegion` filters (`CubeRegions`, the spec's `maxOccurs="2"`; zero is valid — D-0036, so a constraint may be key-set-only). The name matches the spec's `DataConstraintType` (both versions); the earlier invented `ReportingConstraint` was renamed — see Drawbacks / D-0037. A 3.0 `role="Actual"` constraint lives in **this** variant, never in `Availability` — the two shapes are structurally disjoint (D-0037 records the mapping).
 - `AvailabilityConstraint` (`Availability` variant) is an ephemeral, non-maintainable response type representing actual data holdings for a specific query. It carries no `MaintainableMetadata` — it has no registry identity, no version, and no agency — only an `AvailabilityConstraintAttachment` (the data-side subset DataStructure / Dataflow / ProvisionAgreement, each single — D-0034), a single `CubeRegion`, its own `annotations` (it extends `AnnotableType` directly — non-maintainable ≠ non-annotable; D-0033), and optional observation/series counts. The asymmetry between the two variants is intentional and reflects the spec's own distinction (now along two axes: maintainability *and* attachment subset).
 
-#### 6. Serialization Boundary
+#### 6. Serialisation Boundary
 
 To prevent `sdmx-types` from depending on writers or parsers, we define a sealed marker trait `SdmxSerialize`:
 
@@ -169,24 +169,24 @@ To prevent `sdmx-types` from depending on writers or parsers, we define a sealed
 pub trait SdmxSerialize: private::Sealed {}
 ```
 
-Only approved domain types implement this trait, allowing the `sdmx-writers` crate to accept them safely under a unified serialization API.
+Only approved domain types implement this trait, allowing the `sdmx-writers` crate to accept them safely under a unified serialisation API.
 
 The crate's own derived `serde::Serialize`/`Deserialize` are an **internal, lossless infoset round-trip, not the SDMX-ML/SDMX-JSON wire format** (D-0063). They read and write the Rust composition directly: nested metadata leaves (`Codelist → scheme → metadata → versionable → …`), `LocalisedString` as ordered `(language, value)` pairs, and externally-tagged enums. A round-trip therefore preserves the stored statedness exactly, but the emitted shape is Rust-structural, not the flat SDMX wire object. The wire shape is owned by `sdmx-writers` / `sdmx-parsers`, which map between these types (through their accessors and validated `new()`) and SDMX-ML / SDMX-JSON. Whether the types' own `serde` should later converge to SDMX-JSON, or remain an internal projection, is a Phase-2 entry-gate decision (see ROADMAP Phase 2 → Parsers).
 
-#### 7. Deserialization Construction Contract
+#### 7. Deserialisation Construction Contract
 
 Domain types with stated invariants (e.g. `LocalisedString` must contain at least one entry; `IdentifiableMetadata` must carry a valid `IDType` identifier — with `Agency`/`Concept` tightening to `NCNameIDType` in their own constructors, D-0023; a `DimensionList` must contain at least one dimension — D-0049) use **private fields and `Result`-returning constructors** as the single write path. This applies regardless of which caller is constructing the type.
 
 Two construction callers exist in the architecture:
 
-- **Serde-driven deserialization** (`sdmx-parsers` using serde-json or serde-xml for JSON and small XML payloads): uses a custom `Deserialize` impl on the domain type that accumulates fields via a serde visitor and calls the validated `new()` constructor at completion. Derived `Deserialize` is explicitly rejected for invariant-bearing types because serde's derive bypasses user-defined constructors and constructs the struct directly, silently defeating any validation.
+- **Serde-driven deserialisation** (`sdmx-parsers` using serde-json or serde-xml for JSON and small XML payloads): uses a custom `Deserialize` impl on the domain type that accumulates fields via a serde visitor and calls the validated `new()` constructor at completion. Derived `Deserialize` is explicitly rejected for invariant-bearing types because serde's derive bypasses user-defined constructors and constructs the struct directly, silently defeating any validation.
 - **Streaming accumulator construction** (`sdmx-parsers` using pull-based XML for large payloads): the parser maintains its own internal staging structs, accumulates fields across parse events, and calls the same validated `new()` constructor at the closing element boundary.
 
 Both paths converge on the same `new()` — the domain type enforces identical invariants regardless of which parser drove construction. This design decision is made now so that the streaming parser can be added in a later phase without requiring any refactor of the base domain types.
 
 Types with no invariants (reference structs, `Annotation`, `SimpleComponentValue`, etc.) may use derived `Deserialize` with `pub` fields — there is no contract to enforce at construction time. This is the public side of the crate-wide field-visibility rule (D-0017/ADR-0021): private fields where mutation could break an invariant the type owns; public fields where the type is a transparent carrier and any invariant lives in the constructor or deserializer. `CubeRegion` keeps public fields and, with its selections stored as ordered `Vec`s (D-0051), needs no custom `Deserialize` at all — its two wire collections map field-by-field. NOTE: D-0017 originally had `CubeRegion` *normalise* an empty value-set to "absent"; that normalisation is **withdrawn** (D-0026) — under the full S3 model a component-with-no-values (`ComponentSelection::Empty`) is a meaningful distinct state, so collapsing it would erase information. D-0017's visibility rule survives; only its normalisation clause is gone.
 
-**The custom-vs-derived test is sharper than "invariant-bearing → custom."** Derived `Deserialize` calls each field's own `Deserialize` in turn; it bypasses nothing. It is therefore *correct* for any type whose every field enforces its own invariants, because the composite is enforced for free by the inner impls. A custom impl is required only when the invariant is **between fields** — a relationship that field-by-field deserialization cannot see. Concretely:
+**The custom-vs-derived test is sharper than "invariant-bearing → custom."** Derived `Deserialize` calls each field's own `Deserialize` in turn; it bypasses nothing. It is therefore *correct* for any type whose every field enforces its own invariants, because the composite is enforced for free by the inner impls. A custom impl is required only when the invariant is **between fields** — a relationship that field-by-field deserialisation cannot see. Concretely:
 
 - **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedInclude` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `Code` — which merely *composes* `NameableMetadata` with pub fields — uses derived `Deserialize`, delegating correctly to those inner custom impls; `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) likewise derives. No extra rule exists at the composing level for these, so a hand-written impl would add nothing.
 - **Tightened-within-field invariant → custom on the wrapper.** Several types carry a *stricter* id rule than their inner metadata enforces (NCNameIDType, not just IDType — D-0023), so the tighter check lives on the wrapper's own validated `new()` and a **custom `Deserialize`** that routes through it: the scheme *items* `Concept`/`Agency` (vs. their inner `NameableMetadata`); and the scheme *wrappers* `Codelist`/`ConceptScheme` (whose scheme id is NCName, vs. the IDType the inner `ItemScheme`/`MaintainableMetadata` enforces). The *components* `Dimension`/`TimeDimension`/`Attribute`/`Measure` (D-0025/D-0029) carry their NCName rule on their **own** `ComponentMetadata` leaf instead (the component id is `use="optional"`, so the check is conditional-on-stated and lives where the field lives — D-0057); their custom impls remain for the per-position representation rules (D-0048). All are NOT in the derive list above even though they look structurally like their derived cousins (`Code`, `AgencyScheme`). The inner type cannot know it sits inside a stricter wrapper — hence the check climbs one level.
@@ -204,7 +204,7 @@ The `Dimension::position` field is stored verbatim as `Option<i32>` (D-0022 re-h
 
 ### Examples / Pseudo-code
 
-Below is the type system blueprint for `crates/sdmx-types/src/lib.rs` (and its submodules). The code is organized into logical sections for clarity during implementation.
+Below is the type system blueprint for `crates/sdmx-types/src/lib.rs` (and its submodules). The code is organised into logical sections for clarity during implementation.
 
 #### 5.1 Common Base Types
 
@@ -1387,7 +1387,7 @@ impl Dimension {
 // construction, not by convention: `AttributeRelationship::Dimensions(..)` cannot
 // be built without a `DimensionIds`, which only its validating constructor produces.
 // This closes the D-0005 gap — a raw `Dimensions(vec![])` is uncallable, and the
-// custom Deserialize on each newtype nforces the constraint on the deserialization
+// custom Deserialize on each newtype nforces the constraint on the deserialisation
 // path too. Referential integrity (do these ids name real components in the DSD?) is
 // NOT checked here — see D-0020; that is a cross-object concern above the type level.
 pub struct GroupId(String);        // private field; constructor rejects empty
@@ -2434,7 +2434,7 @@ pub enum Error {
     // Codelist/ConceptScheme scheme ids, and component ids) reports InvalidNcNameIdentifier; the
     // agencyID field reports InvalidAgencyIdentifier. The messages state the format only, not the
     // producer set (which grows milestone by milestone), matching the sibling variants.
-    #[error("Invalid artifact identifier: {0}. Must match SDMX IDType format.")]
+    #[error("Invalid artefact identifier: {0}. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
     #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
@@ -2457,7 +2457,7 @@ pub enum Error {
     #[error("Invalid SDMX time period: {0}. Must match StandardTimePeriodType.")]
     InvalidTimePeriod(String),
 
-    #[error("Empty localized string. Artifact name or description must contain at least one language variant.")]
+    #[error("Empty localised string. Artefact name or description must contain at least one language variant.")]
     EmptyLocalisation,
 
     // NB MalformedLocalisation (blank language key) was REMOVED with its only producer when
@@ -2542,7 +2542,7 @@ pub enum Error {
 }
 ```
 
-#### 5.10 Serialization Boundary — Sealed Trait
+#### 5.10 Serialisation Boundary — Sealed Trait
 
 ```rust
 mod private {
@@ -2574,7 +2574,7 @@ impl private::Sealed for ConstraintModel {}
 impl SdmxSerialize for ConstraintModel {}
 ```
 
-The `private::Sealed` supertrait prevents external crates from implementing `SdmxSerialize` on arbitrary types. `sdmx-writers` accepts `T: SdmxSerialize` — the sealed bound guarantees only approved domain types cross the serialization boundary, without creating a dependency from `sdmx-types` on `sdmx-writers`.
+The `private::Sealed` supertrait prevents external crates from implementing `SdmxSerialize` on arbitrary types. `sdmx-writers` accepts `T: SdmxSerialize` — the sealed bound guarantees only approved domain types cross the serialisation boundary, without creating a dependency from `sdmx-types` on `sdmx-writers`.
 
 #### 5.11 Catalogued Lints (Layer 2, not built)
 
@@ -2613,7 +2613,7 @@ Simulating the hierarchy by nesting structs directly, forcing callers to travers
   - Very simple mapping to XML/JSON structures.
 * **Cons:**
   - Extremely verbose and unergonomic API. Callers must know exactly where a field is located in the inheritance chain.
-  - Changing a struct's metadata level (e.g. promoting an identifiable artifact to nameable) breaks all downstream field-access code.
+  - Changing a struct's metadata level (e.g. promoting an identifiable artefact to nameable) breaks all downstream field-access code.
 * **Verdict:** Rejected. Erases user ergonomics.
 
 ### Alternative B — Dynamic Dispatch via Trait Objects (`dyn MaintainableArtefact`)
@@ -2621,7 +2621,7 @@ Simulating the hierarchy by nesting structs directly, forcing callers to travers
 Expose APIs that return or store boxed trait objects: `Vec<Box<dyn IdentifiableArtefact>>`
 
 * **Pros:**
-  - True polymorphism. Code can handle any identifiable artifact uniformly.
+  - True polymorphism. Code can handle any identifiable artefact uniformly.
 * **Cons:**
   - Requires `alloc` (which we have) but incurs heap-allocation overhead for every single metadata item.
   - Virtual method table (vtable) dispatch prevents compiler inlining, slowing down lookup tables.
@@ -2637,7 +2637,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
   - Straightforward struct declarations.
 * **Cons:**
   - Massive code duplication and high risk of drift.
-  - Cannot write a single generic function that accepts "any maintainable artifact" without copy-pasted implementations or manual trait mapping.
+  - Cannot write a single generic function that accepts "any maintainable artefact" without copy-pasted implementations or manual trait mapping.
 * **Verdict:** Rejected. Breaks codebase maintainability.
 
 ---
@@ -2646,7 +2646,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 
 - **Delegation Boilerplate:** Exposing getters like `id()` or `version()` requires writing delegating trait implementations for each concrete domain struct (e.g., implementing `IdentifiableArtefact` on `Code` by forwarding to `self.metadata.id()`). This is a small, one-time writing cost that can be mitigated by macros if the number of types grows. We accept this trade-off to keep the public API clean.
 - **Linear Lookup over Ordered Stores:** Wire collections are ordered `Vec`s (D-0051/ADR-0023), so identity lookup (`get(id)`, `get(lang)`) is a first-match O(n) scan rather than a keyed O(log n)/O(1) access. This is the price of preserving element order and schema-valid duplicates — wire information a keyed store destroys. At SDMX metadata cardinalities (10 to 5,000 items) the scan is bounded and cache-friendly; per-observation hot paths live in the parser/client crates, which build their own indexes; and cached index *views* over the `Vec` store are the sanctioned, additive evolution if profiling ever demands (the reverse migration — map store to `Vec` — would have been a breaking change, which is why the store side was fixed first).
-- **Owned Types & Allocations:** Having the domain model own all strings (`String` instead of references or `Cow`) increases allocation counts during parsing. This is a deliberate choice: keeping the domain structures lifetimeless (`'static`) simplifies consumer code, client caching, and storage. Lifetimes are confined strictly to the parsers during raw tokenize loops.
+- **Owned Types & Allocations:** Having the domain model own all strings (`String` instead of references or `Cow`) increases allocation counts during parsing. This is a deliberate choice: keeping the domain structures lifetimeless (`'static`) simplifies consumer code, client caching, and storage. Lifetimes are confined strictly to the parsers during raw tokenise loops.
 - **Reference Type Structural Repetition:** The seven reference structs (`DsdReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DsdReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (The URN parse contract these structs imply is the scheduled Phase-2 reference-types/URN-contract entry gate; see ROADMAP Phase 2 → Parsers.)
 - **`DataConstraint` Naming (earlier divergence reversed — D-0037):** An earlier draft named this type `ReportingConstraint` for "semantic clarity" (reporting limits on a dataflow). That reading did not survive the 3.0 `role` attribute: a 3.0 data constraint with `role="Actual"` states what data actually *exists* — not a reporting limit — so the invented name described only one of the type's two roles, while the type's own attachment enum (`DataConstraintAttachment`) already carried the spec name. The type is now named `DataConstraint`, matching `DataConstraintType` in both 3.0 and 3.1, per D-0002's rule that types map 1-to-1 to named spec concepts.
 - **`Link` Elements Modelled (earlier omission reversed — D-0035):** An earlier draft (D-0014) omitted `Link`, calling it a transport-layer HATEOAS affordance belonging in the HTTP envelope. That was a misreading of the schema: `LinkType` sits on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship (`rel`), a target `url`/`urn`, and a media-type hint — strictly more than the `uri` field can express. Reconstructing it from `uri`/`urn` is not possible (those are single identity fields, not a typed multi-valued association). So omitting it lost real, producer-supplied domain content — a lossless-superset defect (ADR-0008 #1). `Link` is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (the single `IdentifiableType` chokepoint), surfaced via `IdentifiableArtefact::links()`. See D-0035.
@@ -2659,7 +2659,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 
 - **[Resolved]** - **Self-Referential Hierarchies:** Some codelists contain hierarchically nested codes (represented via `parent_id`). At the type level, should this hierarchy be modelled using flat maps (where parent is identified by a string reference) or nested tree structures (where codes hold children directly)?
 
-  *Decision:* Flat mapping (`parent_id: Option<String>`) is used. It maps 1-to-1 with the SDMX schema, avoids recursive reference counting (`Rc` or `Arc`) that would complicate multi-threaded sharing, and requires no special serialization handling. Nested tree structures are rejected.
+  *Decision:* Flat mapping (`parent_id: Option<String>`) is used. It maps 1-to-1 with the SDMX schema, avoids recursive reference counting (`Rc` or `Arc`) that would complicate multi-threaded sharing, and requires no special serialisation handling. Nested tree structures are rejected.
 
 - **[Resolved]** - **Identifier Validation Strictness:** Should we enforce SDMX identifier syntax rules inside the constructor, returning an `Err`? Or should we accept raw strings and defer validation strictly to the parsers or when sending queries? And — *which* syntax rule, given SDMX uses more than one?
 
@@ -2695,7 +2695,7 @@ This design corresponds directly to **Phase 1: Core Domain Types**.
 
 **Cross-artefact referential integrity lives above this crate, not in the type constructors.** Per D-0020, `sdmx-types` validates identifiers *at declaration* (lexical-type-correct) and treats every embedded reference as *structural-only*. It never resolves a reference against sibling objects because the version-agnostic, `no_std` types crate has no message-level context to resolve against. The architectural home for referential checks (e.g., "does this attribute's `Dimensions([...])` name real dimensions in the DSD?") and catalogued lints (§5.11) is a **separate pass over a message-level container** of resolved artefacts. This is a later-phase concern that composes the Phase-1 types rather than altering them.
 
-The EPAM/Metadata-Technology `sdmxsource` Java reference implementation validates this two-tier boundary: its self-contained invariants are enforced in bean constructors (the exact analogue of our validated `new()`), while cross-references are resolved and validated in a *separate* pass over its `SdmxBeans` container, materializing a resolved object graph. The imported lesson is strictly structural — this resolution and linting tier belongs at the message-container level when it is built in Phase 2+.
+The EPAM/Metadata-Technology `sdmxsource` Java reference implementation validates this two-tier boundary: its self-contained invariants are enforced in bean constructors (the exact analogue of our validated `new()`), while cross-references are resolved and validated in a *separate* pass over its `SdmxBeans` container, materialising a resolved object graph. The imported lesson is strictly structural — this resolution and linting tier belongs at the message-container level when it is built in Phase 2+.
 
 ### Dependencies
 

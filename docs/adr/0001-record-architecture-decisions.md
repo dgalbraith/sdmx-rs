@@ -32,7 +32,7 @@ Documenting decisions as static blocks in READMEs or a repository Wiki.
 ### Option B — Minimal Nygard Template
 Standard, four-section (Status, Context, Decision, Consequences) text records.
 
-* **Pros**: Highly recognizable standard across the software industry.
+* **Pros**: Highly recognisable standard across the software industry.
 * **Cons**: Lacks explicit analysis of alternatives (Options Considered) or evaluation criteria (Decision Drivers).
 * **Verdict**: Rejected (used initially, now upgraded to Option C).
 
@@ -40,7 +40,7 @@ Standard, four-section (Status, Context, Decision, Consequences) text records.
 Markdown Architecture Decision Records with explicit driver tracking, detailed alternatives analysis (pros/cons), and downstream references.
 
 * **Pros**: Enforces high-fidelity rigor, documents rejected paths transparently, and supports clean cross-linking.
-* **Cons**: Slightly higher initialization overhead when recording minor decisions.
+* **Cons**: Slightly higher initialisation overhead when recording minor decisions.
 * **Verdict**: Accepted.
 
 ---

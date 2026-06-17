@@ -74,10 +74,10 @@ teardown() {
 }
 
 # ==============================================================================
-# Title Sanitization
+# Title Sanitisation
 # ==============================================================================
 
-@test "rename-guide: sanitize new title" {
+@test "rename-guide: sanitise new title" {
     ./doc-engine.sh rename guide -f old-title "New/Title With Spaces" > /dev/null
     assert_guide_file_exists "new-title-with-spaces.md"
 }

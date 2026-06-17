@@ -1,4 +1,4 @@
-# 9. Use quick-xml and serde_json for Streaming Deserialization
+# 9. Use quick-xml and serde_json for Streaming Deserialisation
 
 Date: 2026-05-17
 
@@ -12,7 +12,7 @@ Accepted, extended by ADR-0019
 
 SDMX metadata and dataset payloads routinely scale from megabytes to gigabytes of tabular observations. Attempting to parse these payloads by loading a full Document Object Model (DOM) tree into memory presents a significant threat of Out-of-Memory (OOM) crashes in resource-constrained environments.
 
-We must select parsing engines for `sdmx-parsers` that support streaming, sequential deserialization. Additionally, the engines must support high-performance parsing primitives (like zero-copy string slicing) while maintaining compatibility with the `#![no_std]` + `alloc` requirement of our parser crate.
+We must select parsing engines for `sdmx-parsers` that support streaming, sequential deserialisation. Additionally, the engines must support high-performance parsing primitives (like zero-copy string slicing) while maintaining compatibility with the `#![no_std]` + `alloc` requirement of our parser crate.
 
 ## Decision Drivers
 
@@ -38,7 +38,7 @@ Parsing the entire XML or JSON document into an in-memory tree representation pr
 
 ### Option B — Token-Driven Streaming with `quick-xml` and `serde_json` Stream Readers
 
-Reading elements sequentially using low-level event tokenizers (`quick-xml::Reader` and `serde_json::Deserializer::into_iter`).
+Reading elements sequentially using low-level event tokenisers (`quick-xml::Reader` and `serde_json::Deserializer::into_iter`).
 
 * **Pros**:
   * Event-driven processing processes data iteratively, yielding flat memory usage.
@@ -54,7 +54,7 @@ Reading elements sequentially using low-level event tokenizers (`quick-xml::Read
 
 ## Decision
 
-**We will use `quick-xml` (with the `serialize` feature) and `serde_json` as our serialization engines, implementing manual token-driven streaming loops to parse massive datasets in O(1) memory.**
+**We will use `quick-xml` (with the `serialize` feature) and `serde_json` as our serialisation engines, implementing manual token-driven streaming loops to parse massive datasets in O(1) memory.**
 
 To achieve optimal performance with character entities, our parser models will leverage `Cow<'a, str>`. This allows the parser to slice borrowed strings directly from the buffer when no entity references are present, only allocating owned `String` instances when character decoding must modify the string.
 

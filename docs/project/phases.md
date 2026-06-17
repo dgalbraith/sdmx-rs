@@ -32,7 +32,7 @@ Phase 1 is **complete** when ALL of the following conditions are met:
 
 ---
 
-## Phase 2: Serialization Engine
+## Phase 2: Serialisation Engine
 
 **Target**: Implement streaming XML, JSON, and CSV parsing/writing with minimal memory overhead.
 
@@ -105,7 +105,7 @@ Phase 4 is **complete** when ALL of the following conditions are met:
 
 ## Phase 5: Stabilisation & 1.0.0 Release
 
-**Target**: Finalize APIs, complete documentation, publish 1.0.0 across all crates.
+**Target**: Finalise APIs, complete documentation, publish 1.0.0 across all crates.
 
 ### Completion Criteria (Release Ready)
 
@@ -113,7 +113,7 @@ Phase 5 is **complete** and 1.0.0 is released when ALL of the following conditio
 
 - [ ] All Phase 5 tasks in [ROADMAP.md](../../ROADMAP.md) are checked off
 - [ ] API review complete; no remaining design TODOs
-- [ ] All ADRs and design docs finalized (no "draft" status)
+- [ ] All ADRs and design docs finalised (no "draft" status)
 - [ ] Linting strictness promoted (see Promotion Schedule below)
 - [ ] All public items have complete rustdoc (summary + examples + error cases + panics)
 - [ ] Parser fuzzing suite established and passing

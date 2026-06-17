@@ -1,6 +1,6 @@
-# .gitattributes - Global Repository Normalization
+# .gitattributes - Global Repository Normalisation
 
-# 1. Default: Auto-detect text files and normalize
+# 1. Default: Auto-detect text files and normalise
 * text=auto
 
 # 2. Strict POSIX / Unix (Must be LF to prevent execution errors)
@@ -29,7 +29,7 @@ flake.lock    text eol=lf
 *.yaml        text
 *.yml         text
 
-# 6. Image Binaries (Do NOT normalize)
+# 6. Image Binaries (Do NOT normalise)
 *.jpg     binary
 *.png     binary
 *.webp    binary
