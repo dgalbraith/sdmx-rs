@@ -21,7 +21,7 @@ Add a register entry when:
 Adding an entry is a three-step operation:
 1. Add a row to the [Entry Index](#entry-index) — ID, Area, and one-line title
 2. Add the full entry under [## Entries](#entries) using the template below
-3. Update `` in the index footer to the following ID (e.g. D-0005 → D-0006)
+3. Update the `<!-- Next ID: -->` comment in the index footer to the following ID (e.g. D-0005 → D-0006)
 
 ## Relationship to ADRs and Design Documents
 
@@ -33,7 +33,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ## Entry Template
 
-**Step 1** — add this row to the [Entry Index](#entry-index) (replace NNNN, Area, and Title), then update the `` footer:
+**Step 1** — add this row to the [Entry Index](#entry-index) (replace NNNN, Area, and Title), then update the `<!-- Next ID: -->` footer:
 
 ~~~markdown
 | [D-NNNN](#d-nnnn) | Area | Title |
@@ -144,6 +144,8 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check  |
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
 | [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate    |
+
+<!-- Next ID: D-0064 -->
 
 ## Entries
 
