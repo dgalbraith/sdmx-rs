@@ -15,6 +15,7 @@ const allowedScopes = () => [
   // Documentation
   'docs',        // General documentation (README, SECURITY, etc.)
   'adr',         // Architecture Decision Records
+  'decision',    // The tactical decision register and its tooling
   'design',      // Design documents (docs/design/ and just design)
   'guide',       // User-facing usage guides (docs/guides/) — consumer audience
   'arch',        // Repository architecture (ARCHITECTURE.md)
