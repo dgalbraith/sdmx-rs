@@ -141,8 +141,9 @@ pub enum Error {
     /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
     /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
     /// position-rule validators: the Basic-position validator (the core-representation check shared
-    /// by [`Concept::new`](crate::Concept::new) and [`Attribute::new`](crate::Attribute::new)) and
-    /// the dimension- and time-position validators ([`Dimension::new`](crate::Dimension::new) and
+    /// by [`Concept::new`](crate::Concept::new), [`Attribute::new`](crate::Attribute::new), and
+    /// [`Measure::new`](crate::Measure::new)) and the dimension- and time-position validators
+    /// ([`Dimension::new`](crate::Dimension::new) and
     /// [`TimeDimension::new`](crate::TimeDimension::new)).
     #[error(
         "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."

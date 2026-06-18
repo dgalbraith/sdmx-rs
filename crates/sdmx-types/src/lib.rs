@@ -35,6 +35,7 @@ mod error;
 mod fixed;
 mod lexical;
 mod localised;
+mod measure;
 mod metadata;
 mod organisation;
 mod reference;
@@ -63,6 +64,7 @@ pub use crate::{
         VersionDisplay,
     },
     localised::LocalisedString,
+    measure::Measure,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
     reference::{CodelistReference, ConceptReference, DsdReference, ValueListReference},
