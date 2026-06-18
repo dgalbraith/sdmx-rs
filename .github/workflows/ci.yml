@@ -247,7 +247,6 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -265,13 +264,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Run Clippy Lints
         run: nix develop --command just clippy
@@ -283,7 +276,6 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -301,13 +293,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Run WASM Target Check
         run: nix develop --command just check-wasm
@@ -319,7 +305,6 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -337,13 +322,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Generate Workspace Documentation
         run: nix develop --command just docs
@@ -355,7 +334,6 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -373,13 +351,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Build Internal (design_docs) Documentation
         run: nix develop --command just docs-internal
@@ -445,7 +417,6 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -468,13 +439,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Run Test Coverage Headless
         run: nix develop --command just test-coverage-headless
@@ -537,9 +502,10 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: ./.github/actions/sccache-cache
 
       - name: Install stable Rust (for metadata extraction)
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -587,14 +553,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
-
       - name: Verify Codebase Compiles on MSRV
         run: cargo check --workspace --all-targets --locked
 
@@ -623,9 +581,10 @@ jobs:
         crate: [sdmx-types, sdmx-parsers, sdmx-writers, sdmx-client]
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: ./.github/actions/sccache-cache
 
       - name: Install Stable Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -645,14 +604,6 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
-
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
 
       # cargo-msrv (the installed tool) is intentionally UNPINNED (latest): this is
       # an opportunistic upstream-drift detector, so pinning it would blind it to
@@ -674,12 +625,13 @@ jobs:
     if: github.event_name == 'schedule'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+
+      - uses: ./.github/actions/sccache-cache
 
       - name: Verify MSRV with No Default Features
         run: nix develop --command cargo check --all --no-default-features --locked
@@ -701,16 +653,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set sccache directory
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            printf "SCCACHE_DIR=C:\\Users\\runner\\AppData\\Local\\sccache\n" >> "$GITHUB_ENV"
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            printf "SCCACHE_DIR=/Users/runner/Library/Caches/sccache\n" >> "$GITHUB_ENV"
-          else
-            printf "SCCACHE_DIR=/home/runner/.cache/sccache\n" >> "$GITHUB_ENV"
-          fi
-        shell: bash
+      - uses: ./.github/actions/sccache-cache
 
       - name: Install Stable Rust Toolchain
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -731,14 +674,6 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
-
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@920ab1831fbf4fb3ef75c8ead83556c918bb7290 # v2.79.8
@@ -815,7 +750,6 @@ jobs:
     if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true')
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -833,13 +767,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Run Release Dry-Run Check
         run: nix develop --command just release-dry-run
@@ -853,7 +781,6 @@ jobs:
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /home/runner/.cache/sccache
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -871,13 +798,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
-      - name: Cache sccache Compiler Artifacts
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: /home/runner/.cache/sccache
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-sccache-
+      - uses: ./.github/actions/sccache-cache
 
       - name: Run Semantic Versioning Check
         run: nix develop --command just semver-check
