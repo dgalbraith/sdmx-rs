@@ -5,10 +5,8 @@
 //! knowable from the fixed SDMX specification, so consumers can write a complete `match` with no
 //! catch-all arm, and any future variant is a deliberate, surfacing breaking change.
 //!
-//! A variant exists only once a producer for it lands, so the enum grows milestone by milestone.
-//! The variants present here are those whose producers exist in the foundation layer; variants
-//! whose producers arrive later (for example an NCName-identifier failure, the `Empty*` collection
-//! family, and the representation-rule failures) join alongside them.
+//! Every variant is reachable: the enum carries no placeholder cases, so it lists exactly the
+//! failures the crate can produce.
 
 use alloc::string::String;
 
