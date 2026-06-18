@@ -26,6 +26,7 @@ extern crate alloc;
 
 mod annotation;
 mod artefact;
+mod attribute;
 mod codelist;
 mod component;
 mod concept;
@@ -45,6 +46,10 @@ mod valuelist;
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
+    attribute::{
+        Attribute, AttributeListMember, AttributeRelationship, DimensionIds, DimensionRef, GroupId,
+        MeasureRelationship, MetadataAttributeUsage,
+    },
     codelist::{
         Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
     },

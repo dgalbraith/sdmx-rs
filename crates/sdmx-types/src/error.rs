@@ -112,13 +112,37 @@ pub enum Error {
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
 
+    /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
+    /// schema requires at least one dimension reference (`Dimension+`), so an empty list is
+    /// mechanically schema-invalid. Produced by [`DimensionIds::new`](crate::DimensionIds::new).
+    #[error(
+        "Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id."
+    )]
+    EmptyAttributeDimensions,
+
+    /// An `AttributeRelationship::Group` was constructed with an empty group id. The schema requires
+    /// a non-empty group reference, so an empty id is mechanically schema-invalid. Produced by
+    /// [`GroupId::new`](crate::GroupId::new).
+    #[error(
+        "Invalid attribute relationship: an AttributeRelationship::Group must reference a non-empty group id."
+    )]
+    EmptyGroupId,
+
+    /// A measure relationship was constructed with an empty measure list. The schema requires at
+    /// least one measure reference, so an empty list is mechanically schema-invalid. Produced by
+    /// [`MeasureRelationship::new`](crate::MeasureRelationship::new).
+    #[error(
+        "Invalid measure relationship: a MeasureRelationship must reference at least one measure."
+    )]
+    EmptyMeasureRelationship,
+
     /// A component's representation states a `textType` outside the subset its position allows.
     /// The first field names the component kind (for example `"Concept"`), the second the
     /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
     /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
-    /// position-rule validators: the Basic-position validator (the
-    /// [`Concept::new`](crate::Concept::new) core-representation check) and the dimension- and
-    /// time-position validators ([`Dimension::new`](crate::Dimension::new) and
+    /// position-rule validators: the Basic-position validator (the core-representation check shared
+    /// by [`Concept::new`](crate::Concept::new) and [`Attribute::new`](crate::Attribute::new)) and
+    /// the dimension- and time-position validators ([`Dimension::new`](crate::Dimension::new) and
     /// [`TimeDimension::new`](crate::TimeDimension::new)).
     #[error(
         "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."

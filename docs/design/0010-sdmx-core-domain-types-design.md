@@ -1394,7 +1394,7 @@ pub struct GroupId(String);        // private field; constructor rejects empty
 
 impl GroupId {
     pub fn new(id: String) -> Result<Self, Error> {
-        if id.is_empty() { return Err(Error::InvalidIdentifier(id)); }
+        if id.is_empty() { return Err(Error::EmptyGroupId); }
         Ok(Self(id))
     }
     pub fn as_str(&self) -> &str { &self.0 }
@@ -2482,6 +2482,9 @@ pub enum Error {
 
     #[error("Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id.")]
     EmptyAttributeDimensions,
+
+    #[error("Invalid attribute relationship: an AttributeRelationship::Group must reference a non-empty group id.")]
+    EmptyGroupId,
 
     #[error("Invalid dimension constraint: a DimensionConstraint must reference at least one dimension id.")]
     EmptyDimensionConstraint,

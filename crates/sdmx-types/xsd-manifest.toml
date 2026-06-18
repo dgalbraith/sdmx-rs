@@ -142,6 +142,38 @@ file = "schemas/SDMXStructureDataStructure.xsd"
 editions = ["3.0", "3.1"]
 rust = ["TimeDimension"]
 
+# --- Attributes (attribute.rs) ---
+
+[[fragment]]
+symbol = "AttributeType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Attribute"]
+
+[[fragment]]
+symbol = "AttributeRelationshipType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["AttributeRelationship"]
+
+[[fragment]]
+symbol = "OptionalLocalDimensionReferenceType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DimensionRef"]
+
+[[fragment]]
+symbol = "MeasureRelationshipType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MeasureRelationship"]
+
+[[fragment]]
+symbol = "MetadataAttributeUsageType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MetadataAttributeUsage"]
+
 # --- Item scheme framework (scheme.rs) ---
 
 [[fragment]]
