@@ -163,6 +163,14 @@ pub enum Error {
     #[error("Invalid measure list: a present MeasureList must contain at least one measure.")]
     EmptyMeasureList,
 
+    /// A dimension constraint was constructed empty. `DimensionConstraintType` requires at least one
+    /// dimension reference, so an empty list is mechanically schema-invalid. Produced by
+    /// [`DimensionConstraint::new`](crate::DimensionConstraint::new).
+    #[error(
+        "Invalid dimension constraint: a DimensionConstraint must reference at least one dimension id."
+    )]
+    EmptyDimensionConstraint,
+
     /// A component's representation states a `textType` outside the subset its position allows.
     /// The first field names the component kind (for example `"Concept"`), the second the
     /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position

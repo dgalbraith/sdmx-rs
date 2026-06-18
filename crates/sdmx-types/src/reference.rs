@@ -29,7 +29,8 @@ Decisions: D-0020, D-0021, D-0047, D-0048.
 
 use alloc::string::String;
 
-/// A reference to a data structure definition (DSD) by its maintenance coordinates.
+/// A reference to a [`DataStructureDefinition`](crate::DataStructureDefinition) by its maintenance
+/// coordinates.
 ///
 /// ## Specification
 /// - **Type**: `DataStructureReferenceType`

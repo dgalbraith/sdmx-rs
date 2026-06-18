@@ -208,6 +208,27 @@ file = "schemas/SDMXStructureDataStructure.xsd"
 editions = ["3.0", "3.1"]
 rust = ["Group"]
 
+# --- Composite maintainables (data_structure.rs, dataflow.rs) ---
+
+[[fragment]]
+symbol = "DataStructureType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataStructureDefinition"]
+
+[[fragment]]
+symbol = "DataflowType"
+file = "schemas/SDMXStructureDataflow.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Dataflow"]
+
+# DimensionConstraint is a 3.1-only addition (zero occurrences in 3.0, D-0045).
+[[fragment]]
+symbol = "DimensionConstraintType"
+file = "schemas/SDMXStructureDataflow.xsd"
+editions = ["3.1"]
+rust = ["DimensionConstraint"]
+
 # --- Item scheme framework (scheme.rs) ---
 
 [[fragment]]

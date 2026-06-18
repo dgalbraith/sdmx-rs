@@ -30,6 +30,8 @@ mod attribute;
 mod codelist;
 mod component;
 mod concept;
+mod data_structure;
+mod dataflow;
 mod descriptor;
 mod dimension;
 mod error;
@@ -57,6 +59,8 @@ pub use crate::{
     },
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
+    data_structure::DataStructureDefinition,
+    dataflow::{Dataflow, DimensionConstraint},
     descriptor::{AttributeList, DimensionList, Group, GroupDimensions, MeasureList},
     dimension::{Dimension, TimeDimension},
     error::Error,
