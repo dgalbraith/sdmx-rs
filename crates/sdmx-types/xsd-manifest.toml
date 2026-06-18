@@ -128,6 +128,20 @@ file = "schemas/SDMXStructureDataStructure.xsd"
 editions = ["3.0", "3.1"]
 rust = ["Usage"]
 
+# --- Dimensions (dimension.rs) ---
+
+[[fragment]]
+symbol = "DimensionType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Dimension"]
+
+[[fragment]]
+symbol = "TimeDimensionType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimeDimension"]
+
 # --- Item scheme framework (scheme.rs) ---
 
 [[fragment]]

@@ -1085,12 +1085,12 @@ A component's representation (`LocalRepresentation`, and a concept's `CoreRepres
 
 The store is the **superset** of every position's shape; the per-position mechanical restrictions are enforced at the **component constructors** (D-0048, the D-0023 owns-its-own-check pattern). The verified position table (identical 3.0/3.1):
 
-| Position                                       | TextFormat tier                              | Enumeration admits        | textType subset  | Extra                                 |
-| ---------------------------------------------- | -------------------------------------------- | ------------------------- | ---------------- | ------------------------------------- |
-| Concept core / Attribute / Measure             | Basic (`isMultiLingual`+`pattern` allowed)   | Codelist **or ValueList** | Basic (41 of 44) |                                       |
-| Dimension                                      | Simple (`isMultiLingual` prohibited)         | **Codelist only**         | Simple (40)      | repr-level `maxOccurs` **prohibited** |
-| TimeDimension                                  | Time (only `textType`/`startTime`/`endTime`) | **none**                  | Time (17)        |                                       |
-| `EnumerationFormat` (all enumerated positions) | Coded (`decimals` prohibited)                | —                         | Code (33)        |                                       |
+| Position                                       | TextFormat tier                              | Enumeration admits        | textType subset  | Extra                                             |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------- | ---------------- | ------------------------------------------------- |
+| Concept core / Attribute / Measure             | Basic (`isMultiLingual`+`pattern` allowed)   | Codelist **or ValueList** | Basic (41 of 44) |                                                   |
+| Dimension                                      | Simple (`isMultiLingual` prohibited)         | **Codelist only**         | Simple (40)      | repr-level `minOccurs`+`maxOccurs` **prohibited** |
+| TimeDimension                                  | Time (only `textType`/`startTime`/`endTime`) | **none**                  | Time (17)        | repr-level `minOccurs`+`maxOccurs` **prohibited** |
+| `EnumerationFormat` (all enumerated positions) | Coded (`decimals` prohibited)                | —                         | Code (33)        |                                                   |
 
 ```rust
 // DataType is the spec's `textType` facet — all 44 enumerated values (identical 3.0/3.1),
@@ -1117,7 +1117,7 @@ pub enum DataType {
 // xs:decimal → SdmxDecimal (lossless, D-0027). Time facets are StandardTimePeriodType →
 // SdmxTimePeriod. No invariant BETWEEN facets → pub fields, derived Deserialize; which facets
 // a given POSITION may carry is the component constructor's check (D-0048, table above).
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TextFormat {
     // STATEDNESS stored (D-0052): None ⟺ the attribute was absent; the schema default
     // (String — ObservationalTimePeriod at the time position) is a position-aware effective
@@ -1154,7 +1154,7 @@ pub struct TextFormat {
 // the real coded-side deltas are integer numerics, no decimals, and the Code textType subset
 // (33 values — constructor-enforced). The integer-vs-decimal split is the spec's;
 // SdmxInteger→SdmxDecimal widening is available (D-0027) for code that reads both uniformly.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct EnumerationFormat {
     // CodeDataType subset; optional with NO schema default (CodedTextFormatType re-declares
     // textType without one, both versions — the restriction replaces the base declaration, so
@@ -1352,7 +1352,7 @@ impl Dimension {
     ) -> Result<Self, Error> {
         // Dimension position rules (SimpleDataStructureRepresentationType — D-0048, all
         // mechanical): Codelist-only enumeration (ValueList → Err); isMultiLingual prohibited;
-        // representation-level maxOccurs prohibited; textType ∈ Simple subset; enumeration
+        // representation-level minOccurs+maxOccurs prohibited; textType ∈ Simple subset; enumeration
         // format textType ∈ Code subset.
         validate_dimension_representation(representation.as_ref())?;
         Ok(Self { metadata, concept, representation, position })
@@ -1572,7 +1572,8 @@ impl TimeDimension {
         // TimeDimension position rules (TimeDimensionRepresentationType — D-0048, mechanical):
         // any Enumeration arm → Err (TextFormat-only); within the TextFormat, only
         // textType ∈ Time subset, start_time, and end_time may be set — every other facet
-        // (including is_multi_lingual and pattern) is prohibited.
+        // (including is_multi_lingual and pattern), plus a representation-level minOccurs/maxOccurs,
+        // is prohibited.
         validate_time_representation(&representation)?;
         Ok(Self { metadata, concept, representation })
     }

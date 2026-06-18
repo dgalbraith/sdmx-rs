@@ -29,6 +29,7 @@ mod artefact;
 mod codelist;
 mod component;
 mod concept;
+mod dimension;
 mod error;
 mod fixed;
 mod lexical;
@@ -49,6 +50,7 @@ pub use crate::{
     },
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
+    dimension::{Dimension, TimeDimension},
     error::Error,
     fixed::FixedInclude,
     lexical::{

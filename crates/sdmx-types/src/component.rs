@@ -96,6 +96,26 @@ impl ComponentMetadata {
     pub fn stated_id(&self) -> Option<&str> {
         self.id.as_deref()
     }
+
+    /// The component's URN, if any. A component delegates its `IdentifiableArtefact::urn` here.
+    #[must_use]
+    pub fn urn(&self) -> Option<&str> {
+        self.urn.as_deref()
+    }
+
+    /// The annotations carried on the component. A component delegates its
+    /// `IdentifiableArtefact::annotations` here.
+    #[must_use]
+    pub fn annotations(&self) -> &[Annotation] {
+        &self.annotations
+    }
+
+    /// The links carried on the component. A component delegates its `IdentifiableArtefact::links`
+    /// here.
+    #[must_use]
+    pub fn links(&self) -> &[Link] {
+        &self.links
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for ComponentMetadata {
