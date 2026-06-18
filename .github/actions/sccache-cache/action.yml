@@ -1,0 +1,26 @@
+name: 'sccache cache'
+description: >-
+  Set SCCACHE_DIR per-OS and restore/save the sccache compiler cache with a
+  per-job rolling key (key includes github.run_id so the cache compounds each
+  run; github.job scopes it per job so different toolchains never collide).
+runs:
+  using: composite
+  steps:
+    - name: Set sccache directory
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" = "Windows" ]; then
+          printf "SCCACHE_DIR=C:\\Users\\runner\\AppData\\Local\\sccache\n" >> "$GITHUB_ENV"
+        elif [ "${{ runner.os }}" = "macOS" ]; then
+          printf "SCCACHE_DIR=/Users/runner/Library/Caches/sccache\n" >> "$GITHUB_ENV"
+        else
+          printf "SCCACHE_DIR=/home/runner/.cache/sccache\n" >> "$GITHUB_ENV"
+        fi
+
+    - name: Cache sccache compiler artifacts
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ env.SCCACHE_DIR }}
+        key: ${{ runner.os }}-sccache-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          ${{ runner.os }}-sccache-${{ github.job }}-
