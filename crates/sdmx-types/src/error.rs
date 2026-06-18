@@ -66,8 +66,8 @@ pub enum Error {
     /// Produced by the constructors whose ids the spec types as `NCNameIDType`: the validated
     /// scheme items [`Concept::new`](crate::Concept::new) and [`Agency::new`](crate::Agency::new)
     /// (their own ids), and the `NCName` scheme wrappers [`Codelist::new`](crate::Codelist::new) and
-    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component-id
-    /// producers join in a later milestone.
+    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component leaf
+    /// [`ComponentMetadata::new`](crate::ComponentMetadata::new) validates a stated component id.
     #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 

@@ -120,6 +120,14 @@ file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ValueListReference"]
 
+# --- Component foundations (component.rs) ---
+
+[[fragment]]
+symbol = "UsageType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Usage"]
+
 # --- Item scheme framework (scheme.rs) ---
 
 [[fragment]]
