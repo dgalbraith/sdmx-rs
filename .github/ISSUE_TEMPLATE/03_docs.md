@@ -29,7 +29,7 @@ labels: docs
 
 - [ ] Markdown files format and lint cleanly with zero warnings (`just verify`).
 - [ ] Ensure all local internal markdown links are valid and resolve.
-- [ ] Public API documentation generates without compiler warnings (`just doc`).
+- [ ] Public API documentation generates without compiler warnings (`just docs`).
 
 ## Dependencies & References
 
