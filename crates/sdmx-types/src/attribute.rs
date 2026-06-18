@@ -44,7 +44,7 @@ use crate::{
 // GroupId
 // ---------------------------------------------------------------------------
 
-/// A non-empty reference to a group by its id.
+/// A non-empty reference to a [`Group`](crate::Group) by its id.
 ///
 /// ## Specification
 /// - **Schema**: N/A (Virtual Type)
@@ -202,7 +202,7 @@ pub enum AttributeRelationship {
     Dataflow,
     /// The value attaches to each observation.
     Observation,
-    /// The value attaches to a named group.
+    /// The value attaches to a named [`Group`](crate::Group).
     Group(GroupId),
     /// The value attaches to a set of dimensions.
     Dimensions(DimensionIds),

@@ -182,6 +182,32 @@ file = "schemas/SDMXStructureDataStructure.xsd"
 editions = ["3.0", "3.1"]
 rust = ["Measure"]
 
+# --- DSD component descriptors (descriptor.rs) ---
+
+[[fragment]]
+symbol = "DimensionListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DimensionList"]
+
+[[fragment]]
+symbol = "AttributeListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["AttributeList"]
+
+[[fragment]]
+symbol = "MeasureListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MeasureList"]
+
+[[fragment]]
+symbol = "GroupType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Group"]
+
 # --- Item scheme framework (scheme.rs) ---
 
 [[fragment]]

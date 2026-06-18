@@ -30,6 +30,7 @@ mod attribute;
 mod codelist;
 mod component;
 mod concept;
+mod descriptor;
 mod dimension;
 mod error;
 mod fixed;
@@ -56,6 +57,7 @@ pub use crate::{
     },
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
+    descriptor::{AttributeList, DimensionList, Group, GroupDimensions, MeasureList},
     dimension::{Dimension, TimeDimension},
     error::Error,
     fixed::FixedInclude,

@@ -136,6 +136,33 @@ pub enum Error {
     )]
     EmptyMeasureRelationship,
 
+    /// A dimension list was constructed empty. `DimensionListType` requires at least one dimension
+    /// (`Dimension+`), so an empty list is mechanically schema-invalid. Produced by
+    /// [`DimensionList::new`](crate::DimensionList::new).
+    #[error("Invalid dimension list: a DimensionList must contain at least one dimension.")]
+    EmptyDimensionList,
+
+    /// A group was constructed with an empty dimension list. The schema requires at least one
+    /// `GroupDimension`, so an empty list is mechanically schema-invalid. Produced by
+    /// [`GroupDimensions::new`](crate::GroupDimensions::new).
+    #[error("Invalid group: a Group must reference at least one dimension.")]
+    EmptyGroupDimensions,
+
+    /// A present attribute list was constructed empty. The schema's member choice is
+    /// `minOccurs="1"`, so a present `AttributeList` holds at least one attribute or metadata
+    /// attribute usage (a structure with no attributes omits the descriptor entirely). Produced by
+    /// [`AttributeList::new`](crate::AttributeList::new).
+    #[error(
+        "Invalid attribute list: a present AttributeList must contain at least one attribute or metadata attribute usage."
+    )]
+    EmptyAttributeList,
+
+    /// A present measure list was constructed empty. `MeasureListType` requires at least one measure
+    /// (`Measure+`), so an empty list is mechanically schema-invalid (a measure-less structure omits
+    /// the descriptor entirely). Produced by [`MeasureList::new`](crate::MeasureList::new).
+    #[error("Invalid measure list: a present MeasureList must contain at least one measure.")]
+    EmptyMeasureList,
+
     /// A component's representation states a `textType` outside the subset its position allows.
     /// The first field names the component kind (for example `"Concept"`), the second the
     /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
@@ -178,8 +205,11 @@ pub enum Error {
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
     /// itself reject. The first field names the attribute or site, the second the
     /// offending stated value. Produced by [`FixedInclude::new`](crate::FixedInclude::new),
-    /// [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id), and
-    /// [`TimeDimension::new`](crate::TimeDimension::new) (the fixed `TIME_PERIOD` id).
+    /// [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id),
+    /// [`TimeDimension::new`](crate::TimeDimension::new) (the fixed `TIME_PERIOD` id), and the
+    /// fixed-id descriptors [`DimensionList::new`](crate::DimensionList::new),
+    /// [`AttributeList::new`](crate::AttributeList::new), and
+    /// [`MeasureList::new`](crate::MeasureList::new).
     #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
     FixedAttributeMismatch(String, String),
 }
