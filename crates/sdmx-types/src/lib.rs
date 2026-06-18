@@ -56,7 +56,7 @@ pub use crate::{
     localised::LocalisedString,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
-    reference::{CodelistReference, ValueListReference},
+    reference::{CodelistReference, ConceptReference, DsdReference, ValueListReference},
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
         RepresentationChoice, TextFormat,

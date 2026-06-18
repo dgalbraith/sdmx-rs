@@ -97,6 +97,18 @@ rust = ["MaintainableArtefact"]
 # --- Cross-references (reference.rs) ---
 
 [[fragment]]
+symbol = "DataStructureReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DsdReference"]
+
+[[fragment]]
+symbol = "ConceptReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ConceptReference"]
+
+[[fragment]]
 symbol = "CodelistReferenceType"
 file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
