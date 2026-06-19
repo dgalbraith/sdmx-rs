@@ -10,11 +10,11 @@ runs:
       shell: bash
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          printf "SCCACHE_DIR=C:\\Users\\runner\\AppData\\Local\\sccache\n" >> "$GITHUB_ENV"
+          printf 'SCCACHE_DIR=%s\n' 'C:\Users\runner\AppData\Local\sccache' >> "$GITHUB_ENV"
         elif [ "${{ runner.os }}" = "macOS" ]; then
-          printf "SCCACHE_DIR=/Users/runner/Library/Caches/sccache\n" >> "$GITHUB_ENV"
+          printf 'SCCACHE_DIR=%s\n' '/Users/runner/Library/Caches/sccache' >> "$GITHUB_ENV"
         else
-          printf "SCCACHE_DIR=/home/runner/.cache/sccache\n" >> "$GITHUB_ENV"
+          printf 'SCCACHE_DIR=%s\n' '/home/runner/.cache/sccache' >> "$GITHUB_ENV"
         fi
 
     - name: Cache sccache compiler artifacts
