@@ -36,7 +36,7 @@ The identifier tiers back the distinct identifier-failure variants (`IDType` for
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
 `Invalid{Decimal,Integer,Version,TimePeriod}` variants.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0052.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0048, D-0052.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -171,7 +171,7 @@ pub enum Error {
 
     /// A component's representation states a `textType` outside the subset its position allows.
     /// The first field names the component kind (for example `"Concept"`), the second the
-    /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
+    /// offending `textType`. This is a mechanical XSD restriction: each position
     /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
     /// position-rule validators: the Basic-position validator (the core-representation check shared
     /// by [`Concept::new`](crate::Concept::new), [`Attribute::new`](crate::Attribute::new), and

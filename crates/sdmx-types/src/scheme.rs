@@ -120,7 +120,7 @@ impl<I: SchemeItem> ItemScheme<I> {
         self.items.push(item);
     }
 
-    /// The first item whose effective id equals `id`, in wire order (a Layer-2 first-match view).
+    /// The first item whose effective id equals `id`, in wire order.
     /// When an id repeats, the first wins; later items stay reachable through [`iter`](Self::iter).
     #[must_use]
     pub fn get(&self, id: &str) -> Option<&I> {
