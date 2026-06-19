@@ -64,8 +64,8 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 - [x] **ConceptScheme**: Semantic concept definitions
 - [x] **AgencyScheme**: Maintenance agency registry
 - [x] **ValueList**: Closed value domains for dimensions, measures, and attributes
-- [ ] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
-- [ ] **Dataflow**: The primary REST query target, referencing a DSD
+- [x] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
+- [x] **Dataflow**: The primary REST query target, referencing a DSD
 - [ ] **Constraints**: Version-split data constraints for SDMX 3.0 and 3.1 via a unified `ConstraintModel`.
 - [ ] **Property-based testing**: `proptest` for construction invariants and lossless serde round-trips.
 - [ ] **WASM Test Execution**: `wasm-pack test --node` wired into `just verify` and a CI job.
