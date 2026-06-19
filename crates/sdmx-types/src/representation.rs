@@ -54,7 +54,7 @@ use crate::{
 /// (applied at a component position, never baked into the store) is [`DataType::String`].
 ///
 /// Each position admits only a subset of these values; the subset-membership predicates
-/// ([`is_basic`](Self::is_basic), [`is_code`](Self::is_code)) are the Layer-2 views the component
+/// ([`is_basic`](Self::is_basic), [`is_code`](Self::is_code)) are what the component
 /// constructors check against.
 #[cfg_attr(
     design_docs,
@@ -313,7 +313,7 @@ pub struct TextFormat {
     /// `pattern`: a regular expression the values must match.
     pub pattern: Option<String>,
     /// `isMultiLingual`: whether the values are localised. `None` ⟺ absent; the default flips
-    /// between editions, so the effective value is a version-aware view (D-0046).
+    /// between editions, so the effective value is a version-aware view.
     pub is_multi_lingual: Option<bool>,
 }
 
@@ -450,7 +450,7 @@ pub struct Representation {
 // ---------------------------------------------------------------------------
 
 /// Validates a representation against the Basic-tier position rules: a concept core representation,
-/// an attribute, or a measure (§5.6.1). The Basic position admits either enumeration target
+/// an attribute, or a measure. The Basic position admits either enumeration target
 /// (codelist or value list) and the full Basic `textType` subset; a refining
 /// [`EnumerationFormat`] is held to the Code subset. No facet is prohibited at this tier.
 ///
