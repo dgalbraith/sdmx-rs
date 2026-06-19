@@ -12,14 +12,36 @@
 //! - No unsafe code.
 //! - No binary output: this crate is a pure domain model library.
 //!
+//! # Stated and effective values
+//!
+//! Many types expose a value in two forms. The **stated** form is the value exactly as the wire
+//! carried it, with statedness preserved: an absent field is `None`, not a default. The
+//! **effective** form is the resolved value with the schema default applied, exposed through the
+//! `effective_*` accessors. So `usage()` returns `Option<Usage>` (was it stated?) while
+//! `effective_usage()` returns `Usage` (what applies). Accessor docs labelled `Stated:` or
+//! `Effective:` name which form they return.
+//!
 //! # Status
 //!
 //! Implementation follows the milestones of design document 0010. The foundation layer
 //! (identifier validators, lexical newtypes, localised strings, the annotation and metadata
-//! leaves, and the artefact trait hierarchy) and the item-scheme layer (the generic item scheme,
-//! codes and codelists, concepts, agencies, value lists, and the component representation system)
-//! are in place; the components, descriptors, and constraints arrive in later milestones.
+//! leaves, and the artefact trait hierarchy), the item-scheme layer (the generic item scheme,
+//! codes and codelists, concepts, agencies, value lists, and the component representation system),
+//! and the data structure layer (the dimension, attribute, and measure components, the descriptor
+//! lists and groups, and the `DataStructureDefinition` and `Dataflow` maintainables) are in place;
+//! the version-split constraints arrive in a later milestone.
+#![cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
 
+The two-layer value model the public docs call "stated" and "effective" is the design's Layer-1 and
+Layer-2: Layer-1 (the infoset) is rendered as **stated** (the value as the wire carried it), and
+Layer-2 (the interpreted view) as **effective** (the schema default applied). The design documents
+and per-type Design Notes use the Layer-1/Layer-2 numbering; the public API uses the stated/effective
+terms.
+"#
+)]
 #![no_std]
 
 extern crate alloc;
