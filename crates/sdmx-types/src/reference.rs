@@ -4,9 +4,9 @@
 //! natural map keys of the model (deduping a set of fetched artefacts, "have I already resolved
 //! this codelist?"), so they derive [`Hash`]; their fields are all `String`, so it is free.
 //!
-//! Only the references a Milestone 2 type consumes live here so far: [`CodelistReference`] (the
-//! target of a codelist extension) and [`ValueListReference`] (admitted at the enumeration
-//! positions). The remaining reference structs join with their first callers.
+//! Each struct references one kind of target by its maintenance coordinates: [`CodelistReference`]
+//! and [`ValueListReference`] (a codelist or value list), [`ConceptReference`] (a concept within
+//! its scheme), and [`DsdReference`] (a data structure definition).
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -19,13 +19,86 @@ applied blanket to the composite artefacts.
 
 One struct per spec reference type rather than a unified `MaintainableReference`: each maps 1-to-1 to
 a distinct concept in the information model, and the item-in-scheme references already diverge from
-the flat maintainable triple, so the correspondence is kept.
+the flat maintainable triple, so the correspondence is kept. Each reference lands with its first
+caller; the constraint-attachment references (dataflow, provision agreement, data provider) join
+with the constraint types that consume them.
 
 Decisions: D-0020, D-0021, D-0047, D-0048.
 "#
 )]
 
 use alloc::string::String;
+
+/// A reference to a [`DataStructureDefinition`](crate::DataStructureDefinition) by its maintenance
+/// coordinates.
+///
+/// ## Specification
+/// - **Type**: `DataStructureReferenceType`
+/// - **Element**: N/A (Reference Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataStructureReferenceType.md"))]
+///
+/// Identifies a data structure definition by the flat maintainable triple (agency, id, version). A
+/// DSD is a maintainable artefact, so its reference carries a version, like [`CodelistReference`].
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::DsdReference;
+///
+/// // All fields are public, so you can construct one directly.
+/// let reference = DsdReference {
+///     agency: "SDMX".to_string(),
+///     id: "ECB_EXR1".to_string(),
+///     version: "1.0.0".to_string(),
+/// };
+/// assert_eq!(reference.id, "ECB_EXR1");
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct DsdReference {
+    /// The maintenance agency id (`agencyID`).
+    pub agency: String,
+    /// The referenced data structure definition's id.
+    pub id: String,
+    /// The referenced data structure definition's version.
+    pub version: String,
+}
+
+/// A reference to a [`Concept`](crate::Concept) by its coordinates within a concept scheme.
+///
+/// ## Specification
+/// - **Type**: `ConceptReferenceType`
+/// - **Element**: N/A (Reference Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ConceptReferenceType.md"))]
+///
+/// A concept is an *item in a concept scheme*, not a maintainable artefact in its own right, so its
+/// reference takes the item-in-scheme shape (agency, scheme id, item id) rather than the flat
+/// maintainable triple carried by [`CodelistReference`] and [`DsdReference`]: the version belongs to
+/// the enclosing scheme, so it is not repeated here.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::ConceptReference;
+///
+/// // All fields are public, so you can construct one directly.
+/// let reference = ConceptReference {
+///     agency: "SDMX".to_string(),
+///     scheme_id: "CS_FREQ".to_string(),
+///     id: "FREQ".to_string(),
+/// };
+/// assert_eq!(reference.scheme_id, "CS_FREQ");
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct ConceptReference {
+    /// The maintenance agency id (`agencyID`).
+    pub agency: String,
+    /// The id of the concept scheme the concept belongs to (`maintainableParentID`).
+    pub scheme_id: String,
+    /// The referenced concept's id.
+    pub id: String,
+}
 
 /// A reference to a [`Codelist`](crate::Codelist) by its maintenance coordinates.
 ///

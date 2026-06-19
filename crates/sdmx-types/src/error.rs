@@ -5,10 +5,8 @@
 //! knowable from the fixed SDMX specification, so consumers can write a complete `match` with no
 //! catch-all arm, and any future variant is a deliberate, surfacing breaking change.
 //!
-//! A variant exists only once a producer for it lands, so the enum grows milestone by milestone.
-//! The variants present here are those whose producers exist in the foundation layer; variants
-//! whose producers arrive later (for example an NCName-identifier failure, the `Empty*` collection
-//! family, and the representation-rule failures) join alongside them.
+//! Every variant is reachable: the enum carries no placeholder cases, so it lists exactly the
+//! failures the crate can produce.
 
 use alloc::string::String;
 
@@ -66,8 +64,8 @@ pub enum Error {
     /// Produced by the constructors whose ids the spec types as `NCNameIDType`: the validated
     /// scheme items [`Concept::new`](crate::Concept::new) and [`Agency::new`](crate::Agency::new)
     /// (their own ids), and the `NCName` scheme wrappers [`Codelist::new`](crate::Codelist::new) and
-    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component-id
-    /// producers join in a later milestone.
+    /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component leaf
+    /// [`ComponentMetadata::new`](crate::ComponentMetadata::new) validates a stated component id.
     #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 
@@ -112,26 +110,112 @@ pub enum Error {
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
 
+    /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
+    /// schema requires at least one dimension reference (`Dimension+`), so an empty list is
+    /// mechanically schema-invalid. Produced by [`DimensionIds::new`](crate::DimensionIds::new).
+    #[error(
+        "Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id."
+    )]
+    EmptyAttributeDimensions,
+
+    /// An `AttributeRelationship::Group` was constructed with an empty group id. The schema requires
+    /// a non-empty group reference, so an empty id is mechanically schema-invalid. Produced by
+    /// [`GroupId::new`](crate::GroupId::new).
+    #[error(
+        "Invalid attribute relationship: an AttributeRelationship::Group must reference a non-empty group id."
+    )]
+    EmptyGroupId,
+
+    /// A measure relationship was constructed with an empty measure list. The schema requires at
+    /// least one measure reference, so an empty list is mechanically schema-invalid. Produced by
+    /// [`MeasureRelationship::new`](crate::MeasureRelationship::new).
+    #[error(
+        "Invalid measure relationship: a MeasureRelationship must reference at least one measure."
+    )]
+    EmptyMeasureRelationship,
+
+    /// A dimension list was constructed empty. `DimensionListType` requires at least one dimension
+    /// (`Dimension+`), so an empty list is mechanically schema-invalid. Produced by
+    /// [`DimensionList::new`](crate::DimensionList::new).
+    #[error("Invalid dimension list: a DimensionList must contain at least one dimension.")]
+    EmptyDimensionList,
+
+    /// A group was constructed with an empty dimension list. The schema requires at least one
+    /// `GroupDimension`, so an empty list is mechanically schema-invalid. Produced by
+    /// [`GroupDimensions::new`](crate::GroupDimensions::new).
+    #[error("Invalid group: a Group must reference at least one dimension.")]
+    EmptyGroupDimensions,
+
+    /// A present attribute list was constructed empty. The schema's member choice is
+    /// `minOccurs="1"`, so a present `AttributeList` holds at least one attribute or metadata
+    /// attribute usage (a structure with no attributes omits the descriptor entirely). Produced by
+    /// [`AttributeList::new`](crate::AttributeList::new).
+    #[error(
+        "Invalid attribute list: a present AttributeList must contain at least one attribute or metadata attribute usage."
+    )]
+    EmptyAttributeList,
+
+    /// A present measure list was constructed empty. `MeasureListType` requires at least one measure
+    /// (`Measure+`), so an empty list is mechanically schema-invalid (a measure-less structure omits
+    /// the descriptor entirely). Produced by [`MeasureList::new`](crate::MeasureList::new).
+    #[error("Invalid measure list: a present MeasureList must contain at least one measure.")]
+    EmptyMeasureList,
+
+    /// A dimension constraint was constructed empty. `DimensionConstraintType` requires at least one
+    /// dimension reference, so an empty list is mechanically schema-invalid. Produced by
+    /// [`DimensionConstraint::new`](crate::DimensionConstraint::new).
+    #[error(
+        "Invalid dimension constraint: a DimensionConstraint must reference at least one dimension id."
+    )]
+    EmptyDimensionConstraint,
+
     /// A component's representation states a `textType` outside the subset its position allows.
     /// The first field names the component kind (for example `"Concept"`), the second the
     /// offending `textType`. This is a mechanical XSD restriction (D-0048): each position
     /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
-    /// position-rule validators; in this milestone by the Basic-position validator (the
-    /// [`Concept::new`](crate::Concept::new) core-representation check). The dimension- and
-    /// time-position validators, and their `ValueListEnumerationNotAllowed` /
-    /// `EnumerationNotAllowed` / `ProhibitedRepresentationFacet` siblings, join with their
-    /// producers in a later milestone.
+    /// position-rule validators: the Basic-position validator (the core-representation check shared
+    /// by [`Concept::new`](crate::Concept::new), [`Attribute::new`](crate::Attribute::new), and
+    /// [`Measure::new`](crate::Measure::new)) and the dimension- and time-position validators
+    /// ([`Dimension::new`](crate::Dimension::new) and
+    /// [`TimeDimension::new`](crate::TimeDimension::new)).
     #[error(
         "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."
     )]
     InvalidTextTypeForComponent(String, String),
 
+    /// A dimension's representation uses a `ValueList` enumeration, which the dimension position
+    /// prohibits: a dimension admits a codelist enumeration only. The field names
+    /// the component kind. Produced by [`Dimension::new`](crate::Dimension::new).
+    #[error(
+        "Invalid representation for {0}: a ValueList enumeration is not allowed at this position (codelist-only)."
+    )]
+    ValueListEnumerationNotAllowed(String),
+
+    /// A time dimension's representation uses an enumeration, which the time position prohibits: it
+    /// is `TextFormat`-only. The field names the component kind. Produced by
+    /// [`TimeDimension::new`](crate::TimeDimension::new).
+    #[error(
+        "Invalid representation for {0}: an Enumeration is not allowed (TextFormat-only position)."
+    )]
+    EnumerationNotAllowed(String),
+
+    /// A component's representation sets a facet its position prohibits: a dimension may not set
+    /// `isMultiLingual` or a representation-level `minOccurs`/`maxOccurs`, and a time dimension may
+    /// set only `textType`, `startTime`, and `endTime` and prohibits a representation-level
+    /// `minOccurs`/`maxOccurs`. The first field names the component kind, the second
+    /// the prohibited facet. Produced by [`Dimension::new`](crate::Dimension::new) and
+    /// [`TimeDimension::new`](crate::TimeDimension::new).
+    #[error("Invalid representation for {0}: facet '{1}' is prohibited at this position.")]
+    ProhibitedRepresentationFacet(String, String),
+
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
-    /// itself reject. The first field names the attribute or site, the
-    /// second the offending stated value. Produced by
-    /// [`FixedInclude::new`](crate::FixedInclude::new) in the foundation layer and, in this milestone,
-    /// by [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id);
-    /// later milestones add the descriptor-id producers.
+    /// itself reject. The first field names the attribute or site, the second the
+    /// offending stated value. Produced by [`FixedInclude::new`](crate::FixedInclude::new),
+    /// [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id),
+    /// [`TimeDimension::new`](crate::TimeDimension::new) (the fixed `TIME_PERIOD` id), and the
+    /// fixed-id descriptors [`DimensionList::new`](crate::DimensionList::new),
+    /// [`AttributeList::new`](crate::AttributeList::new), and
+    /// [`MeasureList::new`](crate::MeasureList::new).
     #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
     FixedAttributeMismatch(String, String),
 }

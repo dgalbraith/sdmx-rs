@@ -97,6 +97,18 @@ rust = ["MaintainableArtefact"]
 # --- Cross-references (reference.rs) ---
 
 [[fragment]]
+symbol = "DataStructureReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DsdReference"]
+
+[[fragment]]
+symbol = "ConceptReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ConceptReference"]
+
+[[fragment]]
 symbol = "CodelistReferenceType"
 file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
@@ -107,6 +119,115 @@ symbol = "ValueListReferenceType"
 file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ValueListReference"]
+
+# --- Component foundations (component.rs) ---
+
+[[fragment]]
+symbol = "UsageType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Usage"]
+
+# --- Dimensions (dimension.rs) ---
+
+[[fragment]]
+symbol = "DimensionType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Dimension"]
+
+[[fragment]]
+symbol = "TimeDimensionType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimeDimension"]
+
+# --- Attributes (attribute.rs) ---
+
+[[fragment]]
+symbol = "AttributeType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Attribute"]
+
+[[fragment]]
+symbol = "AttributeRelationshipType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["AttributeRelationship"]
+
+[[fragment]]
+symbol = "OptionalLocalDimensionReferenceType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DimensionRef"]
+
+[[fragment]]
+symbol = "MeasureRelationshipType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MeasureRelationship"]
+
+[[fragment]]
+symbol = "MetadataAttributeUsageType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MetadataAttributeUsage"]
+
+# --- Measures (measure.rs) ---
+
+[[fragment]]
+symbol = "MeasureType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Measure"]
+
+# --- DSD component descriptors (descriptor.rs) ---
+
+[[fragment]]
+symbol = "DimensionListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DimensionList"]
+
+[[fragment]]
+symbol = "AttributeListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["AttributeList"]
+
+[[fragment]]
+symbol = "MeasureListType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MeasureList"]
+
+[[fragment]]
+symbol = "GroupType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Group"]
+
+# --- Composite maintainables (data_structure.rs, dataflow.rs) ---
+
+[[fragment]]
+symbol = "DataStructureType"
+file = "schemas/SDMXStructureDataStructure.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataStructureDefinition"]
+
+[[fragment]]
+symbol = "DataflowType"
+file = "schemas/SDMXStructureDataflow.xsd"
+editions = ["3.0", "3.1"]
+rust = ["Dataflow"]
+
+# DimensionConstraint is a 3.1-only addition (zero occurrences in 3.0, D-0045).
+[[fragment]]
+symbol = "DimensionConstraintType"
+file = "schemas/SDMXStructureDataflow.xsd"
+editions = ["3.1"]
+rust = ["DimensionConstraint"]
 
 # --- Item scheme framework (scheme.rs) ---
 
