@@ -27,9 +27,11 @@
 //! (identifier validators, lexical newtypes, localised strings, the annotation and metadata
 //! leaves, and the artefact trait hierarchy), the item-scheme layer (the generic item scheme,
 //! codes and codelists, concepts, agencies, value lists, and the component representation system),
-//! and the data structure layer (the dimension, attribute, and measure components, the descriptor
-//! lists and groups, and the `DataStructureDefinition` and `Dataflow` maintainables) are in place;
-//! the version-split constraints arrive in a later milestone.
+//! the data structure layer (the dimension, attribute, and measure components, the descriptor
+//! lists and groups, and the `DataStructureDefinition` and `Dataflow` maintainables), and the
+//! constraint layer (the cube-region and data-key-set trees, the constraint-attachment references
+//! and enums, and the `DataConstraint`, `AvailabilityConstraint`, and unified `ConstraintModel`)
+//! are in place, completing the structural model of design document 0010.
 #![cfg_attr(
     design_docs,
     doc = r#"
