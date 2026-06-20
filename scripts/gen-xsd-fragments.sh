@@ -10,10 +10,12 @@
 #
 # Editions are compared with <xs:documentation> narrative normalised
 # out (documentation is narrative, not the contract; the structure is
-# the arbiter), so a fragment splits into <symbol>.<edition>.md only on
-# a STRUCTURAL divergence (an element/attribute difference), never on a
-# documentation-prose difference. xs:appinfo is left in the comparison
-# (it can be material). The emitted fragment is always byte-verbatim.
+# the arbiter) and with each line's leading/trailing whitespace stripped
+# (indentation is formatting, not structure), so a fragment splits into
+# <symbol>.<edition>.md only on a STRUCTURAL divergence (an element/
+# attribute difference), never on a documentation-prose or indentation
+# difference. xs:appinfo is left in the comparison (it can be material).
+# The emitted fragment is always byte-verbatim.
 #
 # This is the "apply" half of the spec -> doctor -> apply kernel: the
 # only writer of the fragment files. Run by hand (just gen-xsd-fragments)
@@ -49,9 +51,15 @@ slice() { # file symbol
   ' "$1"
 }
 
-# Blank out <xs:documentation> narrative so divergence tracks structure, not
-# prose. Leaves xs:appinfo intact (it can carry material, machine-read hints).
-strip_doc() { sed 's#<xs:documentation>.*</xs:documentation>##g'; }
+# Reduce stdin to the structural comparison form: blank out <xs:documentation>
+# narrative (prose, not contract; xs:appinfo is left intact, it can carry
+# machine-read hints) and strip each line's leading/trailing whitespace, so
+# divergence tracks element/attribute structure, not the editions' indentation
+# (issue #70). Applied only to the comparison; the emitted fragment stays
+# byte-verbatim.
+structural_form() {
+  sed 's#<xs:documentation>.*</xs:documentation>##g; s/^[[:space:]]*//; s/[[:space:]]*$//'
+}
 
 # Wrap verbatim XSD (stdin) in the fragment template.
 emit() { # symbol editions-label outfile
@@ -104,9 +112,9 @@ parse_manifest | while IFS="$TAB" read -r symbol file editions; do
     src="$SPECS/$ed/$file"
     slice "$src" "$symbol" >"$WORK/$ed.xml"
     [ -s "$WORK/$ed.xml" ] || { log_err "gen-xsd-fragments: symbol '$symbol' not found in $src"; exit 1; }
-    strip_doc <"$WORK/$ed.xml" >"$WORK/$ed.stripped"
+    structural_form <"$WORK/$ed.xml" >"$WORK/$ed.cmp"
     if [ -z "$first" ]; then first="$ed"
-    elif ! cmp -s "$WORK/$first.stripped" "$WORK/$ed.stripped"; then divergent=1; fi
+    elif ! cmp -s "$WORK/$first.cmp" "$WORK/$ed.cmp"; then divergent=1; fi
   done
 
   if [ "$divergent" -eq 0 ]; then
