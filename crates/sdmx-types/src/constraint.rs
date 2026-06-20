@@ -50,12 +50,17 @@ Decisions: D-0026, D-0027, D-0031, D-0038, D-0040, D-0052, D-0064.
 
 use alloc::{string::String, vec::Vec};
 
+use chrono::{DateTime, FixedOffset};
+
 use crate::{
-    annotation::Annotation,
+    annotation::{Annotation, Link},
+    artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     codelist::Cascade,
     error::{Error, to_de_error},
     fixed::FixedInclude,
-    lexical::SdmxTimePeriod,
+    lexical::{SdmxTimePeriod, SdmxVersion},
+    localised::LocalisedString,
+    metadata::MaintainableMetadata,
     reference::{
         DataProviderReference, DataflowReference, DsdReference, ProvisionAgreementReference,
     },
@@ -1422,10 +1427,318 @@ pub enum AvailabilityConstraintAttachment {
     ProvisionAgreement(ProvisionAgreementReference),
 }
 
+// ---------------------------------------------------------------------------
+// Constraint maintainables and the unified model
+// ---------------------------------------------------------------------------
+
+/// Whether a constraint states the values allowed for an artefact or the data actually present.
+///
+/// ## Specification
+/// - **Type**: `ConstraintRoleType`
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ConstraintRoleType.md"))]
+///
+/// The `role` of an SDMX 3.0 data constraint: [`Allowed`](Self::Allowed) states the values an
+/// artefact may take, [`Actual`](Self::Actual) states the data actually present. SDMX 3.1 drops the
+/// attribute entirely.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The 3.0 `role` attribute (`ConstraintRoleType = Allowed | Actual`), required on every 3.0 constraint
+and removed entirely in 3.1 (zero occurrences). A 3.0-only superset member (D-0037), the mirror of
+the 3.1-only `isPartialLanguage`. Exhaustive (D-0021): a bounded, spec-fixed set. Only data
+constraints can be `Actual`; the 3.0 metadata side pins `role` to `fixed="Allowed"`, out of scope
+regardless (D-0034).
+
+Decisions: D-0037, D-0021.
+"#
+)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ConstraintRole {
+    /// The constraint states the values allowed for the attached artefact.
+    Allowed,
+    /// The constraint states the data actually present.
+    Actual,
+}
+
+/// The release schedule a data constraint may carry.
+///
+/// ## Specification
+/// - **Type**: `ReleaseCalendarType`
+/// - **Element**: `<ReleaseCalendar>`
+/// - **Editions**: SDMX 3.0
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ReleaseCalendarType.md"))]
+///
+/// Describes when data is released: the `periodicity` between releases, the `offset` of the first
+/// release in a year, and the `tolerance` after which a release is considered late. All three are
+/// held verbatim as strings (the duration format is not validated).
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A 3.0-only type (zero occurrences in any 3.1 schema; on the 3.0 `ConstraintType` base with
+`minOccurs="0"`, retained by the data-side restriction), the same 3.0-only superset provenance class
+as `role` (D-0042/D-0037). All three elements are required `xs:string`; the `P7D`-style duration
+format is stated only in prose, not as a facet, so the fields are unvalidated (a duration-grammar
+check is a lint, D-0031). Invariant-free pub-field carrier, derived `Deserialize`.
+
+Decisions: D-0042, D-0037, D-0031.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ReleaseCalendar {
+    /// The period between releases of the data set.
+    pub periodicity: String,
+    /// The interval between the start of the year and the first release in that year.
+    pub offset: String,
+    /// The period after which a release may be considered late.
+    pub tolerance: String,
+}
+
+/// A constraint on the data an artefact may carry: the allowed or actual key sets and cube regions.
+///
+/// ## Specification
+/// - **Type**: `DataConstraintType`
+/// - **Element**: `<DataConstraint>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataConstraintType.md"))]
+///
+/// A maintainable artefact that narrows the data attached to one or more structural artefacts. It may
+/// be expressed through data key sets, cube regions (at most two), both, or neither. In SDMX 3.0 it
+/// carries a required `role` and may carry a release calendar; SDMX 3.1 has neither, so both are
+/// optional here. The attachment is optional: an unattached constraint takes its attachment from
+/// context.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Named after `DataConstraintType` (identical in 3.0 and 3.1; the earlier invented `ReportingConstraint`
+was renamed once `role: Some(Actual)` became representable, D-0037). The artefact trait hierarchy
+delegates to the `metadata` leaf, as on the other maintainables.
+
+The `role` divergence lives in the spec base `ConstraintType`, not the leaf fragment: 3.0 wire makes
+`role` required (`Allowed | Actual`), 3.1 has no such attribute, so `None` ⟺ 3.1 and `Some` ⟺ 3.0,
+three states stored verbatim (D-0037/D-0031). `new()` takes no part: per-version requiredness is
+Phase-2 adapter business. `attachment` is `minOccurs="0"` both editions (D-0041), so optional;
+contrast `AvailabilityConstraint`, whose attachment is mandatory (the asymmetry is the spec's).
+`release_calendar` is 3.0-only (D-0042). `key_sets` is `0..unbounded`, empty valid; `regions` is the
+`CubeRegions` newtype (at most two, D-0036), whose custom impl enforces the bound on every path, so
+`DataConstraint` derives `Deserialize` and adds no error variant. Field order mirrors the wire.
+
+Decisions: D-0037, D-0041, D-0042, D-0036, D-0039, D-0013.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataConstraint {
+    /// The constraint's maintainable metadata (id, agency, version, names, and so on).
+    pub metadata: MaintainableMetadata,
+    /// The constraint's role; `None` ⟺ absent (SDMX 3.1, which has no role attribute).
+    pub role: Option<ConstraintRole>,
+    /// What the constraint is attached to; `None` ⟺ attachment supplied by context.
+    pub attachment: Option<DataConstraintAttachment>,
+    /// The release calendar, if any (SDMX 3.0 only).
+    pub release_calendar: Option<ReleaseCalendar>,
+    /// The data key sets the constraint expresses (may be empty).
+    pub key_sets: Vec<DataKeySet>,
+    /// The cube regions the constraint expresses (at most two).
+    pub regions: CubeRegions,
+}
+
+impl IdentifiableArtefact for DataConstraint {
+    fn id(&self) -> &str {
+        self.metadata.id()
+    }
+    fn urn(&self) -> Option<&str> {
+        self.metadata.urn()
+    }
+    fn annotations(&self) -> &[Annotation] {
+        self.metadata.annotations()
+    }
+    fn links(&self) -> &[Link] {
+        self.metadata.links()
+    }
+}
+
+impl NameableArtefact for DataConstraint {
+    fn names(&self) -> &LocalisedString {
+        self.metadata.names()
+    }
+    fn descriptions(&self) -> Option<&LocalisedString> {
+        self.metadata.descriptions()
+    }
+}
+
+impl VersionableArtefact for DataConstraint {
+    fn version(&self) -> Option<&SdmxVersion> {
+        self.metadata.version()
+    }
+    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+        self.metadata.valid_from()
+    }
+    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+        self.metadata.valid_to()
+    }
+}
+
+impl MaintainableArtefact for DataConstraint {
+    fn agency(&self) -> &str {
+        self.metadata.agency()
+    }
+    fn is_partial_language(&self) -> bool {
+        self.metadata.is_partial_language()
+    }
+    fn is_external_reference(&self) -> bool {
+        self.metadata.is_external_reference()
+    }
+    fn service_url(&self) -> Option<&str> {
+        self.metadata.service_url()
+    }
+    fn structure_url(&self) -> Option<&str> {
+        self.metadata.structure_url()
+    }
+}
+
+/// A statement of the data actually available for a structural artefact.
+///
+/// ## Specification
+/// - **Type**: `AvailabilityConstraintType`
+/// - **Element**: `<AvailabilityConstraint>`
+/// - **Editions**: SDMX 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/AvailabilityConstraintType.md"))]
+///
+/// Represents the actual data holdings returned by an availability query: what it is attached to, the
+/// cube region available, and optional series and observation counts. Unlike a data constraint it is
+/// not maintainable (it has no agency, version, or registry identity), and its attachment and region
+/// are both mandatory.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Non-maintainable (D-0013): it carries no `MaintainableMetadata`. Non-maintainable is not
+non-annotable, though: `AvailabilityConstraintType` extends `common:AnnotableType` directly, so it
+carries `annotations` as a bare field (D-0033), the same empty ⟺ absent mapping as `CubeRegion`, and
+in the same annotations-after-content position. Its `attachment` is `minOccurs="1"` and its `region`
+single (`minOccurs="1" maxOccurs="1"`), the asymmetry with `DataConstraint` being the spec's (D-0041).
+`series_count`/`obs_count` are optional `xs:int`, stored as `Option<i32>` to mirror the XSD value
+space (a negative stated count is schema-valid, a coherence lint flags it, D-0043). A 3.1-only type
+(3.0 has no availability constraint); the superset carries it regardless. Pub-field carrier, derived
+`Deserialize`.
+
+Decisions: D-0013, D-0033, D-0041, D-0043.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AvailabilityConstraint {
+    /// What the constraint is attached to (mandatory).
+    pub attachment: AvailabilityConstraintAttachment,
+    /// The cube region the constraint covers (mandatory, single).
+    pub region: CubeRegion,
+    /// The constraint's annotations; empty ⟺ absent.
+    pub annotations: Vec<Annotation>,
+    /// The number of series available, if stated.
+    pub series_count: Option<i32>,
+    /// The number of observations available, if stated.
+    pub obs_count: Option<i32>,
+}
+
+/// The unified constraint model: a data constraint or an availability constraint.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// One type spanning the two structural constraint kinds the standard defines: a [`DataConstraint`]
+/// (both editions) and an [`AvailabilityConstraint`] (SDMX 3.1). A consumer matches on the kind to
+/// reach the constraint it holds.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{
+///     AvailabilityConstraint, AvailabilityConstraintAttachment, ConstraintModel, CubeRegion,
+///     CubeRegions, DataConstraint, DsdReference, IdentifiableMetadata, LocalisedString,
+///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
+/// };
+///
+/// // A data constraint is a maintainable artefact, so it carries maintainable metadata.
+/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Allowed".to_string())])?;
+/// let identifiable = IdentifiableMetadata::new("CR_EXR".to_string(), None, None, vec![], vec![])?;
+/// let versionable = VersionableMetadata::new(
+///     NameableMetadata::new(identifiable, names, None),
+///     None,
+///     None,
+///     None,
+/// );
+/// let metadata =
+///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+/// let data = ConstraintModel::Data(DataConstraint {
+///     metadata,
+///     role: None,
+///     attachment: None,
+///     release_calendar: None,
+///     key_sets: vec![],
+///     regions: CubeRegions::new(vec![])?,
+/// });
+/// assert!(matches!(data, ConstraintModel::Data(_)));
+///
+/// // An availability constraint is not maintainable: it carries no metadata.
+/// let availability = ConstraintModel::Availability(AvailabilityConstraint {
+///     attachment: AvailabilityConstraintAttachment::DataStructure(DsdReference {
+///         agency: "SDMX".to_string(),
+///         id: "ECB_EXR1".to_string(),
+///         version: "1.0.0".to_string(),
+///     }),
+///     region: CubeRegion {
+///         key_values: vec![],
+///         components: vec![],
+///         include: None,
+///         annotations: vec![],
+///     },
+///     annotations: vec![],
+///     series_count: Some(42),
+///     obs_count: None,
+/// });
+/// assert!(matches!(availability, ConstraintModel::Availability(_)));
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The §5 decision-#5 enum, symmetric with ADR-0008: rather than one constraint type with version
+branches, the two structurally disjoint kinds are distinct types under one model. A 3.0
+`role="Actual"` data constraint stays in `DataConstraint`, it never maps onto `AvailabilityConstraint`
+(maintainable identity, optional wider attachment, 0..2 regions, key sets, all structurally disjoint,
+D-0037). Derived `Deserialize`.
+
+Decisions: D-0013, D-0037.
+"#
+)]
+// The two members differ in size (a `DataConstraint` carries maintainable metadata and far more than
+// an `AvailabilityConstraint`), but both are owned values of a single constraint payload; boxing the
+// larger arm would add indirection the design does not model for no practical gain at this scale.
+#[allow(clippy::large_enum_variant)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ConstraintModel {
+    /// A data constraint (both editions).
+    Data(DataConstraint),
+    /// An availability constraint (SDMX 3.1).
+    Availability(AvailabilityConstraint),
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{string::ToString, vec};
+    use alloc::{format, string::ToString, vec};
 
     use super::*;
 
@@ -1983,6 +2296,215 @@ mod tests {
                 serde_json::from_str::<AvailabilityConstraintAttachment>(&json).unwrap(),
                 attachment
             );
+        }
+    }
+
+    fn constraint_metadata(id: &str) -> MaintainableMetadata {
+        use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
+        let names =
+            LocalisedString::new(vec![(Some("en".to_string()), "A constraint".to_string())])
+                .unwrap();
+        let identifiable =
+            IdentifiableMetadata::new(id.to_string(), None, None, vec![], vec![]).unwrap();
+        let versionable = VersionableMetadata::new(
+            NameableMetadata::new(identifiable, names, None),
+            None,
+            None,
+            None,
+        );
+        MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None).unwrap()
+    }
+
+    fn data_key_set() -> DataKeySet {
+        DataKeySet {
+            keys: DataKeys::new(vec![DataKey {
+                key_values: vec![data_key_value("FREQ", "A")],
+                components: vec![],
+                include: FixedInclude::new(None).unwrap(),
+                annotations: vec![],
+                valid_from: None,
+                valid_to: None,
+            }])
+            .unwrap(),
+            is_included: true,
+        }
+    }
+
+    fn cube_region() -> CubeRegion {
+        CubeRegion {
+            key_values: vec![cube_key("FREQ", "A")],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        }
+    }
+
+    #[test]
+    fn data_constraint_forwards_every_artefact_accessor() {
+        use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
+        let version = SdmxVersion::new("1.2.3".to_string()).unwrap();
+        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let annotation = Annotation {
+            id: Some("a1".to_string()),
+            annotation_type: None,
+            annotation_title: None,
+            annotation_urls: vec![],
+            annotation_value: None,
+            texts: None,
+        };
+        let link = Link {
+            rel: "self".to_string(),
+            url: "https://example.com/x".to_string(),
+            urn: None,
+            link_type: None,
+        };
+        let names =
+            LocalisedString::new(vec![(Some("en".to_string()), "Constraint".to_string())]).unwrap();
+        let descriptions =
+            LocalisedString::new(vec![(Some("en".to_string()), "How much".to_string())]).unwrap();
+        let identifiable = IdentifiableMetadata::new(
+            "CR_EXR".to_string(),
+            Some("uri".to_string()),
+            Some("urn:x".to_string()),
+            vec![annotation],
+            vec![link],
+        )
+        .unwrap();
+        let versionable = VersionableMetadata::new(
+            NameableMetadata::new(identifiable, names, Some(descriptions)),
+            Some(version),
+            Some(valid_from),
+            None,
+        );
+        let metadata = MaintainableMetadata::new(
+            versionable,
+            "ESTAT".to_string(),
+            Some(true),
+            Some(true),
+            Some("https://service".to_string()),
+            Some("https://structure".to_string()),
+        )
+        .unwrap();
+        let constraint = DataConstraint {
+            metadata,
+            role: None,
+            attachment: None,
+            release_calendar: None,
+            key_sets: vec![],
+            regions: CubeRegions::new(vec![]).unwrap(),
+        };
+
+        // Every forwarded accessor resolves through the metadata leaf.
+        assert_eq!(constraint.id(), "CR_EXR");
+        assert_eq!(constraint.urn(), Some("urn:x"));
+        assert_eq!(constraint.annotations().len(), 1);
+        assert_eq!(constraint.links().len(), 1);
+        assert_eq!(constraint.names().first(), "Constraint");
+        assert_eq!(constraint.descriptions().map(LocalisedString::first), Some("How much"));
+        assert_eq!(constraint.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(constraint.valid_from(), Some(&valid_from));
+        assert_eq!(constraint.valid_to(), None);
+        assert_eq!(constraint.agency(), "ESTAT");
+        assert!(constraint.is_partial_language());
+        assert!(constraint.is_external_reference());
+        assert_eq!(constraint.service_url(), Some("https://service"));
+        assert_eq!(constraint.structure_url(), Some("https://structure"));
+    }
+
+    #[test]
+    fn data_constraint_round_trips_with_every_field_populated() {
+        let constraint = DataConstraint {
+            metadata: constraint_metadata("CR_EXR"),
+            role: Some(ConstraintRole::Actual),
+            attachment: Some(DataConstraintAttachment::DataProvider(DataProviderReference {
+                agency: "SDMX".to_string(),
+                scheme_id: "DATA_PROVIDERS".to_string(),
+                id: "ECB".to_string(),
+            })),
+            release_calendar: Some(ReleaseCalendar {
+                periodicity: "P1M".to_string(),
+                offset: "P0D".to_string(),
+                tolerance: "P7D".to_string(),
+            }),
+            key_sets: vec![data_key_set()],
+            regions: CubeRegions::new(vec![cube_region()]).unwrap(),
+        };
+        let json = serde_json::to_string(&constraint).unwrap();
+        assert_eq!(serde_json::from_str::<DataConstraint>(&json).unwrap(), constraint);
+    }
+
+    #[test]
+    fn data_constraint_is_constructible_key_set_only_region_only_both_and_neither() {
+        let with = |key_sets: Vec<DataKeySet>, regions: Vec<CubeRegion>| DataConstraint {
+            metadata: constraint_metadata("CR_EXR"),
+            role: None,
+            attachment: None,
+            release_calendar: None,
+            key_sets,
+            regions: CubeRegions::new(regions).unwrap(),
+        };
+        let key_set_only = with(vec![data_key_set()], vec![]);
+        let region_only = with(vec![], vec![cube_region()]);
+        let both = with(vec![data_key_set()], vec![cube_region(), cube_region()]);
+        let neither = with(vec![], vec![]);
+        for constraint in [key_set_only, region_only, both, neither] {
+            let json = serde_json::to_string(&constraint).unwrap();
+            assert_eq!(serde_json::from_str::<DataConstraint>(&json).unwrap(), constraint);
+        }
+    }
+
+    #[test]
+    fn data_constraint_deserialize_rejects_more_than_two_regions_on_the_wire() {
+        let constraint = DataConstraint {
+            metadata: constraint_metadata("CR_EXR"),
+            role: None,
+            attachment: None,
+            release_calendar: None,
+            key_sets: vec![],
+            regions: CubeRegions::new(vec![cube_region(), cube_region()]).unwrap(),
+        };
+        let json = serde_json::to_string(&constraint).unwrap();
+        // Splice a third region into the serialised regions array; the CubeRegions bound must reject
+        // it on the wire path, so DataConstraint's derived Deserialize inherits the rejection.
+        let region_json = serde_json::to_string(&cube_region()).unwrap();
+        let bad =
+            json.replacen(&format!("{region_json}]"), &format!("{region_json},{region_json}]"), 1);
+        assert!(serde_json::from_str::<DataConstraint>(&bad).is_err());
+    }
+
+    #[test]
+    fn availability_constraint_round_trips() {
+        let constraint = AvailabilityConstraint {
+            attachment: AvailabilityConstraintAttachment::Dataflow(dataflow_ref("EXR")),
+            region: cube_region(),
+            annotations: vec![],
+            series_count: Some(42),
+            obs_count: Some(-1),
+        };
+        let json = serde_json::to_string(&constraint).unwrap();
+        assert_eq!(serde_json::from_str::<AvailabilityConstraint>(&json).unwrap(), constraint);
+    }
+
+    #[test]
+    fn constraint_model_arms_round_trip() {
+        let data = ConstraintModel::Data(DataConstraint {
+            metadata: constraint_metadata("CR_EXR"),
+            role: Some(ConstraintRole::Allowed),
+            attachment: None,
+            release_calendar: None,
+            key_sets: vec![],
+            regions: CubeRegions::new(vec![]).unwrap(),
+        });
+        let availability = ConstraintModel::Availability(AvailabilityConstraint {
+            attachment: AvailabilityConstraintAttachment::Dataflow(dataflow_ref("EXR")),
+            region: cube_region(),
+            annotations: vec![],
+            series_count: None,
+            obs_count: None,
+        });
+        for model in [data, availability] {
+            let json = serde_json::to_string(&model).unwrap();
+            assert_eq!(serde_json::from_str::<ConstraintModel>(&json).unwrap(), model);
         }
     }
 }

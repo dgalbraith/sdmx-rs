@@ -483,3 +483,30 @@ symbol = "AvailabilityConstraintAttachmentType"
 file = "schemas/SDMXStructureConstraint.xsd"
 editions = ["3.1"]
 rust = ["AvailabilityConstraintAttachment"]
+
+# ConstraintRoleType and ReleaseCalendarType are 3.0-only (the role attribute and release calendar
+# were removed in 3.1). DataConstraintType is identical across editions (the role divergence lives in
+# the base ConstraintType, not the leaf). AvailabilityConstraintType is 3.1-only.
+[[fragment]]
+symbol = "ConstraintRoleType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0"]
+rust = ["ConstraintRole"]
+
+[[fragment]]
+symbol = "ReleaseCalendarType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0"]
+rust = ["ReleaseCalendar"]
+
+[[fragment]]
+symbol = "DataConstraintType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataConstraint"]
+
+[[fragment]]
+symbol = "AvailabilityConstraintType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.1"]
+rust = ["AvailabilityConstraint"]
