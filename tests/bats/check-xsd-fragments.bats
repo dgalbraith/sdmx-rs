@@ -120,6 +120,23 @@ write_both() { write_schema 3.0 "$1"; write_schema 3.1 "$1"; }
     grep -qF 'reworded for 3.1' "$OUTDIR/FooType.md"
 }
 
+@test "gen keeps a single fragment when editions differ only in leading whitespace" {
+    # Mirrors issue #70: a type byte-identical across editions except that one
+    # edition indents the complexType lines and the other has them flush.
+    # Indentation is not a structural divergence, so a single fragment is emitted.
+    write_schema 3.0 '    <xs:complexType name="FooType">
+        <xs:attribute name="bar" type="xs:string"/>
+    </xs:complexType>'
+    write_schema 3.1 '<xs:complexType name="FooType">
+<xs:attribute name="bar" type="xs:string"/>
+</xs:complexType>'
+    run sh "$FIX/scripts/gen-xsd-fragments.sh"
+    [ "$status" -eq 0 ]
+    [ -f "$OUTDIR/FooType.md" ]
+    [ ! -f "$OUTDIR/FooType.3.0.md" ]
+    [ ! -f "$OUTDIR/FooType.3.1.md" ]
+}
+
 @test "gen exits non-zero when the manifest symbol is absent from the schema" {
     write_both '  <xs:complexType name="OtherType">
     <xs:attribute name="x" type="xs:string"/>
