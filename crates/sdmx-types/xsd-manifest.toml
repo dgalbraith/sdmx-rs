@@ -120,6 +120,25 @@ file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ValueListReference"]
 
+# Constraint-attachment references (consumed by the constraint types in constraint.rs).
+[[fragment]]
+symbol = "DataflowReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataflowReference"]
+
+[[fragment]]
+symbol = "ProvisionAgreementReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ProvisionAgreementReference"]
+
+[[fragment]]
+symbol = "DataProviderReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataProviderReference"]
+
 # --- Component foundations (component.rs) ---
 
 [[fragment]]
@@ -441,3 +460,11 @@ symbol = "DataKeySetType"
 file = "schemas/SDMXStructureConstraint.xsd"
 editions = ["3.0", "3.1"]
 rust = ["DataKeySet"]
+
+# QueryableDataSourceType is the common: type (SDMXCommon.xsd), identical across editions
+# (3.1 differs only in documentation prose). The constraint-attachment use is 3.0-only (D-0044).
+[[fragment]]
+symbol = "QueryableDataSourceType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["QueryableDataSource"]

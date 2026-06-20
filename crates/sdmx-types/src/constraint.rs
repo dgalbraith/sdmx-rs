@@ -1072,6 +1072,67 @@ pub struct DataKeySet {
     pub is_included: bool,
 }
 
+// ---------------------------------------------------------------------------
+// Queryable data source
+// ---------------------------------------------------------------------------
+
+/// A queryable SDMX data source a data constraint may be attached to.
+///
+/// ## Specification
+/// - **Type**: `QueryableDataSourceType`
+/// - **Element**: `<QueryableDataSource>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/QueryableDataSourceType.md"))]
+///
+/// Describes a data source that accepts an SDMX query: its data URL, optional WSDL and WADL service
+/// descriptions, and whether it is reachable over REST and over web-service protocols (both flags
+/// are required). The URLs are held verbatim, not validated.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::QueryableDataSource;
+///
+/// let source = QueryableDataSource {
+///     data_url: "https://example.com/sdmx".to_string(),
+///     wsdl_url: None,
+///     wadl_url: None,
+///     is_rest_datasource: true,
+///     is_web_service_datasource: false,
+/// };
+/// assert!(source.is_rest_datasource);
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A 3.0-only constraint-attachment member (D-0044): the 3.0 data attachment trails
+`QueryableDataSource` elements after its reference sequences; 3.1 keeps the type in `SDMXCommon` for
+registry use only, gone from constraint attachments. The superset carries it regardless, the same
+provenance class as `role` (D-0037) and `ReleaseCalendar` (D-0042). The two discriminator flags are
+required attributes, so they are plain `bool`s with no statedness to preserve. The URLs are
+unvalidated `xs:anyURI` (D-0014). Invariant-free pub-field carrier, derived `Deserialize`. It lives
+here rather than in `reference.rs` because it is a data *source*, not an artefact reference, and its
+only consumer is the 3.0 data attachment.
+
+Decisions: D-0044, D-0014, D-0037.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct QueryableDataSource {
+    /// The URL of the data source, held verbatim.
+    pub data_url: String,
+    /// The optional URL of a WSDL description of the source.
+    pub wsdl_url: Option<String>,
+    /// The optional URL of a WADL description of the source's REST protocol.
+    pub wadl_url: Option<String>,
+    /// Whether the source is reachable over the REST protocol.
+    pub is_rest_datasource: bool,
+    /// Whether the source is reachable over web-service protocols.
+    pub is_web_service_datasource: bool,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -1494,5 +1555,18 @@ mod tests {
         // The Values deserialize path routes through new(), so an empty list is rejected on the
         // wire, not synthesised as Values([]).
         assert!(serde_json::from_str::<DataComponentValues>("[]").is_err());
+    }
+
+    #[test]
+    fn queryable_data_source_round_trips_with_optional_urls() {
+        let source = QueryableDataSource {
+            data_url: "https://example.com/sdmx".to_string(),
+            wsdl_url: Some("https://example.com/sdmx?wsdl".to_string()),
+            wadl_url: None,
+            is_rest_datasource: true,
+            is_web_service_datasource: true,
+        };
+        let json = serde_json::to_string(&source).unwrap();
+        assert_eq!(serde_json::from_str::<QueryableDataSource>(&json).unwrap(), source);
     }
 }

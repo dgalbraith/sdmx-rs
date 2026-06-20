@@ -86,8 +86,8 @@ pub use crate::{
         ComponentSelection, ComponentValueSet, CubeKeyValue, CubeKeyValues, CubeRegion,
         CubeRegionKey, CubeRegions, DataComponentSelection, DataComponentValue,
         DataComponentValueSet, DataComponentValues, DataKey, DataKeySet, DataKeyValue, DataKeys,
-        KeyValueSelection, SimpleComponentValue, SimpleComponentValues, SimpleKeyValues,
-        TimePeriodRange, TimeRange, TimeRangeKind,
+        KeyValueSelection, QueryableDataSource, SimpleComponentValue, SimpleComponentValues,
+        SimpleKeyValues, TimePeriodRange, TimeRange, TimeRangeKind,
     },
     data_structure::DataStructureDefinition,
     dataflow::{Dataflow, DimensionConstraint},
@@ -103,7 +103,10 @@ pub use crate::{
     measure::Measure,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
-    reference::{CodelistReference, ConceptReference, DsdReference, ValueListReference},
+    reference::{
+        CodelistReference, ConceptReference, DataProviderReference, DataflowReference,
+        DsdReference, ProvisionAgreementReference, ValueListReference,
+    },
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
         RepresentationChoice, TextFormat,
