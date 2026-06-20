@@ -36,7 +36,7 @@ The identifier tiers back the distinct identifier-failure variants (`IDType` for
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
 `Invalid{Decimal,Integer,Version,TimePeriod}` variants.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0048, D-0052.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0038, D-0040, D-0048, D-0052.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -109,6 +109,18 @@ pub enum Error {
     /// [`MemberValues::new`](crate::MemberValues::new).
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
+
+    /// A cube-region dimension selection was constructed with an empty value list. A chosen value
+    /// arm requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`CubeKeyValues::new`](crate::CubeKeyValues::new).
+    #[error("Invalid cube region: a dimension value selection must contain at least one value.")]
+    EmptyCubeKeyValues,
+
+    /// A cube-region component selection was constructed with an empty value list. A chosen value
+    /// arm requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`SimpleComponentValues::new`](crate::SimpleComponentValues::new).
+    #[error("Invalid cube region: a component value selection must contain at least one value.")]
+    EmptySimpleComponentValues,
 
     /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
     /// schema requires at least one dimension reference (`Dimension+`), so an empty list is

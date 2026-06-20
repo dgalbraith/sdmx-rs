@@ -360,3 +360,29 @@ symbol = "AgencySchemeType"
 file = "schemas/SDMXStructureOrganisation.xsd"
 editions = ["3.0", "3.1"]
 rust = ["AgencyScheme"]
+
+# --- Constraints (constraint.rs) ---
+
+[[fragment]]
+symbol = "CubeKeyValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeKeyValue"]
+
+[[fragment]]
+symbol = "SimpleComponentValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SimpleComponentValue"]
+
+[[fragment]]
+symbol = "TimePeriodRangeType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimePeriodRange"]
+
+[[fragment]]
+symbol = "TimeRangeValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimeRange"]

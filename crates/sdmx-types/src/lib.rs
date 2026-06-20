@@ -52,6 +52,7 @@ mod attribute;
 mod codelist;
 mod component;
 mod concept;
+mod constraint;
 mod data_structure;
 mod dataflow;
 mod descriptor;
@@ -81,6 +82,10 @@ pub use crate::{
     },
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
+    constraint::{
+        CubeKeyValue, CubeKeyValues, SimpleComponentValue, SimpleComponentValues, TimePeriodRange,
+        TimeRange, TimeRangeKind,
+    },
     data_structure::DataStructureDefinition,
     dataflow::{Dataflow, DimensionConstraint},
     descriptor::{AttributeList, DimensionList, Group, GroupDimensions, MeasureList},
