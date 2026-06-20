@@ -1939,12 +1939,28 @@ pub struct TimePeriodRange {
     pub inclusive: Option<bool>,
 }
 
-// TimeRange: before a period, after a period, or between two (spec TimeRangeValueType choice).
+// TimeRangeKind: the spec TimeRangeValueType choice (before a period, after a period, or
+// between two via StartPeriod/EndPeriod). Variants mirror the spec choice element names with
+// the redundant `Period` suffix dropped, as `Before`/`After` already do.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum TimeRange {
+pub enum TimeRangeKind {
     Before(TimePeriodRange),
     After(TimePeriodRange),
-    Between { from: TimePeriodRange, to: TimePeriodRange },
+    Between { start: TimePeriodRange, end: TimePeriodRange },
+}
+
+// TimeRange: the FULL spec TimeRangeValueType. It carries the choice (`kind`) plus the
+// type-level `validFrom`/`validTo` attributes the earlier enum-only model dropped. Those
+// attributes are `StandardTimePeriodType`, so they map to `SdmxTimePeriod` (D-0027), distinct
+// from the endpoint content on `TimePeriodRange.period` (the ObservationalTimePeriodType
+// superset, which stays a raw String). Optional with no schema default, so plain statedness
+// (None means absent), no effective view. Pub-field carrier with derived Deserialize (no
+// between-field invariant; `SdmxTimePeriod` self-validates, reusing Error::InvalidTimePeriod).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct TimeRange {
+    pub kind: TimeRangeKind,
+    pub valid_from: Option<SdmxTimePeriod>,
+    pub valid_to: Option<SdmxTimePeriod>,
 }
 
 // The value CHOICE of a dimension (KeyValue) selection — the content model of spec
