@@ -144,8 +144,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check  |
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
 | [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate    |
+| [D-0064](#d-0064) | Constraints                 | TimeRange remodelled to { kind, valid_from, valid_to }; carries TimeRangeValueType's wrapper validFrom/validTo, the validity arm D-0038 missed     |
 
-<!-- Next ID: D-0064 -->
+<!-- Next ID: D-0065 -->
 
 ## Entries
 
@@ -634,7 +635,7 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 
 | **Area**     | Constraints |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (no-per-selection-include claim corrected by [D-0038](#d-0038)) |
+| **Status**   | Active (no-per-selection-include claim corrected by [D-0038](#d-0038); `TimeRange` shape amended by [D-0064](#d-0064)) |
 | **Keywords** | cube-region, constraint, superset, cascade, time-range, spec-alignment |
 | **Spec ref** | [SDMXStructureConstraint.xsd 3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) + [3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`CubeRegionType`, `RegionType`, `CubeRegionKeyType`, `ComponentValueSetType`, `MemberSelectionType`, `SimpleComponentValueType`, `TimeRangeValueType`); [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`CascadeSelectionType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
@@ -643,6 +644,8 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 > **Amended 2026-06-11 by [D-0051](#d-0051)/[D-0052](#d-0052)**: the two selection collections are ordered `Vec`s with ids carried on the node structs (not id-keyed maps), and the region-level `include` and per-value `cascade` are stored as `Option` (statedness; the schema defaults are effective views).
 >
 > **CORRECTED 2026-06-11 by [D-0038](#d-0038).** This entry's closing claim — "there is NO per-selection `include` - is itself **incorrect**: the verification looked only at `RegionType`. `include` (`xs:boolean`, optional, default `true`) is declared on **`MemberSelectionType`** ([3.1 line ~314](../specs/3.1/schemas/SDMXStructureConstraint.xsd); 3.0 line ~402; identical both versions) and is inherited by BOTH `CubeRegionKeyType` and `ComponentValueSetType` (neither restriction prohibits it). So `include` exists at the region level **and** the selection level, and the "correction" recorded here was the error. D-0038 models the selection level (wrapper structs `CubeRegionKey`/`ComponentValueSet`), together with two further `MemberSelectionType` attributes this entry's audit also missed (`removePrefix`, both selection kinds; `validFrom`/`validTo`, KeyValue side only) and non-empty `Values` enforcement. The structural model below (two selection kinds, cascade, time range, `Empty`) otherwise **stands**; only the include claim is corrected. Body retained for provenance.
+>
+> **CORRECTED 2026-06-19 by [D-0064](#d-0064).** The `TimeRange = Before | After | Between { from, to }` shape recorded in the Decision below is incomplete and is superseded: `TimeRangeValueType` carries its own `validFrom`/`validTo` (`StandardTimePeriodType`) attributes, which this entry's model omitted, and the endpoints are renamed `{ start, end }` to match the schema's `StartPeriod`/`EndPeriod`. D-0064 remodels it as `TimeRange { kind, valid_from, valid_to }`. The rest of the CubeRegion structure below stands; only the `TimeRange` shape is amended. Body retained for provenance.
 
 **Observation**: The earlier `CubeRegion { values: BTreeMap<String, BTreeSet<String>>, include: bool }` could not represent four distinctions the spec draws (identical in 3.0 and 3.1, verified):
 
@@ -927,11 +930,13 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 | **Area**     | Constraints |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (three-level-validity enumeration completed by [D-0064](#d-0064)) |
 | **Keywords** | constraint, cube-region, member-selection, include, remove-prefix, validity, non-empty, newtype, spec-alignment |
 | **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`MemberSelectionType`, `CubeRegionKeyType`, `ComponentValueSetType`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical for this entire cluster) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0017](#d-0017), [D-0019](#d-0019), [D-0026](#d-0026), [D-0027](#d-0027), [D-0031](#d-0031), [D-0032](#d-0032), [D-0034](#d-0034) |
+
+> **CORRECTED 2026-06-19 by [D-0064](#d-0064).** The Observation's "three-level pattern (region: prohibited; dimension-selection: allowed; per-value: allowed)" understates the validity map by one arm: `TimeRangeValueType` carries its own `validFrom`/`validTo` (`StandardTimePeriodType`), a wrapper-level occurrence this audit did not enumerate. Validity-of-selected-content **forks by choice arm**: per-value on the `Value+` arm ([D-0040](#d-0040)), per-wrapper on the `TimeRange` arm, so it is one tier with two arm-specific realisations, not three flat levels. The selection-node findings (a)/(b)/(c) below otherwise stand; only the completeness of the validity enumeration is corrected. Body retained for provenance.
 
 **Observation**: Three findings on the same selection node, all verified identical in 3.0 and 3.1. (a) `MemberSelectionType` — the abstract base of both selection kinds — declares a per-selection `include` (`xs:boolean`, optional, default `true`), inherited by both `CubeRegionKeyType` and `ComponentValueSetType` (neither restriction prohibits it). D-0026 and the design's §5.8 NOTE asserted the opposite ("include is region-level only"). (b) The same node carries two further attributes: `removePrefix` (`xs:boolean`, optional, **no schema default**; meaningful with `CodelistExtension` prefixes on both selection kinds, and `validFrom`/`validTo` (`StandardTimePeriodType`) inherited by `CubeRegionKeyType` but **prohibited** on `ComponentValueSetType` — making validity a three-level pattern (region: prohibited; dimension-selection: allowed; per-value: allowed). (c) A *chosen* `Value+` arm requires ≥1 value, so an empty `Values` list is mechanically schema-invalid — yet `KeyValueSelection::Values(Vec<CubeValue>)` claimed "non-empty by construction" with nothing enforcing it, and `ComponentSelection::Values(vec![])` was a representational duplicate of `Empty`.
 
@@ -1465,5 +1470,25 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A lossless round-trip preserves the stored statedness exactly (the document-integrity contract, D-0052/D-0059). The wire shape is a separate concern owned by the serialisation crates. `#[serde(transparent)]` is JSON-output-neutral today while giving a defined projection for the non-JSON formats Phase 2 introduces. Converging the types' serde to the wire now would cross cut concerns and require reopening the Phase-1 foundation types, risking breaking changes.
 
 **Consequences**: (1) 0010 §6 documents the projection model and cites this entry. (2) `LocalisedString` and `FixedInclude` carry `#[serde(transparent)]`, with no consumer-visible JSON change. (3) ROADMAP records the Phase-2 convergence entry gate, including the null-vs-omitted statedness sub-decision. (4) The convergence decision, when taken, reopens this entry.
+
+---
+
+### D-0064 — TimeRange carries TimeRangeValueType's wrapper-level validity attributes (validFrom/validTo)
+
+| **Area**     | Constraints |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | constraint, time-range, validity, member-selection, statedness, spec-alignment, fidelity |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`TimeRangeValueType`, `TimePeriodRangeType`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical) |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
+| **Related**  | [D-0026](#d-0026), [D-0038](#d-0038), [D-0040](#d-0040), [D-0027](#d-0027), [D-0031](#d-0031) |
+
+**Observation**: `TimeRangeValueType` is not a bare content choice. Beyond the before/after/between choice (each endpoint `TimePeriodRangeType`), the complexType declares two type-level attributes of its own, `validFrom` and `validTo` (`common:StandardTimePeriodType`, `use="optional"`, identical 3.0/3.1: 3.1 lines 550-551, 3.0 lines 635-636). The model drawn under [D-0026](#d-0026), inherited unchanged through [D-0038](#d-0038)/[D-0040](#d-0040), captured only the choice, leaving both attributes unmodelled, so a schema-valid `<TimeRange validFrom="…" validTo="…">` round-trips lossily, against [D-0031](#d-0031)/[D-0022](#d-0022). This is a latent miss in the member-selection validity cluster, not a Milestone-4 construct: it has existed since `TimeRange` was first drawn and surfaced only when M4 became the first build of the type. [D-0038](#d-0038)'s Observation records validity as a "three-level pattern (region: prohibited; dimension-selection: allowed; per-value: allowed)"; the `TimeRangeValueType` wrapper is a fourth occurrence that statement omits.
+
+**Decision**: Remodel `TimeRange` from the bare `Before | After | Between` enum to a struct `TimeRange { kind: TimeRangeKind, valid_from: Option<SdmxTimePeriod>, valid_to: Option<SdmxTimePeriod> }`, where `TimeRangeKind` is the `Before(TimePeriodRange) | After(TimePeriodRange) | Between { start, end }` choice. The validity pair is `Option<SdmxTimePeriod>` ([D-0027](#d-0027)) because the attributes are `StandardTimePeriodType`, exactly `SdmxTimePeriod`'s domain, and so distinct from the endpoint content `TimePeriodRange.period`, which stays a `String` over the `ObservationalTimePeriodType` superset (unchanged). The attributes carry `use="optional"` with no schema default, so plain statedness (`None` ⟺ absent), no effective-view. The struct is a pub-field carrier with derived `Deserialize` (no between-field invariant; every field self-enforcing, §7); no new `Error` variant, the pair delegating to `SdmxTimePeriod::new()` (the existing `InvalidTimePeriod`).
+
+**Rationale**: Model-not-cut, the governing precedent for the constraint cluster ([D-0026](#d-0026)/[D-0038](#d-0038)/[D-0040](#d-0040), ADR-0008): two optional schema-valid attributes are stored, not dropped. The fix is consistent rather than novel. Every sibling validity pair in §5.8 (`CubeKeyValue`, `SimpleComponentValue`, `CubeRegionKey`, `DataKey`) is already `Option<SdmxTimePeriod>` over the same `StandardTimePeriodType` attributes; `TimeRange`'s pair was the lone omission. `SdmxTimePeriod` already exists (Phase-1 foundation, [D-0027](#d-0027)), so there is no deferred dependency: this is not the `ObservationalTimePeriodType` lexical-typing work deferred for `.period`. Validity-of-selected-content **forks by choice arm**: per-value on the `Value+` arm ([D-0040](#d-0040)), per-wrapper on the `TimeRange` arm, the two realisations of one tier rather than a flat fourth level.
+
+**Consequences**: (1) Corrects the [D-0038](#d-0038) record: its "three-level pattern" Observation is amended by blockquote to the content-validity-forks reading (original retained for provenance). (2) The `TimeRange` shape from [D-0026](#d-0026) is superseded by the `{ kind, valid_from, valid_to }` struct, with endpoints renamed `{ start, end }` to match the schema's `StartPeriod`/`EndPeriod`; `TimePeriodRange` is unchanged. (3) 0010 §5.8 is updated to the new shape, keeping design and register in sync. (4) No new `Error` variant and no custom `Deserialize`. (5) Implementation lands with the rest of `TimeRange` in Milestone 4; this entry corrects the design record now. (6) Validity is **per-construct**, not global. Only constraints and `TimeRangeValueType` use `StandardTimePeriodType`; structure maps use `xs:date`, and registry registration plus the dataset header use `xs:dateTime` (the header pair even named `validFromDate`/`validToDate`). When those constructs land (Phase 2+, other crates), each takes its own validity name and type: no shared `Validity` type, no blanket `valid_from`/`valid_to` rename.
 
 ---
