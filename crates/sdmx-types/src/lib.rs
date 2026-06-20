@@ -27,9 +27,11 @@
 //! (identifier validators, lexical newtypes, localised strings, the annotation and metadata
 //! leaves, and the artefact trait hierarchy), the item-scheme layer (the generic item scheme,
 //! codes and codelists, concepts, agencies, value lists, and the component representation system),
-//! and the data structure layer (the dimension, attribute, and measure components, the descriptor
-//! lists and groups, and the `DataStructureDefinition` and `Dataflow` maintainables) are in place;
-//! the version-split constraints arrive in a later milestone.
+//! the data structure layer (the dimension, attribute, and measure components, the descriptor
+//! lists and groups, and the `DataStructureDefinition` and `Dataflow` maintainables), and the
+//! constraint layer (the cube-region and data-key-set trees, the constraint-attachment references
+//! and enums, and the `DataConstraint`, `AvailabilityConstraint`, and unified `ConstraintModel`)
+//! are in place, completing the structural model of design document 0010.
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -52,6 +54,7 @@ mod attribute;
 mod codelist;
 mod component;
 mod concept;
+mod constraint;
 mod data_structure;
 mod dataflow;
 mod descriptor;
@@ -81,6 +84,16 @@ pub use crate::{
     },
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
+    constraint::{
+        AvailabilityConstraint, AvailabilityConstraintAttachment, ComponentSelection,
+        ComponentValueSet, ConstraintModel, ConstraintRole, CubeKeyValue, CubeKeyValues,
+        CubeRegion, CubeRegionKey, CubeRegions, DataComponentSelection, DataComponentValue,
+        DataComponentValueSet, DataComponentValues, DataConstraint, DataConstraintAttachment,
+        DataKey, DataKeySet, DataKeyValue, DataKeys, DataStructureRefs, DataflowRefs,
+        KeyValueSelection, ProvisionAgreementRefs, QueryableDataSource, ReleaseCalendar,
+        SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues,
+        TimePeriodRange, TimeRange, TimeRangeKind,
+    },
     data_structure::DataStructureDefinition,
     dataflow::{Dataflow, DimensionConstraint},
     descriptor::{AttributeList, DimensionList, Group, GroupDimensions, MeasureList},
@@ -95,7 +108,10 @@ pub use crate::{
     measure::Measure,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
-    reference::{CodelistReference, ConceptReference, DsdReference, ValueListReference},
+    reference::{
+        CodelistReference, ConceptReference, DataProviderReference, DataflowReference,
+        DsdReference, ProvisionAgreementReference, ValueListReference,
+    },
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
         RepresentationChoice, TextFormat,

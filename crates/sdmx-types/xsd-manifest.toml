@@ -120,6 +120,25 @@ file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
 rust = ["ValueListReference"]
 
+# Constraint-attachment references (consumed by the constraint types in constraint.rs).
+[[fragment]]
+symbol = "DataflowReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataflowReference"]
+
+[[fragment]]
+symbol = "ProvisionAgreementReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ProvisionAgreementReference"]
+
+[[fragment]]
+symbol = "DataProviderReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataProviderReference"]
+
 # --- Component foundations (component.rs) ---
 
 [[fragment]]
@@ -360,3 +379,134 @@ symbol = "AgencySchemeType"
 file = "schemas/SDMXStructureOrganisation.xsd"
 editions = ["3.0", "3.1"]
 rust = ["AgencyScheme"]
+
+# --- Constraints (constraint.rs) ---
+
+[[fragment]]
+symbol = "CubeKeyValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeKeyValue"]
+
+[[fragment]]
+symbol = "SimpleComponentValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SimpleComponentValue"]
+
+[[fragment]]
+symbol = "TimePeriodRangeType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimePeriodRange"]
+
+[[fragment]]
+symbol = "TimeRangeValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["TimeRange"]
+
+[[fragment]]
+symbol = "CubeRegionKeyType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeRegionKey"]
+
+[[fragment]]
+symbol = "ComponentValueSetType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ComponentValueSet"]
+
+[[fragment]]
+symbol = "CubeRegionType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeRegion"]
+
+[[fragment]]
+symbol = "DataComponentValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataComponentValue"]
+
+[[fragment]]
+symbol = "DataComponentValueSetType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataComponentValueSet"]
+
+[[fragment]]
+symbol = "SimpleKeyValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SimpleKeyValues"]
+
+# DataKeyValueType diverges: 3.0 allows a single value, 3.1 unbounded (D-0039).
+[[fragment]]
+symbol = "DataKeyValueType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataKeyValue"]
+
+[[fragment]]
+symbol = "DataKeyType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataKey"]
+
+[[fragment]]
+symbol = "DataKeySetType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataKeySet"]
+
+# QueryableDataSourceType is the common: type (SDMXCommon.xsd), identical across editions
+# (3.1 differs only in documentation prose). The constraint-attachment use is 3.0-only (D-0044).
+[[fragment]]
+symbol = "QueryableDataSourceType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["QueryableDataSource"]
+
+# DataConstraintAttachmentType diverges: 3.0 adds a SimpleDataSource arm and per-sequence
+# QueryableDataSource companions, both gone in 3.1 (D-0044).
+[[fragment]]
+symbol = "DataConstraintAttachmentType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataConstraintAttachment"]
+
+# AvailabilityConstraintAttachmentType is 3.1-only (no availability constraint in 3.0).
+[[fragment]]
+symbol = "AvailabilityConstraintAttachmentType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.1"]
+rust = ["AvailabilityConstraintAttachment"]
+
+# ConstraintRoleType and ReleaseCalendarType are 3.0-only (the role attribute and release calendar
+# were removed in 3.1). DataConstraintType is identical across editions (the role divergence lives in
+# the base ConstraintType, not the leaf). AvailabilityConstraintType is 3.1-only.
+[[fragment]]
+symbol = "ConstraintRoleType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0"]
+rust = ["ConstraintRole"]
+
+[[fragment]]
+symbol = "ReleaseCalendarType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0"]
+rust = ["ReleaseCalendar"]
+
+[[fragment]]
+symbol = "DataConstraintType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataConstraint"]
+
+[[fragment]]
+symbol = "AvailabilityConstraintType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.1"]
+rust = ["AvailabilityConstraint"]

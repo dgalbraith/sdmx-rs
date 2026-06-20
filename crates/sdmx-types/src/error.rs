@@ -36,7 +36,7 @@ The identifier tiers back the distinct identifier-failure variants (`IDType` for
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
 `Invalid{Decimal,Integer,Version,TimePeriod}` variants.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0048, D-0052.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -109,6 +109,76 @@ pub enum Error {
     /// [`MemberValues::new`](crate::MemberValues::new).
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
+
+    /// A cube-region dimension selection was constructed with an empty value list. A chosen value
+    /// arm requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`CubeKeyValues::new`](crate::CubeKeyValues::new).
+    #[error("Invalid cube region: a dimension value selection must contain at least one value.")]
+    EmptyCubeKeyValues,
+
+    /// A cube-region component selection was constructed with an empty value list. A chosen value
+    /// arm requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`SimpleComponentValues::new`](crate::SimpleComponentValues::new).
+    #[error("Invalid cube region: a component value selection must contain at least one value.")]
+    EmptySimpleComponentValues,
+
+    /// A cube-region list was constructed with more than two regions. `DataConstraintType` caps the
+    /// count at `maxOccurs="2"`, so a third region is mechanically schema-invalid. Produced by
+    /// [`CubeRegions::new`](crate::CubeRegions::new).
+    #[error("Invalid data constraint: a cube-region list may contain at most two regions.")]
+    TooManyCubeRegions,
+
+    /// A key-set component selection was constructed with an empty value list. A chosen value arm
+    /// requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`DataComponentValues::new`](crate::DataComponentValues::new).
+    #[error("Invalid data key set: a component value selection must contain at least one value.")]
+    EmptyDataComponentValues,
+
+    /// A data-key dimension selection was constructed with an empty value list. A chosen value arm
+    /// requires at least one value (`Value+`), so an empty list is mechanically schema-invalid.
+    /// Produced by [`SimpleKeyValues::new`](crate::SimpleKeyValues::new).
+    #[error("Invalid data key: a dimension value selection must contain at least one value.")]
+    EmptySimpleKeyValues,
+
+    /// A data key set was constructed with no keys. `DataKeySetType` requires at least one key
+    /// (`Key+`), so an empty list is mechanically schema-invalid. Produced by
+    /// [`DataKeys::new`](crate::DataKeys::new).
+    #[error("Invalid data key set: a DataKeySet must contain at least one key.")]
+    EmptyDataKeys,
+
+    /// A data-constraint attachment to data structure definitions was constructed with an empty
+    /// reference list. The chosen attachment arm requires at least one reference, so an empty list is
+    /// mechanically schema-invalid. Produced by
+    /// [`DataStructureRefs::new`](crate::DataStructureRefs::new).
+    #[error(
+        "Invalid constraint attachment: a data structure attachment must reference at least one DSD."
+    )]
+    EmptyDataStructureRefs,
+
+    /// A data-constraint attachment to dataflows was constructed with an empty reference list. The
+    /// chosen attachment arm requires at least one reference, so an empty list is mechanically
+    /// schema-invalid. Produced by [`DataflowRefs::new`](crate::DataflowRefs::new).
+    #[error(
+        "Invalid constraint attachment: a dataflow attachment must reference at least one dataflow."
+    )]
+    EmptyDataflowRefs,
+
+    /// A data-constraint attachment to provision agreements was constructed with an empty reference
+    /// list. The chosen attachment arm requires at least one reference, so an empty list is
+    /// mechanically schema-invalid. Produced by
+    /// [`ProvisionAgreementRefs::new`](crate::ProvisionAgreementRefs::new).
+    #[error(
+        "Invalid constraint attachment: a provision agreement attachment must reference at least one provision agreement."
+    )]
+    EmptyProvisionAgreementRefs,
+
+    /// A data-constraint attachment to simple data sources was constructed with an empty URL list.
+    /// The chosen attachment arm requires at least one URL, so an empty list is mechanically
+    /// schema-invalid. Produced by [`SimpleDataSources::new`](crate::SimpleDataSources::new).
+    #[error(
+        "Invalid constraint attachment: a simple data source attachment must contain at least one URL."
+    )]
+    EmptySimpleDataSources,
 
     /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
     /// schema requires at least one dimension reference (`Dimension+`), so an empty list is
