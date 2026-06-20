@@ -56,6 +56,9 @@ use crate::{
     error::{Error, to_de_error},
     fixed::FixedInclude,
     lexical::SdmxTimePeriod,
+    reference::{
+        DataProviderReference, DataflowReference, DsdReference, ProvisionAgreementReference,
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -1133,6 +1136,292 @@ pub struct QueryableDataSource {
     pub is_web_service_datasource: bool,
 }
 
+// ---------------------------------------------------------------------------
+// Constraint attachment
+// ---------------------------------------------------------------------------
+
+/// A non-empty list of data structure definition references.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the `DataStructure+` of a data-constraint attachment. The chosen arm requires at least one
+/// reference, so the constructor rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one [`DsdReference`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct DataStructureRefs(Vec<DsdReference>);
+
+impl DataStructureRefs {
+    /// Builds a data-structure reference list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptyDataStructureRefs`] if `refs` is empty (a chosen attachment arm
+    /// requires at least one reference).
+    pub fn new(refs: Vec<DsdReference>) -> Result<Self, Error> {
+        if refs.is_empty() {
+            return Err(Error::EmptyDataStructureRefs);
+        }
+        Ok(Self(refs))
+    }
+
+    /// The references, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[DsdReference] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataStructureRefs {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::new(Vec::<DsdReference>::deserialize(deserializer)?).map_err(to_de_error)
+    }
+}
+
+/// A non-empty list of dataflow references.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the `Dataflow+` of a data-constraint attachment. The chosen arm requires at least one
+/// reference, so the constructor rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one [`DataflowReference`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct DataflowRefs(Vec<DataflowReference>);
+
+impl DataflowRefs {
+    /// Builds a dataflow reference list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptyDataflowRefs`] if `refs` is empty (a chosen attachment arm requires at
+    /// least one reference).
+    pub fn new(refs: Vec<DataflowReference>) -> Result<Self, Error> {
+        if refs.is_empty() {
+            return Err(Error::EmptyDataflowRefs);
+        }
+        Ok(Self(refs))
+    }
+
+    /// The references, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[DataflowReference] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataflowRefs {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::new(Vec::<DataflowReference>::deserialize(deserializer)?).map_err(to_de_error)
+    }
+}
+
+/// A non-empty list of provision agreement references.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the `ProvisionAgreement+` of a data-constraint attachment. The chosen arm requires at least
+/// one reference, so the constructor rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one [`ProvisionAgreementReference`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct ProvisionAgreementRefs(Vec<ProvisionAgreementReference>);
+
+impl ProvisionAgreementRefs {
+    /// Builds a provision agreement reference list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptyProvisionAgreementRefs`] if `refs` is empty (a chosen attachment arm
+    /// requires at least one reference).
+    pub fn new(refs: Vec<ProvisionAgreementReference>) -> Result<Self, Error> {
+        if refs.is_empty() {
+            return Err(Error::EmptyProvisionAgreementRefs);
+        }
+        Ok(Self(refs))
+    }
+
+    /// The references, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[ProvisionAgreementReference] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ProvisionAgreementRefs {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::new(Vec::<ProvisionAgreementReference>::deserialize(deserializer)?)
+            .map_err(to_de_error)
+    }
+}
+
+/// A non-empty list of simple data source URLs.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0
+///
+/// Wraps the `SimpleDataSource+` of a 3.0 data-constraint attachment: URLs of SDMX-ML data or
+/// metadata messages. The chosen arm requires at least one URL, so the constructor rejects an empty
+/// list. The URLs are held verbatim, not validated.
+///
+/// ## Guarantees
+///
+/// Always holds at least one URL.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct SimpleDataSources(Vec<String>);
+
+impl SimpleDataSources {
+    /// Builds a simple data source URL list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptySimpleDataSources`] if `urls` is empty (a chosen attachment arm
+    /// requires at least one URL).
+    pub fn new(urls: Vec<String>) -> Result<Self, Error> {
+        if urls.is_empty() {
+            return Err(Error::EmptySimpleDataSources);
+        }
+        Ok(Self(urls))
+    }
+
+    /// The URLs, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[String] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SimpleDataSources {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Self::new(Vec::<String>::deserialize(deserializer)?).map_err(to_de_error)
+    }
+}
+
+/// What a data constraint is attached to: a data provider, data sources, or one or more structural
+/// artefacts.
+///
+/// ## Specification
+/// - **Type**: `DataConstraintAttachmentType`
+/// - **Element**: `<ConstraintAttachment>`
+/// - **Editions**: SDMX 3.0 and 3.1 (Divergent)
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataConstraintAttachmentType.3.0.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataConstraintAttachmentType.3.1.md"))]
+#[cfg_attr(design_docs, doc = "")]
+///
+/// A data constraint attaches to exactly one of: a single data provider; one or more data structure
+/// definitions, dataflows, or provision agreements (each arm carrying any trailing queryable data
+/// sources); or, in SDMX 3.0 only, a list of simple data source URLs. The three structural arms each
+/// pair their references with the queryable sources that follow them on the wire.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`DataConstraintAttachmentType` restricts the abstract `ConstraintAttachmentType` to the data side
+(D-0034). Modelling it as its own enum, rather than one flat shared attachment enum, makes the
+illegal cross-attachment unrepresentable (an availability constraint cannot attach to a data
+provider). Exhaustive (D-0021): a bounded, spec-fixed target set.
+
+3.0/3.1 divergence (D-0044): the 3.0 wire adds a `SimpleDataSource` arm (`xs:anyURI`, unbounded) and
+trailing `QueryableDataSource` elements inside each of the three `1..*` reference sequences; 3.1 has
+neither. The superset carries both, the same provenance class as `role` (D-0037). The three `1..*`
+arms are struct variants because the spec nests `Ref+` then `QueryableDataSource*` in one sequence
+per arm; `queryable` is empty when absent, always empty on 3.1 wire. `DataProvider` is single.
+Derived `Deserialize`: it composes the already-valid non-empty newtypes (§7 cross-field rule).
+
+Decisions: D-0034, D-0044, D-0021.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum DataConstraintAttachment {
+    /// The constraint is attached to a single data provider.
+    DataProvider(DataProviderReference),
+    /// The constraint is attached to simple data source URLs (SDMX 3.0 only).
+    SimpleDataSource(SimpleDataSources),
+    /// The constraint is attached to one or more data structure definitions.
+    DataStructure {
+        /// The data structure definitions attached to.
+        refs: DataStructureRefs,
+        /// Any queryable data sources trailing the references (SDMX 3.0 only; empty otherwise).
+        queryable: Vec<QueryableDataSource>,
+    },
+    /// The constraint is attached to one or more dataflows.
+    Dataflow {
+        /// The dataflows attached to.
+        refs: DataflowRefs,
+        /// Any queryable data sources trailing the references (SDMX 3.0 only; empty otherwise).
+        queryable: Vec<QueryableDataSource>,
+    },
+    /// The constraint is attached to one or more provision agreements.
+    ProvisionAgreement {
+        /// The provision agreements attached to.
+        refs: ProvisionAgreementRefs,
+        /// Any queryable data sources trailing the references (SDMX 3.0 only; empty otherwise).
+        queryable: Vec<QueryableDataSource>,
+    },
+}
+
+/// What an availability constraint is attached to: a single structural artefact.
+///
+/// ## Specification
+/// - **Type**: `AvailabilityConstraintAttachmentType`
+/// - **Element**: `<ConstraintAttachment>`
+/// - **Editions**: SDMX 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/AvailabilityConstraintAttachmentType.md"))]
+///
+/// An availability constraint attaches to a single data structure definition, dataflow, or provision
+/// agreement. Unlike a data constraint, it admits no data provider and each target is single, not a
+/// list.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`AvailabilityConstraintAttachmentType` restricts the abstract `ConstraintAttachmentType` to the data
+subset, every target single (`maxOccurs="1"`), so plain refs without the non-empty-vec newtypes. It
+excludes `DataProvider` (the spec omits it from this restriction). A 3.1-only type (3.0 has no
+availability constraint); the superset carries it regardless. Exhaustive (D-0021). Modelling it
+distinctly from `DataConstraintAttachment` makes the spec's narrower target set unrepresentable
+otherwise (D-0034).
+
+Decisions: D-0034, D-0021.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum AvailabilityConstraintAttachment {
+    /// The constraint is attached to a single data structure definition.
+    DataStructure(DsdReference),
+    /// The constraint is attached to a single dataflow.
+    Dataflow(DataflowReference),
+    /// The constraint is attached to a single provision agreement.
+    ProvisionAgreement(ProvisionAgreementReference),
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -1568,5 +1857,132 @@ mod tests {
         };
         let json = serde_json::to_string(&source).unwrap();
         assert_eq!(serde_json::from_str::<QueryableDataSource>(&json).unwrap(), source);
+    }
+
+    fn dsd_ref(id: &str) -> DsdReference {
+        DsdReference {
+            agency: "SDMX".to_string(),
+            id: id.to_string(),
+            version: "1.0.0".to_string(),
+        }
+    }
+
+    fn dataflow_ref(id: &str) -> DataflowReference {
+        DataflowReference {
+            agency: "ECB".to_string(),
+            id: id.to_string(),
+            version: "1.0.0".to_string(),
+        }
+    }
+
+    fn agreement_ref(id: &str) -> ProvisionAgreementReference {
+        ProvisionAgreementReference {
+            agency: "ECB".to_string(),
+            id: id.to_string(),
+            version: "1.0.0".to_string(),
+        }
+    }
+
+    #[test]
+    fn attachment_ref_newtypes_reject_empty_and_expose_their_slice() {
+        assert_eq!(DataStructureRefs::new(vec![]).unwrap_err(), Error::EmptyDataStructureRefs);
+        assert_eq!(DataflowRefs::new(vec![]).unwrap_err(), Error::EmptyDataflowRefs);
+        assert_eq!(
+            ProvisionAgreementRefs::new(vec![]).unwrap_err(),
+            Error::EmptyProvisionAgreementRefs
+        );
+        assert_eq!(SimpleDataSources::new(vec![]).unwrap_err(), Error::EmptySimpleDataSources);
+
+        assert_eq!(DataStructureRefs::new(vec![dsd_ref("ECB_EXR1")]).unwrap().as_slice().len(), 1);
+        assert_eq!(DataflowRefs::new(vec![dataflow_ref("EXR")]).unwrap().as_slice().len(), 1);
+        assert_eq!(
+            ProvisionAgreementRefs::new(vec![agreement_ref("PA_EXR")]).unwrap().as_slice().len(),
+            1
+        );
+        assert_eq!(
+            SimpleDataSources::new(vec!["https://example.com/data".to_string()])
+                .unwrap()
+                .as_slice()
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn attachment_ref_newtypes_reject_empty_on_the_wire() {
+        assert!(serde_json::from_str::<DataStructureRefs>("[]").is_err());
+        assert!(serde_json::from_str::<DataflowRefs>("[]").is_err());
+        assert!(serde_json::from_str::<ProvisionAgreementRefs>("[]").is_err());
+        assert!(serde_json::from_str::<SimpleDataSources>("[]").is_err());
+    }
+
+    #[test]
+    fn data_constraint_attachment_structural_arms_round_trip_with_queryable() {
+        let queryable = vec![QueryableDataSource {
+            data_url: "https://example.com/sdmx".to_string(),
+            wsdl_url: None,
+            wadl_url: None,
+            is_rest_datasource: true,
+            is_web_service_datasource: false,
+        }];
+        let arms = [
+            DataConstraintAttachment::DataStructure {
+                refs: DataStructureRefs::new(vec![dsd_ref("ECB_EXR1"), dsd_ref("ECB_EXR2")])
+                    .unwrap(),
+                queryable: queryable.clone(),
+            },
+            DataConstraintAttachment::Dataflow {
+                refs: DataflowRefs::new(vec![dataflow_ref("EXR")]).unwrap(),
+                queryable,
+            },
+            DataConstraintAttachment::ProvisionAgreement {
+                refs: ProvisionAgreementRefs::new(vec![agreement_ref("PA_EXR")]).unwrap(),
+                // The queryable companions are empty when absent (always so on 3.1 wire).
+                queryable: vec![],
+            },
+        ];
+        for attachment in arms {
+            let json = serde_json::to_string(&attachment).unwrap();
+            assert_eq!(
+                serde_json::from_str::<DataConstraintAttachment>(&json).unwrap(),
+                attachment
+            );
+        }
+    }
+
+    #[test]
+    fn data_constraint_attachment_3_0_only_arms_round_trip() {
+        // The DataProvider single arm and the 3.0-only SimpleDataSource arm.
+        let provider = DataConstraintAttachment::DataProvider(DataProviderReference {
+            agency: "SDMX".to_string(),
+            scheme_id: "DATA_PROVIDERS".to_string(),
+            id: "ECB".to_string(),
+        });
+        let sources = DataConstraintAttachment::SimpleDataSource(
+            SimpleDataSources::new(vec!["https://example.com/data".to_string()]).unwrap(),
+        );
+        for attachment in [provider, sources] {
+            let json = serde_json::to_string(&attachment).unwrap();
+            assert_eq!(
+                serde_json::from_str::<DataConstraintAttachment>(&json).unwrap(),
+                attachment
+            );
+        }
+    }
+
+    #[test]
+    fn availability_constraint_attachment_arms_round_trip() {
+        let arms = [
+            AvailabilityConstraintAttachment::DataStructure(dsd_ref("ECB_EXR1")),
+            AvailabilityConstraintAttachment::Dataflow(dataflow_ref("EXR")),
+            AvailabilityConstraintAttachment::ProvisionAgreement(agreement_ref("PA_EXR")),
+        ];
+        for attachment in arms {
+            let json = serde_json::to_string(&attachment).unwrap();
+            assert_eq!(
+                serde_json::from_str::<AvailabilityConstraintAttachment>(&json).unwrap(),
+                attachment
+            );
+        }
     }
 }

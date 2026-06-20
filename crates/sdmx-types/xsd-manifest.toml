@@ -468,3 +468,18 @@ symbol = "QueryableDataSourceType"
 file = "schemas/SDMXCommon.xsd"
 editions = ["3.0", "3.1"]
 rust = ["QueryableDataSource"]
+
+# DataConstraintAttachmentType diverges: 3.0 adds a SimpleDataSource arm and per-sequence
+# QueryableDataSource companions, both gone in 3.1 (D-0044).
+[[fragment]]
+symbol = "DataConstraintAttachmentType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["DataConstraintAttachment"]
+
+# AvailabilityConstraintAttachmentType is 3.1-only (no availability constraint in 3.0).
+[[fragment]]
+symbol = "AvailabilityConstraintAttachmentType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.1"]
+rust = ["AvailabilityConstraintAttachment"]
