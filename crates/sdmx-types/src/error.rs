@@ -36,7 +36,7 @@ The identifier tiers back the distinct identifier-failure variants (`IDType` for
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
 `Invalid{Decimal,Integer,Version,TimePeriod}` variants.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0038, D-0040, D-0048, D-0052.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0036, D-0038, D-0040, D-0048, D-0052.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -121,6 +121,12 @@ pub enum Error {
     /// Produced by [`SimpleComponentValues::new`](crate::SimpleComponentValues::new).
     #[error("Invalid cube region: a component value selection must contain at least one value.")]
     EmptySimpleComponentValues,
+
+    /// A cube-region list was constructed with more than two regions. `DataConstraintType` caps the
+    /// count at `maxOccurs="2"`, so a third region is mechanically schema-invalid. Produced by
+    /// [`CubeRegions::new`](crate::CubeRegions::new).
+    #[error("Invalid data constraint: a cube-region list may contain at most two regions.")]
+    TooManyCubeRegions,
 
     /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
     /// schema requires at least one dimension reference (`Dimension+`), so an empty list is

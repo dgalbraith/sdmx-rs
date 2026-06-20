@@ -83,8 +83,9 @@ pub use crate::{
     component::{ComponentMetadata, Usage},
     concept::{Concept, ConceptScheme},
     constraint::{
-        CubeKeyValue, CubeKeyValues, SimpleComponentValue, SimpleComponentValues, TimePeriodRange,
-        TimeRange, TimeRangeKind,
+        ComponentSelection, ComponentValueSet, CubeKeyValue, CubeKeyValues, CubeRegion,
+        CubeRegionKey, CubeRegions, KeyValueSelection, SimpleComponentValue, SimpleComponentValues,
+        TimePeriodRange, TimeRange, TimeRangeKind,
     },
     data_structure::DataStructureDefinition,
     dataflow::{Dataflow, DimensionConstraint},

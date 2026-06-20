@@ -386,3 +386,21 @@ symbol = "TimeRangeValueType"
 file = "schemas/SDMXStructureConstraint.xsd"
 editions = ["3.0", "3.1"]
 rust = ["TimeRange"]
+
+[[fragment]]
+symbol = "CubeRegionKeyType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeRegionKey"]
+
+[[fragment]]
+symbol = "ComponentValueSetType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ComponentValueSet"]
+
+[[fragment]]
+symbol = "CubeRegionType"
+file = "schemas/SDMXStructureConstraint.xsd"
+editions = ["3.0", "3.1"]
+rust = ["CubeRegion"]

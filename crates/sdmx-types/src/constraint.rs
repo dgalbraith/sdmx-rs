@@ -51,6 +51,7 @@ Decisions: D-0026, D-0027, D-0031, D-0038, D-0040, D-0052, D-0064.
 use alloc::{string::String, vec::Vec};
 
 use crate::{
+    annotation::Annotation,
     codelist::Cascade,
     error::{Error, to_de_error},
     lexical::SdmxTimePeriod,
@@ -395,6 +396,272 @@ pub struct TimeRange {
     pub valid_to: Option<SdmxTimePeriod>,
 }
 
+// ---------------------------------------------------------------------------
+// Cube-region selection nodes
+// ---------------------------------------------------------------------------
+
+/// The value choice of a dimension selection: an enumerated value list or a time range.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Models the content of a [`CubeRegionKey`]. A dimension selection always names something, so the
+/// choice is mandatory: there is no empty state. The value list is non-empty by construction.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The content model of `CubeRegionKeyType`; the node type (this choice plus the attributes) is
+[`CubeRegionKey`]. The choice is mandatory (`Value+` or `TimeRange`), so there is no `Empty` variant:
+a dimension-empty selection is unrepresentable. It composes the already-valid `CubeKeyValues`
+newtype, so it keeps derived `Deserialize` (§7 cross-field rule).
+
+Decisions: D-0038, D-0040.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum KeyValueSelection {
+    /// An enumerated list of dimension values (always at least one).
+    Values(CubeKeyValues),
+    /// A time-range selection.
+    TimeRange(TimeRange),
+}
+
+/// The value choice of a component selection: an enumerated value list, a time range, or no values.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Models the content of a [`ComponentValueSet`]. Unlike a dimension selection, a component may be
+/// referenced with no values at all, a distinct state from "all values": [`Empty`](Self::Empty)
+/// captures it. Combined with the node's `include` flag, an empty selection that is included means
+/// "present regardless of value", and one that is excluded means "absent".
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The content model of `ComponentValueSetType`; the node type is [`ComponentValueSet`]. The choice is
+optional, so `Empty` is a real, distinct no-values state, not "all values". With `Values` non-empty
+by construction (D-0038), `Empty` is the sole no-values state, mirroring the wire exactly (a
+value-less `<Component>` versus a chosen `Value+` arm), so the old `Values(vec![])`-duplicates-`Empty`
+ambiguity is unrepresentable. Derived `Deserialize` (it composes already-valid pieces, §7).
+
+Decisions: D-0026, D-0038.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ComponentSelection {
+    /// An enumerated list of component values (always at least one).
+    Values(SimpleComponentValues),
+    /// A time-range selection.
+    TimeRange(TimeRange),
+    /// The component is referenced with no values, distinct from naming every value.
+    Empty,
+}
+
+/// A dimension selection within a cube region: a dimension id and the values it admits.
+///
+/// ## Specification
+/// - **Type**: `CubeRegionKeyType`
+/// - **Element**: `<KeyValue>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/CubeRegionKeyType.md"))]
+///
+/// Names a dimension by its `id` and the values it selects ([`KeyValueSelection`]). The `include`
+/// flag (whether the named values are included in or excluded from the region) defaults to `true`
+/// when absent. A dimension selection may carry its own validity window.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A node type named after its spec complexType. `id` is carried on the struct (D-0051; formerly the
+map key) as a structural-only reference (`SingleNCNameIDType`, D-0020), not re-validated. The
+`MemberSelectionType` attributes are inherited (D-0038): `include` (schema `default="true"`,
+statedness stored, D-0052), `removePrefix` (no schema default, so `Option<bool>` distinguishes
+absent from stated, D-0031), and the validity window (`StandardTimePeriodType`, so `SdmxTimePeriod`,
+D-0027), which `CubeRegionKeyType` may carry. No cross-field invariant (every field self-enforcing),
+so pub fields and derived `Deserialize` (ADR-0021); the non-empty values newtype and `SdmxTimePeriod`
+carry their own validating paths.
+
+Decisions: D-0020, D-0038, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CubeRegionKey {
+    /// The id of the dimension being selected (a structural reference, not re-validated).
+    pub id: String,
+    /// The values this dimension admits.
+    pub selection: KeyValueSelection,
+    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
+    pub include: Option<bool>,
+    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
+    pub remove_prefix: Option<bool>,
+    /// The start of the selection's validity window, if stated.
+    pub valid_from: Option<SdmxTimePeriod>,
+    /// The end of the selection's validity window, if stated.
+    pub valid_to: Option<SdmxTimePeriod>,
+}
+
+/// A component selection within a cube region: a component id and the values it admits.
+///
+/// ## Specification
+/// - **Type**: `ComponentValueSetType`
+/// - **Element**: `<Component>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ComponentValueSetType.md"))]
+///
+/// Names an attribute or measure by its `id` and the values it selects ([`ComponentSelection`]). The
+/// `id` may be a nested identifier. Unlike a dimension selection, a component selection carries no
+/// validity window: the schema prohibits one here, so the field is simply absent.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A node type named after its spec complexType. `id` is carried on the struct (D-0051) as a
+structural-only reference (`NestedNCNameIDType`, dotted, e.g. `CONTACT.ADDRESS.STREET`; D-0020). It
+carries the same `include`/`removePrefix` node attributes as [`CubeRegionKey`] but no
+`validFrom`/`validTo`: `ComponentValueSetType` prohibits them (both editions), so the illegal state
+is unrepresentable by field omission. Pub-field carrier, derived `Deserialize`.
+
+Decisions: D-0020, D-0038, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ComponentValueSet {
+    /// The id of the component being selected (a structural reference, possibly nested).
+    pub id: String,
+    /// The values this component admits.
+    pub selection: ComponentSelection,
+    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
+    pub include: Option<bool>,
+    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
+    pub remove_prefix: Option<bool>,
+}
+
+/// A region of a data cube: the dimension and component selections that bound it.
+///
+/// ## Specification
+/// - **Type**: `CubeRegionType`
+/// - **Element**: `<CubeRegion>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/CubeRegionType.md"))]
+///
+/// A cube region gathers the dimension selections ([`CubeRegionKey`]) and component selections
+/// ([`ComponentValueSet`]) that define it, each kept in wire order. A dimension absent from the
+/// selections is unconstrained ("all values in scope"). The region-level `include` flag defaults to
+/// `true`. A region may carry annotations.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{CubeKeyValue, CubeKeyValues, CubeRegion, CubeRegionKey, KeyValueSelection};
+///
+/// let value =
+///     CubeKeyValue { value: "A".to_string(), cascade: None, valid_from: None, valid_to: None };
+/// let key = CubeRegionKey {
+///     id: "FREQ".to_string(),
+///     selection: KeyValueSelection::Values(CubeKeyValues::new(vec![value])?),
+///     include: None,
+///     remove_prefix: None,
+///     valid_from: None,
+///     valid_to: None,
+/// };
+/// let region = CubeRegion {
+///     key_values: vec![key],
+///     components: vec![],
+///     include: None,
+///     annotations: vec![],
+/// };
+/// assert_eq!(region.key_values.len(), 1);
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Pub-field carrier with derived `Deserialize`: the two selection collections are a wire sequence
+(`KeyValue*` then `Component*`, nothing interleaves), so two `Vec`s map field-by-field, every field
+self-enforcing (D-0051), and no custom impl is needed. `include` exists at both levels (D-0038):
+region-level here, per-selection on the node structs. Region-level `validFrom`/`validTo` are
+prohibited on `CubeRegionType`, so there are no such fields. `RegionType` extends
+`common:AnnotableType` (both editions), so a region is annotable; `CubeRegion` is non-identifiable,
+so it carries the annotations directly. The `Vec<Annotation>` maps the wire's two states exactly,
+empty ⟺ absent (D-0033, D-0031). The prose-only "each key component only once" rule is a catalogued
+lint (D-0051): duplicate selection ids are schema-valid wire, held verbatim.
+
+Decisions: D-0026, D-0033, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct CubeRegion {
+    /// The dimension selections, in wire order.
+    pub key_values: Vec<CubeRegionKey>,
+    /// The component (attribute or measure) selections, in wire order.
+    pub components: Vec<ComponentValueSet>,
+    /// Whether the region is included or excluded; `None` ⟺ absent (schema default `true`).
+    pub include: Option<bool>,
+    /// The region's annotations; empty ⟺ absent.
+    pub annotations: Vec<Annotation>,
+}
+
+/// A bounded list of [`CubeRegion`]s, holding at most two.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the cube regions of a data constraint. The schema caps the count at two, so the constructor
+/// rejects more. It does not reject an empty list: a data constraint may carry no regions at all
+/// (expressed instead through key sets).
+///
+/// ## Guarantees
+///
+/// Always holds at most two [`CubeRegion`]s.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct CubeRegions(Vec<CubeRegion>);
+
+impl CubeRegions {
+    /// Builds a cube-region list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::TooManyCubeRegions`] if `regions` holds more than two (the schema caps the
+    /// count at `maxOccurs="2"`).
+    pub fn new(regions: Vec<CubeRegion>) -> Result<Self, Error> {
+        if regions.len() > 2 {
+            return Err(Error::TooManyCubeRegions);
+        }
+        Ok(Self(regions))
+    }
+
+    /// The cube regions, in order (at most two).
+    #[must_use]
+    pub fn as_slice(&self) -> &[CubeRegion] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for CubeRegions {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let regions = Vec::<CubeRegion>::deserialize(deserializer)?;
+        Self::new(regions).map_err(to_de_error)
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -534,5 +801,136 @@ mod tests {
         let json = serde_json::to_string(&range).unwrap();
         let bad = json.replace("2020", "not-a-period");
         assert!(serde_json::from_str::<TimeRange>(&bad).is_err());
+    }
+
+    fn cube_key(id: &str, value: &str) -> CubeRegionKey {
+        let v = CubeKeyValue {
+            value: value.to_string(),
+            cascade: None,
+            valid_from: None,
+            valid_to: None,
+        };
+        CubeRegionKey {
+            id: id.to_string(),
+            selection: KeyValueSelection::Values(CubeKeyValues::new(vec![v]).unwrap()),
+            include: None,
+            remove_prefix: None,
+            valid_from: None,
+            valid_to: None,
+        }
+    }
+
+    #[test]
+    fn cube_region_key_round_trips_with_time_range_selection() {
+        let key = CubeRegionKey {
+            id: "TIME_PERIOD".to_string(),
+            selection: KeyValueSelection::TimeRange(TimeRange {
+                kind: TimeRangeKind::After(period("2020")),
+                valid_from: None,
+                valid_to: None,
+            }),
+            include: Some(false),
+            remove_prefix: Some(true),
+            valid_from: Some(SdmxTimePeriod::new("2019".to_string()).unwrap()),
+            valid_to: None,
+        };
+        let json = serde_json::to_string(&key).unwrap();
+        assert_eq!(serde_json::from_str::<CubeRegionKey>(&json).unwrap(), key);
+    }
+
+    #[test]
+    fn component_selection_empty_is_distinct_from_values() {
+        let value = SimpleComponentValue {
+            value: "EUR".to_string(),
+            cascade: None,
+            lang: None,
+            valid_from: None,
+            valid_to: None,
+        };
+        let values = ComponentSelection::Values(SimpleComponentValues::new(vec![value]).unwrap());
+        let empty = ComponentSelection::Empty;
+        assert_ne!(values, empty);
+        // Each round-trips to itself, so Empty is not collapsed into an empty value list.
+        let empty_json = serde_json::to_string(&empty).unwrap();
+        assert_eq!(serde_json::from_str::<ComponentSelection>(&empty_json).unwrap(), empty);
+        let values_json = serde_json::to_string(&values).unwrap();
+        assert_eq!(serde_json::from_str::<ComponentSelection>(&values_json).unwrap(), values);
+    }
+
+    #[test]
+    fn component_value_set_round_trips() {
+        let set = ComponentValueSet {
+            id: "CONTACT.ADDRESS.STREET".to_string(),
+            selection: ComponentSelection::Empty,
+            include: Some(true),
+            remove_prefix: None,
+        };
+        let json = serde_json::to_string(&set).unwrap();
+        assert_eq!(serde_json::from_str::<ComponentValueSet>(&json).unwrap(), set);
+    }
+
+    #[test]
+    fn cube_region_round_trips_preserving_selection_order() {
+        let region = CubeRegion {
+            key_values: vec![cube_key("FREQ", "A"), cube_key("REF_AREA", "EU")],
+            components: vec![ComponentValueSet {
+                id: "OBS_STATUS".to_string(),
+                selection: ComponentSelection::Empty,
+                include: None,
+                remove_prefix: None,
+            }],
+            include: Some(true),
+            annotations: vec![],
+        };
+        let json = serde_json::to_string(&region).unwrap();
+        let restored = serde_json::from_str::<CubeRegion>(&json).unwrap();
+        assert_eq!(restored, region);
+        // Wire order of the dimension selections is preserved.
+        assert_eq!(restored.key_values[0].id, "FREQ");
+        assert_eq!(restored.key_values[1].id, "REF_AREA");
+    }
+
+    #[test]
+    fn cube_region_annotations_empty_maps_absent() {
+        let region = CubeRegion {
+            key_values: vec![],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        };
+        assert!(region.annotations.is_empty());
+        let json = serde_json::to_string(&region).unwrap();
+        assert_eq!(serde_json::from_str::<CubeRegion>(&json).unwrap(), region);
+    }
+
+    #[test]
+    fn cube_regions_rejects_more_than_two() {
+        let region = || CubeRegion {
+            key_values: vec![],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        };
+        assert!(CubeRegions::new(vec![]).unwrap().as_slice().is_empty());
+        assert_eq!(CubeRegions::new(vec![region(), region()]).unwrap().as_slice().len(), 2);
+        assert_eq!(
+            CubeRegions::new(vec![region(), region(), region()]).unwrap_err(),
+            Error::TooManyCubeRegions
+        );
+    }
+
+    #[test]
+    fn cube_regions_deserialize_rejects_more_than_two_on_the_wire() {
+        let region = || CubeRegion {
+            key_values: vec![],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        };
+        let three = CubeRegions::new(vec![region(), region()]).unwrap();
+        let mut as_vec = three.as_slice().to_vec();
+        as_vec.push(region());
+        let json = serde_json::to_string(&as_vec).unwrap();
+        assert!(serde_json::from_str::<CubeRegions>(&json).is_err());
     }
 }
