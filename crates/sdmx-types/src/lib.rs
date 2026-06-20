@@ -84,7 +84,9 @@ pub use crate::{
     concept::{Concept, ConceptScheme},
     constraint::{
         ComponentSelection, ComponentValueSet, CubeKeyValue, CubeKeyValues, CubeRegion,
-        CubeRegionKey, CubeRegions, KeyValueSelection, SimpleComponentValue, SimpleComponentValues,
+        CubeRegionKey, CubeRegions, DataComponentSelection, DataComponentValue,
+        DataComponentValueSet, DataComponentValues, DataKey, DataKeySet, DataKeyValue, DataKeys,
+        KeyValueSelection, SimpleComponentValue, SimpleComponentValues, SimpleKeyValues,
         TimePeriodRange, TimeRange, TimeRangeKind,
     },
     data_structure::DataStructureDefinition,

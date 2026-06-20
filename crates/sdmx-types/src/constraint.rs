@@ -54,6 +54,7 @@ use crate::{
     annotation::Annotation,
     codelist::Cascade,
     error::{Error, to_de_error},
+    fixed::FixedInclude,
     lexical::SdmxTimePeriod,
 };
 
@@ -662,6 +663,415 @@ impl<'de> serde::Deserialize<'de> for CubeRegions {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Data key sets
+// ---------------------------------------------------------------------------
+
+/// A single component (attribute or measure) value in a data key set.
+///
+/// ## Specification
+/// - **Type**: `DataComponentValueType`
+/// - **Element**: `<Value>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataComponentValueType.md"))]
+///
+/// The key-set counterpart of [`SimpleComponentValue`]. It carries an optional `cascade` flag and an
+/// optional single language tag, but no validity window: the schema prohibits one for a key-set
+/// value, so the field is simply absent.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Invariant-free pub-field carrier with derived `Deserialize`. The spec types `DataComponentValueType`
+as a restriction of `SimpleComponentValueType` prohibiting `validFrom`/`validTo`, so the validity
+pair present on `SimpleComponentValue` is simply absent here (D-0039), making the illegal state
+unrepresentable by omission. `lang` is the loose single-tag `Option<String>` (D-0011 precedent).
+
+Decisions: D-0039, D-0040, D-0011, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataComponentValue {
+    /// The component value content, held verbatim.
+    pub value: String,
+    /// How the selection cascades through a code hierarchy; `None` ⟺ absent.
+    pub cascade: Option<Cascade>,
+    /// The single language tag for this value, if stated.
+    pub lang: Option<String>,
+}
+
+/// A non-empty list of [`DataComponentValue`]s.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the `Value+` of a key-set component selection. The schema requires at least one value when
+/// the value arm is chosen, so the constructor rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one [`DataComponentValue`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct DataComponentValues(Vec<DataComponentValue>);
+
+impl DataComponentValues {
+    /// Builds a key-set component value list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptyDataComponentValues`] if `values` is empty (a chosen value arm requires
+    /// `Value+`).
+    pub fn new(values: Vec<DataComponentValue>) -> Result<Self, Error> {
+        if values.is_empty() {
+            return Err(Error::EmptyDataComponentValues);
+        }
+        Ok(Self(values))
+    }
+
+    /// The component values, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[DataComponentValue] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataComponentValues {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let values = Vec::<DataComponentValue>::deserialize(deserializer)?;
+        Self::new(values).map_err(to_de_error)
+    }
+}
+
+/// The value choice of a key-set component selection: a value list, a time range, or no values.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// The key-set counterpart of [`ComponentSelection`]. The choice is optional, so
+/// [`Empty`](Self::Empty) is the distinct no-values state, with the same `include`-interaction
+/// reading: an empty selection that is included means "present regardless of value", and one that is
+/// excluded means "absent".
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The content model of `DataComponentValueSetType`, mirroring the cube side's `ComponentSelection`. The
+choice is optional, so `Empty` is the no-values state; with `Values` non-empty by construction
+(D-0038), `Empty` is the sole no-values state. Derived `Deserialize` (composes already-valid pieces,
+§7).
+
+Decisions: D-0026, D-0038, D-0039.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum DataComponentSelection {
+    /// An enumerated list of component values (always at least one).
+    Values(DataComponentValues),
+    /// A time-range selection.
+    TimeRange(TimeRange),
+    /// The component is referenced with no values, distinct from naming every value.
+    Empty,
+}
+
+/// A component selection within a data key: a component id and the values it admits.
+///
+/// ## Specification
+/// - **Type**: `DataComponentValueSetType`
+/// - **Element**: `<Component>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataComponentValueSetType.md"))]
+///
+/// The key-set counterpart of [`ComponentValueSet`]. It names an attribute or measure by its `id`
+/// (possibly nested) and the values it selects ([`DataComponentSelection`]), and carries the same
+/// `include`/`remove_prefix` node attributes but no validity window (prohibited here).
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A node type named after its spec complexType. `id` is carried on the struct (D-0051) as a
+structural-only reference (`NestedNCNameIDType`, D-0020). Same node attributes as the cube
+[`ComponentValueSet`]: `include` (schema `default="true"`, statedness stored, D-0052) and
+`removePrefix` (no default, `Option<bool>`, D-0031). Validity is prohibited, so there are no such
+fields. Pub-field carrier, derived `Deserialize`.
+
+Decisions: D-0020, D-0038, D-0039, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataComponentValueSet {
+    /// The id of the component being selected (a structural reference, possibly nested).
+    pub id: String,
+    /// The values this component admits.
+    pub selection: DataComponentSelection,
+    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
+    pub include: Option<bool>,
+    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
+    pub remove_prefix: Option<bool>,
+}
+
+/// A non-empty list of bare dimension key values.
+///
+/// ## Specification
+/// - **Type**: `SimpleKeyValueType`
+/// - **Element**: `<Value>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/SimpleKeyValueType.md"))]
+///
+/// The dimension values of a [`DataKeyValue`]. A key value is a bare string: the schema prohibits
+/// every attribute (`cascade`, language, validity) on it, so there is no per-value structure to
+/// carry. The schema requires at least one value, so the constructor rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one value.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`SimpleKeyValueType` restricts `SimpleComponentValueType`, prohibiting every attribute (`cascade`,
+`xml:lang`, `validFrom`/`validTo`), so its content is bare `xs:string`; the values are bare `String`s
+(a wrapper would invent structure that the schema forbids). The spec citation rides on this newtype
+because there is no per-value leaf struct to carry it. The non-empty bound carries the 3.1 unbounded
+shape, which covers 3.0's single value (the `DataKeyValueType` divergence, D-0039); `new()` rejects
+empty (D-0031).
+
+Decisions: D-0039, D-0040, D-0031.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct SimpleKeyValues(Vec<String>);
+
+impl SimpleKeyValues {
+    /// Builds a dimension key-value list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptySimpleKeyValues`] if `values` is empty (a chosen value arm requires
+    /// `Value+`).
+    pub fn new(values: Vec<String>) -> Result<Self, Error> {
+        if values.is_empty() {
+            return Err(Error::EmptySimpleKeyValues);
+        }
+        Ok(Self(values))
+    }
+
+    /// The key values, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[String] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SimpleKeyValues {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let values = Vec::<String>::deserialize(deserializer)?;
+        Self::new(values).map_err(to_de_error)
+    }
+}
+
+/// A dimension selection within a data key: a dimension id and its values.
+///
+/// ## Specification
+/// - **Type**: `DataKeyValueType`
+/// - **Element**: `<KeyValue>`
+/// - **Editions**: SDMX 3.0 and 3.1 (Divergent)
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeyValueType.3.0.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeyValueType.3.1.md"))]
+#[cfg_attr(design_docs, doc = "")]
+///
+/// Names a dimension by its `id` and the values it takes ([`SimpleKeyValues`]). Its `include` flag is
+/// schema-fixed to `true`, so it is the [`FixedInclude`] wrapper. A data-key selection carries no
+/// validity window (prohibited here).
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`DataKeyValueType` diverges across editions: 3.0 allows exactly one `Value` (a `<choice>`); 3.1
+allows unbounded (a `<sequence maxOccurs="unbounded">`, for keys like `FREQ = A or M or Q`). The
+superset carries the 3.1 shape as the non-empty [`SimpleKeyValues`], which covers 3.0's exactly-one;
+what a 3.0 writer does with more than one value is Phase-2 adapter policy (the same provenance class
+as a 3.1-only attribute, D-0039/D-0037), not a Phase-1 rejection. `id` is structural-only
+(`SingleNCNameIDType`, D-0020/D-0051); `include` is `fixed="true"`, so the `FixedInclude` wrapper
+stores statedness and rejects a stated `false` (D-0052). Validity is prohibited, so there are no such
+fields. Pub-field carrier: the rejection rides the `FixedInclude` and `SimpleKeyValues` custom impls
+(§7 within-field rule).
+
+Decisions: D-0039, D-0020, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataKeyValue {
+    /// The id of the dimension being selected (a structural reference, not re-validated).
+    pub id: String,
+    /// The values this dimension takes.
+    pub values: SimpleKeyValues,
+    /// The schema-fixed `include` flag (always effectively `true`).
+    pub include: FixedInclude,
+    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
+    pub remove_prefix: Option<bool>,
+}
+
+/// A distinct full or partial data key: the dimension and component values that identify it.
+///
+/// ## Specification
+/// - **Type**: `DataKeyType`
+/// - **Element**: `<Key>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeyType.md"))]
+///
+/// A data key gathers the dimension selections ([`DataKeyValue`]) and component selections
+/// ([`DataComponentValueSet`]) that identify it, each in wire order. A dimension absent from the key
+/// is wildcarded, which is how a partial key is expressed. Its `include` flag is schema-fixed to
+/// `true`. A data key may carry its own validity window and annotations.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`DataKeyType` is a restriction of `RegionType`: a data key is itself a region. Unlike
+`CubeRegionType`, which prohibits them, it inherits `RegionType`'s optional `validFrom`/`validTo` (the
+base type does not prohibit them on the key side), so those fields are present here. `include` is
+`use="optional" fixed="true"`, so the `FixedInclude` wrapper (D-0052/D-0039). The two selection
+collections are a wire sequence (`KeyValue*` then `Component*`), so two `Vec`s map field-by-field
+(D-0051). Annotations sit on a non-identifiable annotable type, the bare-field case (D-0033), empty
+⟺ absent (D-0031). Pub-field carrier: the rejection rides `FixedInclude`'s custom impl.
+
+Decisions: D-0039, D-0033, D-0051, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataKey {
+    /// The dimension selections, in wire order.
+    pub key_values: Vec<DataKeyValue>,
+    /// The component (attribute or measure) selections, in wire order.
+    pub components: Vec<DataComponentValueSet>,
+    /// The schema-fixed `include` flag (always effectively `true`).
+    pub include: FixedInclude,
+    /// The key's annotations; empty ⟺ absent.
+    pub annotations: Vec<Annotation>,
+    /// The start of the key's validity window, if stated.
+    pub valid_from: Option<SdmxTimePeriod>,
+    /// The end of the key's validity window, if stated.
+    pub valid_to: Option<SdmxTimePeriod>,
+}
+
+/// A non-empty list of [`DataKey`]s.
+///
+/// ## Specification
+/// - **Schema**: N/A (Virtual Type)
+/// - **Type**: Rust-specific projection
+/// - **Element**: N/A
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Wraps the `Key+` of a data key set. The schema requires at least one key, so the constructor
+/// rejects an empty list.
+///
+/// ## Guarantees
+///
+/// Always holds at least one [`DataKey`].
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct DataKeys(Vec<DataKey>);
+
+impl DataKeys {
+    /// Builds a data-key list.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::EmptyDataKeys`] if `keys` is empty (the schema requires `Key+`).
+    pub fn new(keys: Vec<DataKey>) -> Result<Self, Error> {
+        if keys.is_empty() {
+            return Err(Error::EmptyDataKeys);
+        }
+        Ok(Self(keys))
+    }
+
+    /// The data keys, in order (always at least one).
+    #[must_use]
+    pub fn as_slice(&self) -> &[DataKey] {
+        &self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataKeys {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let keys = Vec::<DataKey>::deserialize(deserializer)?;
+        Self::new(keys).map_err(to_de_error)
+    }
+}
+
+/// A set of data keys, marked as included in or excluded from the constraint.
+///
+/// ## Specification
+/// - **Type**: `DataKeySetType`
+/// - **Element**: `<DataKeySet>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeySetType.md"))]
+///
+/// Gathers a non-empty list of [`DataKey`]s ([`DataKeys`]) and states whether they are included in or
+/// excluded from the constraint. The `is_included` flag is required on the wire: there is no absent
+/// state to preserve.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{DataKey, DataKeySet, DataKeyValue, DataKeys, FixedInclude, SimpleKeyValues};
+///
+/// let key_value = DataKeyValue {
+///     id: "FREQ".to_string(),
+///     values: SimpleKeyValues::new(vec!["A".to_string()])?,
+///     include: FixedInclude::new(None)?,
+///     remove_prefix: None,
+/// };
+/// let key = DataKey {
+///     key_values: vec![key_value],
+///     components: vec![],
+///     include: FixedInclude::new(None)?,
+///     annotations: vec![],
+///     valid_from: None,
+///     valid_to: None,
+/// };
+/// let key_set = DataKeySet { keys: DataKeys::new(vec![key])?, is_included: true };
+/// assert_eq!(key_set.keys.as_slice().len(), 1);
+///
+/// // A key set must hold at least one key.
+/// assert!(DataKeys::new(vec![]).is_err());
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Pub-field carrier with derived `Deserialize`: the non-empty bound rides `DataKeys`' custom impl, and
+`is_included` is a mandatory `bool`, not `Option<bool>`: `isIncluded` is `use="required"` with no
+schema default (both editions), so absence is mechanically schema-invalid and there is no statedness
+to store (contrast the `Option<bool>` node flags, D-0031/D-0052).
+
+Decisions: D-0039, D-0031, D-0052.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct DataKeySet {
+    /// The data keys in this set (always at least one).
+    pub keys: DataKeys,
+    /// Whether the keys are included in or excluded from the constraint.
+    pub is_included: bool,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -932,5 +1342,157 @@ mod tests {
         as_vec.push(region());
         let json = serde_json::to_string(&as_vec).unwrap();
         assert!(serde_json::from_str::<CubeRegions>(&json).is_err());
+    }
+
+    fn data_key_value(id: &str, value: &str) -> DataKeyValue {
+        DataKeyValue {
+            id: id.to_string(),
+            values: SimpleKeyValues::new(vec![value.to_string()]).unwrap(),
+            include: FixedInclude::new(None).unwrap(),
+            remove_prefix: None,
+        }
+    }
+
+    #[test]
+    fn data_component_values_rejects_empty() {
+        assert_eq!(DataComponentValues::new(vec![]).unwrap_err(), Error::EmptyDataComponentValues);
+        let value = DataComponentValue { value: "EUR".to_string(), cascade: None, lang: None };
+        assert_eq!(DataComponentValues::new(vec![value]).unwrap().as_slice().len(), 1);
+    }
+
+    #[test]
+    fn simple_key_values_rejects_empty() {
+        assert_eq!(SimpleKeyValues::new(vec![]).unwrap_err(), Error::EmptySimpleKeyValues);
+        let ok = SimpleKeyValues::new(vec!["A".to_string()]).unwrap();
+        assert_eq!(ok.as_slice().len(), 1);
+        // The wire path rejects an empty list too.
+        assert!(serde_json::from_str::<SimpleKeyValues>("[]").is_err());
+    }
+
+    #[test]
+    fn data_keys_rejects_empty() {
+        assert_eq!(DataKeys::new(vec![]).unwrap_err(), Error::EmptyDataKeys);
+        let key = DataKey {
+            key_values: vec![data_key_value("FREQ", "A")],
+            components: vec![],
+            include: FixedInclude::new(None).unwrap(),
+            annotations: vec![],
+            valid_from: None,
+            valid_to: None,
+        };
+        assert_eq!(DataKeys::new(vec![key]).unwrap().as_slice().len(), 1);
+    }
+
+    #[test]
+    fn data_key_value_carries_3_1_multi_value_superset() {
+        // The 3.1 unbounded shape (FREQ = A or M or Q) is the carried superset; 3.0's single value
+        // is the degenerate one-element case.
+        let multi = DataKeyValue {
+            id: "FREQ".to_string(),
+            values: SimpleKeyValues::new(vec!["A".to_string(), "M".to_string(), "Q".to_string()])
+                .unwrap(),
+            include: FixedInclude::new(Some(true)).unwrap(),
+            remove_prefix: None,
+        };
+        assert_eq!(multi.values.as_slice().len(), 3);
+        let json = serde_json::to_string(&multi).unwrap();
+        assert_eq!(serde_json::from_str::<DataKeyValue>(&json).unwrap(), multi);
+    }
+
+    #[test]
+    fn data_key_value_include_rejects_stated_false_on_the_wire() {
+        let value = data_key_value("FREQ", "A");
+        let json = serde_json::to_string(&value).unwrap();
+        // include is fixed="true"; a stated false contradicts it and is rejected.
+        let bad = json.replace("\"include\":null", "\"include\":false");
+        assert!(serde_json::from_str::<DataKeyValue>(&bad).is_err());
+    }
+
+    #[test]
+    fn data_key_round_trips_with_validity_and_annotations() {
+        let key = DataKey {
+            key_values: vec![data_key_value("FREQ", "A")],
+            components: vec![DataComponentValueSet {
+                id: "OBS_STATUS".to_string(),
+                selection: DataComponentSelection::Empty,
+                include: None,
+                remove_prefix: None,
+            }],
+            include: FixedInclude::new(Some(true)).unwrap(),
+            annotations: vec![],
+            valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
+            valid_to: None,
+        };
+        let json = serde_json::to_string(&key).unwrap();
+        assert_eq!(serde_json::from_str::<DataKey>(&json).unwrap(), key);
+    }
+
+    #[test]
+    fn data_component_selection_empty_is_distinct_from_values() {
+        let values = DataComponentSelection::Values(
+            DataComponentValues::new(vec![DataComponentValue {
+                value: "EUR".to_string(),
+                cascade: None,
+                lang: None,
+            }])
+            .unwrap(),
+        );
+        assert_ne!(values, DataComponentSelection::Empty);
+    }
+
+    #[test]
+    fn data_key_set_round_trips_and_requires_is_included() {
+        let set = DataKeySet {
+            keys: DataKeys::new(vec![DataKey {
+                key_values: vec![data_key_value("FREQ", "A")],
+                components: vec![],
+                include: FixedInclude::new(None).unwrap(),
+                annotations: vec![],
+                valid_from: None,
+                valid_to: None,
+            }])
+            .unwrap(),
+            is_included: true,
+        };
+        let json = serde_json::to_string(&set).unwrap();
+        assert_eq!(serde_json::from_str::<DataKeySet>(&json).unwrap(), set);
+    }
+
+    #[test]
+    fn data_component_selection_time_range_arm_round_trips() {
+        let set = DataComponentValueSet {
+            id: "TIME_PERIOD".to_string(),
+            selection: DataComponentSelection::TimeRange(TimeRange {
+                kind: TimeRangeKind::Before(period("2024")),
+                valid_from: None,
+                valid_to: None,
+            }),
+            include: None,
+            remove_prefix: None,
+        };
+        let json = serde_json::to_string(&set).unwrap();
+        assert_eq!(serde_json::from_str::<DataComponentValueSet>(&json).unwrap(), set);
+    }
+
+    #[test]
+    fn data_component_value_set_values_arm_round_trips_and_rejects_empty() {
+        let set = DataComponentValueSet {
+            id: "CURRENCY".to_string(),
+            selection: DataComponentSelection::Values(
+                DataComponentValues::new(vec![DataComponentValue {
+                    value: "EUR".to_string(),
+                    cascade: Some(Cascade::IncludeChildren),
+                    lang: Some("en".to_string()),
+                }])
+                .unwrap(),
+            ),
+            include: None,
+            remove_prefix: None,
+        };
+        let json = serde_json::to_string(&set).unwrap();
+        assert_eq!(serde_json::from_str::<DataComponentValueSet>(&json).unwrap(), set);
+        // The Values deserialize path routes through new(), so an empty list is rejected on the
+        // wire, not synthesised as Values([]).
+        assert!(serde_json::from_str::<DataComponentValues>("[]").is_err());
     }
 }
