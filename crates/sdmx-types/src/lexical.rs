@@ -325,6 +325,7 @@ validation loudly rather than emit a plausible version.
 "#
 )]
 #[derive(Clone, Copy, Debug)]
+#[must_use]
 pub struct VersionDisplay<'a>(pub Option<&'a SdmxVersion>);
 
 impl core::fmt::Display for VersionDisplay<'_> {
