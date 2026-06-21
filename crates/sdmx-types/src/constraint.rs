@@ -2138,6 +2138,22 @@ mod tests {
     }
 
     #[test]
+    fn component_selection_time_range_arm_round_trips() {
+        let set = ComponentValueSet {
+            id: "TIME_PERIOD".to_string(),
+            selection: ComponentSelection::TimeRange(TimeRange {
+                kind: TimeRangeKind::Before(period("2024")),
+                valid_from: None,
+                valid_to: None,
+            }),
+            include: None,
+            remove_prefix: None,
+        };
+        let json = serde_json::to_string(&set).unwrap();
+        assert_eq!(serde_json::from_str::<ComponentValueSet>(&json).unwrap(), set);
+    }
+
+    #[test]
     fn data_component_value_set_values_arm_round_trips_and_rejects_empty() {
         let set = DataComponentValueSet {
             id: "CURRENCY".to_string(),
