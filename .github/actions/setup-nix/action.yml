@@ -36,11 +36,15 @@ runs:
     - name: Cache Nix store
       uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
       with:
-        # OS/arch-namespaced, keyed on the devShell closure's only input
-        # (flake.lock). Mirrors the cargo/sccache cache idiom: exact key, then
-        # prefix fallback. runner.arch is included because the macOS runner
-        # fleet spans arm64/x86_64.
-        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock') }}
+        # OS/arch-namespaced. Keyed on flake.lock AND Cargo.lock: the flake
+        # checks build crane's cargoArtifacts (the dependency closure), which
+        # is keyed on Cargo.lock, so the cache key must rotate on a lockfile
+        # change or the rebuilt deps can never be persisted (the immutable
+        # primary key already exists, so the save is skipped). Mirrors the
+        # cargo/sccache cache idiom: exact key, then prefix fallback.
+        # runner.arch is included because the macOS runner fleet spans
+        # arm64/x86_64.
+        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock', '**/Cargo.lock') }}
         restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-
         # Size-bound the saved store via GC (shared ~10 GB budget). BOTH OS
         # inputs must be set: on macOS, GC is SKIPPED unless the -macos input is
