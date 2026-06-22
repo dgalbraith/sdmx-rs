@@ -416,6 +416,7 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
 /// let measure_list = MeasureList::new(None, vec![measure], vec![], vec![], None)?;
+/// assert_eq!(measure_list.measures().len(), 1);
 /// assert!(measure_list.get("OBS_VALUE").is_some());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -457,6 +458,12 @@ impl MeasureList {
     #[must_use]
     pub fn stated_id(&self) -> Option<&str> {
         self.id.as_deref()
+    }
+
+    /// The measures, in wire order (always at least one).
+    #[must_use]
+    pub fn measures(&self) -> &[Measure] {
+        &self.measures
     }
 
     /// Appends a measure, preserving wire order.
@@ -744,6 +751,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(list.stated_id(), Some("MeasureDescriptor"));
+        assert_eq!(list.measures().len(), 2);
+        assert_eq!(list.measures()[0].id(), "OBS_VALUE");
         assert_eq!(list.iter().count(), 2);
         assert_eq!(list.get("OBS_VALUE").map(IdentifiableArtefact::id), Some("OBS_VALUE"));
         assert!(list.get("MISSING").is_none());
