@@ -145,8 +145,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods |
 | [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate    |
 | [D-0064](#d-0064) | Constraints                 | TimeRange remodelled to { kind, valid_from, valid_to }; carries TimeRangeValueType's wrapper validFrom/validTo, the validity arm D-0038 missed     |
+| [D-0065](#d-0065) | Conventions                 | Hash/Eq/PartialEq derived uniformly wherever float-free; SdmxVersion hand-writes Hash over its raw string (Eq/Hash contract)                       |
 
-<!-- Next ID: D-0065 -->
+<!-- Next ID: D-0066 -->
 
 ## Entries
 
@@ -1490,5 +1491,23 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: Model-not-cut, the governing precedent for the constraint cluster ([D-0026](#d-0026)/[D-0038](#d-0038)/[D-0040](#d-0040), ADR-0008): two optional schema-valid attributes are stored, not dropped. The fix is consistent rather than novel. Every sibling validity pair in §5.8 (`CubeKeyValue`, `SimpleComponentValue`, `CubeRegionKey`, `DataKey`) is already `Option<SdmxTimePeriod>` over the same `StandardTimePeriodType` attributes; `TimeRange`'s pair was the lone omission. `SdmxTimePeriod` already exists (Phase-1 foundation, [D-0027](#d-0027)), so there is no deferred dependency: this is not the `ObservationalTimePeriodType` lexical-typing work deferred for `.period`. Validity-of-selected-content **forks by choice arm**: per-value on the `Value+` arm ([D-0040](#d-0040)), per-wrapper on the `TimeRange` arm, the two realisations of one tier rather than a flat fourth level.
 
 **Consequences**: (1) Corrects the [D-0038](#d-0038) record: its "three-level pattern" Observation is amended by blockquote to the content-validity-forks reading (original retained for provenance). (2) The `TimeRange` shape from [D-0026](#d-0026) is superseded by the `{ kind, valid_from, valid_to }` struct, with endpoints renamed `{ start, end }` to match the schema's `StartPeriod`/`EndPeriod`; `TimePeriodRange` is unchanged. (3) 0010 §5.8 is updated to the new shape, keeping design and register in sync. (4) No new `Error` variant and no custom `Deserialize`. (5) Implementation lands with the rest of `TimeRange` in Milestone 4; this entry corrects the design record now. (6) Validity is **per-construct**, not global. Only constraints and `TimeRangeValueType` use `StandardTimePeriodType`; structure maps use `xs:date`, and registry registration plus the dataset header use `xs:dateTime` (the header pair even named `validFromDate`/`validToDate`). When those constructs land (Phase 2+, other crates), each takes its own validity name and type: no shared `Validity` type, no blanket `valid_from`/`valid_to` rename.
+
+---
+
+### D-0065 — Equivalence and hash traits (Hash, Eq, PartialEq) derived uniformly where free; SdmxVersion hand-writes Hash
+
+| **Area**     | Conventions |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | hash, eq, partialeq, derive, map-key, hashmap, sdmx-version, uniformity, ergonomics, no-float |
+| **Related**  | [D-0002](#d-0002), [D-0027](#d-0027), [D-0060](#d-0060) |
+
+**Observation**: Equivalence and hashing traits have been applied as-needed, producing derive-set friction: a wrapped inner type may be `Hash` while its collection wrapper or parent aggregate is not. Because the crate models the strictly typed SDMX schema, almost every field is `String`, `bool`, an integer, a deterministic `enum`, `Vec`, `Option`, or `chrono::DateTime`, all of which are `Hash`; there are no floating-point values in the structural metadata chain. `PartialEq`/`Eq` are already derived crate-wide, so the live gap is `Hash`: today only the reference types ([D-0002](#d-0002)) derive it (an inline "natural map key" rationale), so equal value-model instances cannot serve as `HashMap`/`HashSet` keys, for no mechanical benefit. The one obstacle is `SdmxVersion`, whose `PartialEq`/`Eq` is hand-written over the raw canonical string ([D-0027](#d-0027)); it is embedded throughout the `VersionableMetadata` chain (hence every maintainable), so its `Hash` gates `Hash` on the whole versioned tree.
+
+**Decision**: Adopt a uniform "where-free" baseline: every type that does not require floating-point representation carries `Hash`, `Eq`, and `PartialEq`. For the overwhelming majority (wrappers, float-free value enums, constraint leaf carriers, and top-level maintainables) this is the standard `#[derive(...)]`; in practice `PartialEq`/`Eq` are already universal, so `Hash` is the operative addition. `SdmxVersion` is the carve-out: it hand-writes `Hash` to hash only its raw string, agreeing with its lexical `Eq` (so `2.0` and `2.0.0` stay distinct and the `Hash`/`Eq` contract holds) rather than deriving over parsed components; establishing this unblocks `Hash` on the metadata tree. Forward rule: any new type derives the triple on creation unless it must store an `f32`/`f64`.
+
+**Rationale**: `Hash`-where-free is zero-cost at runtime. Deriving `Hash` on large top-level aggregates (`Dataflow`, `Codelist`) that may never be map keys feels semantically impure, but the derived impl is dead code when unused and is stripped by the compiler/LLVM; only a microscopic macro-expansion compile-time tax remains, traded for absolute API consistency and frictionless downstream use. The `SdmxVersion` carve-out does not foreclose semantic version precedence (where `2.0` conceptually equals `2.0.0`): precedence is deliberately deferred to `Ord`/`PartialOrd` or a dedicated method ([D-0060](#d-0060)), decoupling mechanical map-key identity (`Hash`/`Eq`) from domain comparison logic.
+
+**Consequences**: (1) The entire structural-metadata chain becomes trivially hashable, removing arbitrary roadblocks for downstream consumers. (2) The reference types' inline "natural map key" comment generalises to this entry and may cite it; the entry adds no forward reference to its own consumers. (3) Review rule: maintainers no longer litigate whether a type "semantically needs to be a key"; absent floats, it gets the triple. (4) `Borrow<str>` is unaffected: it stays conditional-only on the lexical newtypes (locking `Eq`/`Hash`/`Ord` could foreclose `SdmxVersion` precedence), so this entry adds `Hash` but does not adopt `Borrow`. (5) No behavioural change beyond the added traits; equality and serialisation semantics are unchanged.
 
 ---
