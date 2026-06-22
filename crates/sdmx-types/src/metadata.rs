@@ -61,7 +61,7 @@ use crate::{
 /// assert_eq!(meta.id(), "CL_FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct IdentifiableMetadata {
     id: String,
     uri: Option<String>,
@@ -137,7 +137,7 @@ impl<'de> serde::Deserialize<'de> for IdentifiableMetadata {
 ///
 /// The storage leaf bundling the `NameableType` content (names and descriptions) that the
 /// [`NameableArtefact`] trait exposes.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct NameableMetadata {
     identifiable: IdentifiableMetadata,
     names: LocalisedString,
@@ -208,7 +208,7 @@ impl<'de> serde::Deserialize<'de> for NameableMetadata {
 ///
 /// The storage leaf bundling the `VersionableType` content (version and validity window) that the
 /// [`VersionableArtefact`] trait exposes.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct VersionableMetadata {
     nameable: NameableMetadata,
     // `version` is `Option`: the spec marks it optional with "if not supplied, the artefact is
@@ -316,7 +316,7 @@ impl<'de> serde::Deserialize<'de> for VersionableMetadata {
 /// assert_eq!(maintainable.agency(), "ESTAT");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct MaintainableMetadata {
     versionable: VersionableMetadata,
     agency: String,

@@ -57,7 +57,7 @@ use crate::{
 /// assert_eq!(measure.id(), "OBS_VALUE");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Measure {
     metadata: ComponentMetadata,
     concept: ConceptReference,

@@ -61,7 +61,7 @@ use crate::{
 /// The spec's `CascadeSelectionType` is `boolean | "excluderoot"`, a tri-state, so it is an enum:
 /// `false` is [`None`](Self::None), `true` is [`IncludeChildren`](Self::IncludeChildren), and the
 /// literal `"excluderoot"` is [`ExcludeRoot`](Self::ExcludeRoot).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Cascade {
     /// `false` (the default): just this value, no children.
     None,
@@ -102,7 +102,7 @@ check would refuse valid references; holding verbatim avoids that.
 Decisions: D-0054, D-0061.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct MemberValue {
     /// The member value content (wildcards are part of the content), stored verbatim.
     pub value: String,
@@ -124,7 +124,7 @@ pub struct MemberValue {
 /// ## Guarantees
 ///
 /// Always holds at least one [`MemberValue`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct MemberValues(Vec<MemberValue>);
 
@@ -167,7 +167,7 @@ impl<'de> serde::Deserialize<'de> for MemberValues {
 /// The spec distinguishes the two senses by element name (`InclusiveCodeSelection` versus
 /// `ExclusiveCodeSelection`), both of type `CodeSelectionType`; the distinction is modelled here
 /// as the enum variant. Exhaustive: exactly these two arms.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum CodeSelection {
     /// Include the listed members.
     Inclusive(MemberValues),
@@ -189,7 +189,7 @@ pub enum CodeSelection {
 ///
 /// Invariant-free pub-field carrier: the reference self-validates structurally, the selection
 /// composes the validated [`MemberValues`] newtype, and `prefix` is an unconstrained string.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CodelistExtension {
     /// The codelist being extended.
     pub codelist: CodelistReference,
@@ -243,7 +243,7 @@ the superset carrier needs no per-edition branch.
 Decisions: D-0020, D-0023.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Code {
     /// The code's nameable metadata (id, names, descriptions, annotations, links).
     pub metadata: NameableMetadata,
@@ -319,7 +319,7 @@ impl SchemeItem for Code {}
 /// assert!(!codelist.is_partial());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Codelist {
     scheme: ItemScheme<Code>,
     /// The codelists this one extends (`0..unbounded`); empty ⟺ absent. Invariant-free, so public

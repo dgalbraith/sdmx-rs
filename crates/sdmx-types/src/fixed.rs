@@ -60,7 +60,7 @@ use crate::error::{Error, to_de_error};
 /// assert!(FixedInclude::new(Some(false)).is_err());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct FixedInclude(Option<bool>);
 

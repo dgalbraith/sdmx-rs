@@ -96,7 +96,7 @@ to `SdmxTimePeriod` (D-0027); these are selection-level, distinct from `TimePeri
 Decisions: D-0040, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CubeKeyValue {
     /// The dimension value content, held verbatim.
     pub value: String,
@@ -133,7 +133,7 @@ already correct should that boundary ever move.
 Decisions: D-0040, D-0011, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct SimpleComponentValue {
     /// The component value content, held verbatim.
     pub value: String,
@@ -176,7 +176,7 @@ pub struct SimpleComponentValue {
 /// assert!(CubeKeyValues::new(vec![]).is_err());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct CubeKeyValues(Vec<CubeKeyValue>);
 
@@ -222,7 +222,7 @@ impl<'de> serde::Deserialize<'de> for CubeKeyValues {
 /// ## Guarantees
 ///
 /// Always holds at least one [`SimpleComponentValue`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct SimpleComponentValues(Vec<SimpleComponentValue>);
 
@@ -298,7 +298,7 @@ so statedness is stored (D-0052) and `effective_is_inclusive()` is the resolved 
 Decisions: D-0031, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TimePeriodRange {
     /// The period content, held verbatim (it may be a standard period or a time-range lexeme).
     pub period: String,
@@ -340,7 +340,7 @@ dropped, as `Before`/`After` already do. Derived `Deserialize`: it composes the 
 Decisions: D-0026, D-0064.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum TimeRangeKind {
     /// The range covers everything before this period.
     Before(TimePeriodRange),
@@ -395,7 +395,7 @@ between-field invariant and the validity pair reuses `Error::InvalidTimePeriod`.
 Decisions: D-0064, D-0027, D-0031, D-0026, D-0038, D-0040.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TimeRange {
     /// The span the range covers.
     pub kind: TimeRangeKind,
@@ -432,7 +432,7 @@ newtype, so it keeps derived `Deserialize` (§7 cross-field rule).
 Decisions: D-0038, D-0040.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum KeyValueSelection {
     /// An enumerated list of dimension values (always at least one).
     Values(CubeKeyValues),
@@ -466,7 +466,7 @@ ambiguity is unrepresentable. Derived `Deserialize` (it composes already-valid p
 Decisions: D-0026, D-0038.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ComponentSelection {
     /// An enumerated list of component values (always at least one).
     Values(SimpleComponentValues),
@@ -504,7 +504,7 @@ carry their own validating paths.
 Decisions: D-0020, D-0038, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CubeRegionKey {
     /// The id of the dimension being selected (a structural reference, not re-validated).
     pub id: String,
@@ -545,7 +545,7 @@ is unrepresentable by field omission. Pub-field carrier, derived `Deserialize`.
 Decisions: D-0020, D-0038, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ComponentValueSet {
     /// The id of the component being selected (a structural reference, possibly nested).
     pub id: String,
@@ -612,7 +612,7 @@ lint (D-0051): duplicate selection ids are schema-valid wire, held verbatim.
 Decisions: D-0026, D-0033, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CubeRegion {
     /// The dimension selections, in wire order.
     pub key_values: Vec<CubeRegionKey>,
@@ -639,7 +639,7 @@ pub struct CubeRegion {
 /// ## Guarantees
 ///
 /// Always holds at most two [`CubeRegion`]s.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct CubeRegions(Vec<CubeRegion>);
 
@@ -699,7 +699,7 @@ unrepresentable by omission. `lang` is the loose single-tag `Option<String>` (D-
 Decisions: D-0039, D-0040, D-0011, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataComponentValue {
     /// The component value content, held verbatim.
     pub value: String,
@@ -723,7 +723,7 @@ pub struct DataComponentValue {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DataComponentValue`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DataComponentValues(Vec<DataComponentValue>);
 
@@ -780,7 +780,7 @@ choice is optional, so `Empty` is the no-values state; with `Values` non-empty b
 Decisions: D-0026, D-0038, D-0039.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum DataComponentSelection {
     /// An enumerated list of component values (always at least one).
     Values(DataComponentValues),
@@ -815,7 +815,7 @@ fields. Pub-field carrier, derived `Deserialize`.
 Decisions: D-0020, D-0038, D-0039, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataComponentValueSet {
     /// The id of the component being selected (a structural reference, possibly nested).
     pub id: String,
@@ -857,7 +857,7 @@ empty (D-0031).
 Decisions: D-0039, D-0040, D-0031.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct SimpleKeyValues(Vec<String>);
 
@@ -920,7 +920,7 @@ fields. Pub-field carrier: the rejection rides the `FixedInclude` and `SimpleKey
 Decisions: D-0039, D-0020, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataKeyValue {
     /// The id of the dimension being selected (a structural reference, not re-validated).
     pub id: String,
@@ -960,7 +960,7 @@ collections are a wire sequence (`KeyValue*` then `Component*`), so two `Vec`s m
 Decisions: D-0039, D-0033, D-0051, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataKey {
     /// The dimension selections, in wire order.
     pub key_values: Vec<DataKeyValue>,
@@ -990,7 +990,7 @@ pub struct DataKey {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DataKey`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DataKeys(Vec<DataKey>);
 
@@ -1072,7 +1072,7 @@ to store (contrast the `Option<bool>` node flags, D-0031/D-0052).
 Decisions: D-0039, D-0031, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataKeySet {
     /// The data keys in this set (always at least one).
     pub keys: DataKeys,
@@ -1127,7 +1127,7 @@ only consumer is the 3.0 data attachment.
 Decisions: D-0044, D-0014, D-0037.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct QueryableDataSource {
     /// The URL of the data source, held verbatim.
     pub data_url: String,
@@ -1159,7 +1159,7 @@ pub struct QueryableDataSource {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DsdReference`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DataStructureRefs(Vec<DsdReference>);
 
@@ -1204,7 +1204,7 @@ impl<'de> serde::Deserialize<'de> for DataStructureRefs {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DataflowReference`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DataflowRefs(Vec<DataflowReference>);
 
@@ -1249,7 +1249,7 @@ impl<'de> serde::Deserialize<'de> for DataflowRefs {
 /// ## Guarantees
 ///
 /// Always holds at least one [`ProvisionAgreementReference`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct ProvisionAgreementRefs(Vec<ProvisionAgreementReference>);
 
@@ -1296,7 +1296,7 @@ impl<'de> serde::Deserialize<'de> for ProvisionAgreementRefs {
 /// ## Guarantees
 ///
 /// Always holds at least one URL.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct SimpleDataSources(Vec<String>);
 
@@ -1362,7 +1362,7 @@ Derived `Deserialize`: it composes the already-valid non-empty newtypes (§7 cro
 Decisions: D-0034, D-0044, D-0021.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum DataConstraintAttachment {
     /// The constraint is attached to a single data provider.
     DataProvider(DataProviderReference),
@@ -1417,7 +1417,7 @@ otherwise (D-0034).
 Decisions: D-0034, D-0021.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum AvailabilityConstraintAttachment {
     /// The constraint is attached to a single data structure definition.
     DataStructure(DsdReference),
@@ -1456,7 +1456,7 @@ regardless (D-0034).
 Decisions: D-0037, D-0021.
 "#
 )]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ConstraintRole {
     /// The constraint states the values allowed for the attached artefact.
     Allowed,
@@ -1489,7 +1489,7 @@ check is a lint, D-0031). Invariant-free pub-field carrier, derived `Deserialize
 Decisions: D-0042, D-0037, D-0031.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ReleaseCalendar {
     /// The period between releases of the data set.
     pub periodicity: String,
@@ -1533,7 +1533,7 @@ contrast `AvailabilityConstraint`, whose attachment is mandatory (the asymmetry 
 Decisions: D-0037, D-0041, D-0042, D-0036, D-0039, D-0013.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataConstraint {
     /// The constraint's maintainable metadata (id, agency, version, names, and so on).
     pub metadata: MaintainableMetadata,
@@ -1633,7 +1633,7 @@ space (a negative stated count is schema-valid, a coherence lint flags it, D-004
 Decisions: D-0013, D-0033, D-0041, D-0043.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct AvailabilityConstraint {
     /// What the constraint is attached to (mandatory).
     pub attachment: AvailabilityConstraintAttachment,
@@ -1727,7 +1727,7 @@ Decisions: D-0013, D-0037.
 // an `AvailabilityConstraint`), but both are owned values of a single constraint payload; boxing the
 // larger arm would add indirection the design does not model for no practical gain at this scale.
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ConstraintModel {
     /// A data constraint (both editions).
     Data(DataConstraint),

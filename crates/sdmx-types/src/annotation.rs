@@ -54,7 +54,7 @@ A single `xml:lang` attaches to each `AnnotationURL`, so modelling this as a
 Decisions: D-0011.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct AnnotationUrl {
     /// The URL payload. Maps directly to the `xs:anyURI` element content.
     ///
@@ -110,7 +110,7 @@ because the spec leaves the type open (adhere, don't invent).
 Decisions: D-0011.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Annotation {
     /// An optional id that disambiguates the annotation (the `id` attribute).
     pub id: Option<String>,
@@ -163,7 +163,7 @@ not a closed set), so an enum would invent a constraint the wire does not impose
 Decisions: D-0035.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Link {
     /// Identifies the kind of object being linked to (required `rel` attribute).
     pub rel: String,

@@ -71,7 +71,7 @@ use crate::{
 /// assert_eq!(concept.id(), "FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Concept {
     metadata: NameableMetadata,
     parent_id: Option<String>,
@@ -188,7 +188,7 @@ impl<'de> serde::Deserialize<'de> for Concept {
 /// assert_eq!(scheme.agency(), "SDMX");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct ConceptScheme {
     scheme: ItemScheme<Concept>,
 }

@@ -58,7 +58,7 @@ use crate::{
 /// ## Guarantees
 ///
 /// Always holds a non-empty id.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct GroupId(String);
 
@@ -104,7 +104,7 @@ impl<'de> serde::Deserialize<'de> for GroupId {
 /// The id is a structural reference, not re-validated. `optional` carries statedness: `None` means
 /// the wire omitted it, and the schema default (`false`) is the
 /// [`effective_optional`](Self::effective_optional) view.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DimensionRef {
     /// The referenced dimension's id.
     pub id: String,
@@ -134,7 +134,7 @@ impl DimensionRef {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DimensionRef`].
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DimensionIds(Vec<DimensionRef>);
 
@@ -196,7 +196,7 @@ impl<'de> serde::Deserialize<'de> for DimensionIds {
 /// assert!(matches!(dimensions, AttributeRelationship::Dimensions(_)));
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum AttributeRelationship {
     /// The value attaches to the whole dataflow.
     Dataflow,
@@ -246,7 +246,7 @@ impl AttributeRelationship {
 /// ## Guarantees
 ///
 /// Always holds at least one measure id.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct MeasureRelationship(Vec<String>);
 
@@ -312,7 +312,7 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 /// assert_eq!(attribute.id(), "OBS_STATUS");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Attribute {
     metadata: ComponentMetadata,
     concept: ConceptReference,
@@ -443,7 +443,7 @@ impl<'de> serde::Deserialize<'de> for Attribute {
 /// local reference into the metadata structure plus a full [`AttributeRelationship`]. The wire
 /// admits at most one `Link`, so it is an `Option`, not a `Vec`. An invariant-free pub-field
 /// carrier.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct MetadataAttributeUsage {
     /// The local reference to the metadata attribute (a structural reference).
     pub metadata_attribute_ref: String,
@@ -470,7 +470,7 @@ pub struct MetadataAttributeUsage {
 // but both are owned values of a small attribute list stored in wire order; boxing the larger arm
 // would add indirection the design does not model for no practical gain at this scale.
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum AttributeListMember {
     /// An attribute.
     Attribute(Attribute),

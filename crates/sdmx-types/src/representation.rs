@@ -72,7 +72,7 @@ Decisions: D-0021, D-0048.
 // The all-caps `URI` and `XHTML` variants reproduce the spec's enumeration tokens verbatim so the
 // derived serde representation matches the wire; the lint that would lowercase them is waived here.
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum DataType {
     /// A character string (`xs:string`); the schema default.
     String,
@@ -241,7 +241,7 @@ impl DataType {
 ///
 /// The spec's `OccurenceType` is a number or the literal `"unbounded"`. A `u32` cannot hold the
 /// literal, so it gets its own [`Unbounded`](Self::Unbounded) arm.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum MaxOccurs {
     /// A finite upper bound (`xs:nonNegativeInteger`).
     Count(u32),
@@ -281,7 +281,7 @@ grammar is deferred to the parser.
 Decisions: D-0027, D-0046, D-0048, D-0052.
 "#
 )]
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TextFormat {
     /// The data type of the values (`textType`); `None` ⟺ absent, the default applied as a
     /// position-aware effective view.
@@ -347,7 +347,7 @@ are integer numerics, no `decimals`, and the Code `textType` subset.
 Decisions: D-0027, D-0048.
 "#
 )]
-#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct EnumerationFormat {
     /// The data type of the values (`textType`), restricted to the Code subset. No schema default:
     /// `None` means unrestricted.
@@ -392,7 +392,7 @@ pub struct EnumerationFormat {
 ///
 /// The base representation admits either reference; a dimension position narrows this to
 /// codelist-only, enforced at the dimension constructor.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum EnumerationReference {
     /// A reference to a codelist.
     Codelist(CodelistReference),
@@ -410,7 +410,7 @@ pub enum EnumerationReference {
 ///
 /// Projects the spec's `RepresentationType` choice into a Rust enum. Exhaustive: exactly these two
 /// arms.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum RepresentationChoice {
     /// An enumerated representation: a reference to a codelist or value list, optionally refined by
     /// an [`EnumerationFormat`].
@@ -435,7 +435,7 @@ pub enum RepresentationChoice {
 /// A choice (enumeration or text format) plus the `minOccurs`/`maxOccurs` on the representation
 /// node. Both occurrence attributes store statedness; their schema defaults are position-aware
 /// effective views applied at the component level.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Representation {
     /// The enumeration-or-text-format choice.
     pub choice: RepresentationChoice,

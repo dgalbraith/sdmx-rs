@@ -48,7 +48,7 @@ use crate::{
 /// Invariant-free pub-field carrier. Its id is a plain `xs:string`, deliberately unvalidated (the
 /// fourth id tier): symbols such as `$`, `€`, `¥`, even `""`, are mechanically schema-valid. Its
 /// name is optional, and it carries annotations directly (it extends the annotable base).
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ValueItem {
     /// The value's id (plain `xs:string`, required, unvalidated).
     pub id: String,
@@ -103,7 +103,7 @@ pub struct ValueItem {
 /// assert_eq!(value_list.items.len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ValueList {
     /// The maintenance metadata shared by every maintainable artefact.
     pub metadata: MaintainableMetadata,

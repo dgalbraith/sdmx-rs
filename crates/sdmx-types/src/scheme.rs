@@ -94,7 +94,7 @@ pub trait SchemeItem: IdentifiableArtefact {}
 /// assert!(!scheme.is_partial());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ItemScheme<I: SchemeItem> {
     /// The maintenance metadata shared by every maintainable artefact.
     pub metadata: MaintainableMetadata,
