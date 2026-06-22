@@ -650,9 +650,11 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       RUSTC_WRAPPER: sccache
-      # Route the native C/C++ build (aws-lc-sys via CMake) through sccache too,
-      # not just rustc.  CMake initialises these launchers from the environment;
-      # see the "Force MSVC Embedded Debug Info" step for the MSVC cacheability rule.
+      # Route the native C/C++ build (aws-lc-sys via CMake) through sccache on
+      # macOS/Linux, where it yields real C/assembler cache hits. This is a no-op
+      # on Windows: aws-lc-sys's CMake uses the Visual Studio generator, which
+      # ignores CMAKE_*_COMPILER_LAUNCHER (only Make/Ninja honour it). The Windows
+      # C build is cached instead by the "Cache aws-lc-sys Build Output" step.
       CMAKE_C_COMPILER_LAUNCHER: sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
@@ -674,16 +676,33 @@ jobs:
             "$env:USERPROFILE\.cargo", `
             "C:\Users\runner\AppData\Local\sccache"
 
-      - name: Force MSVC Embedded Debug Info
-        # sccache cannot cache MSVC objects compiled with /Zi (debug info written
-        # to a separate, non-reproducible PDB). /Z7 embeds debug info in the
-        # object so the aws-lc-sys C compiles cache cleanly. Windows-only; set
-        # before the build so cargo's native build picks it up.
+      - name: Resolve aws-lc-sys Identity
+        # Key the build-output cache on the aws-lc-sys checksum from Cargo.lock so
+        # it rotates only when the crate itself changes, not on every dependency
+        # bump (a near-permanent hit; aws-lc-sys changes rarely). Windows-only,
+        # mirroring the output cache below.
+        id: awslc
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          echo "CFLAGS=/Z7" >> "$GITHUB_ENV"
-          echo "CXXFLAGS=/Z7" >> "$GITHUB_ENV"
+          id=$(awk '/^name = "aws-lc-sys"$/{f=1} f&&/^checksum =/{gsub(/[" ]/,""); sub(/checksum=/,""); print; exit}' Cargo.lock)
+          test -n "$id" || { echo "aws-lc-sys not found in Cargo.lock"; exit 1; }
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Cache aws-lc-sys Build Output
+        # The aws-lc-sys C build is ~72% of the Windows build and sccache cannot
+        # cache it there (the VS generator ignores the compiler launcher). Cache
+        # the build-script state directly so a warm run reuses the compiled
+        # library instead of recompiling. Both the build dir (OUT_DIR) and the
+        # fingerprint are restored so cargo treats the build script as fresh and
+        # skips re-running it. Keyed on the crate checksum + toolchain + OS.
+        if: runner.os == 'Windows'
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            target/*/build/aws-lc-sys-*
+            target/*/.fingerprint/aws-lc-sys-*
+          key: ${{ runner.os }}-awslc-${{ steps.awslc.outputs.id }}-${{ hashFiles('rust-toolchain.toml') }}
 
       - uses: ./.github/actions/sccache-cache
 
