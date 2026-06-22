@@ -14,6 +14,16 @@ inputs:
       Jobs that run `nix build` (not just `nix develop`) may raise this.
     required: false
     default: "5368709120" # 5 GiB
+  cache-key-suffix:
+    description: >-
+      Scopes the nix store cache to a job role. The lighter `nix develop` jobs
+      realise only the dev-shell closure; nix-check additionally builds crane's
+      cargoArtifacts (the heavy dependency closure). Sharing one key lets the
+      faster lighter jobs win the save race with a cargoArtifacts-less store, so
+      nix-check's closure never persists. nix-check passes a distinct suffix to
+      get its own cache; the default (empty) is the dev-shell-only key.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -36,16 +46,19 @@ runs:
     - name: Cache Nix store
       uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
       with:
-        # OS/arch-namespaced. Keyed on flake.lock AND Cargo.lock: the flake
-        # checks build crane's cargoArtifacts (the dependency closure), which
-        # is keyed on Cargo.lock, so the cache key must rotate on a lockfile
-        # change or the rebuilt deps can never be persisted (the immutable
-        # primary key already exists, so the save is skipped). Mirrors the
-        # cargo/sccache cache idiom: exact key, then prefix fallback.
-        # runner.arch is included because the macOS runner fleet spans
-        # arm64/x86_64.
-        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('flake.lock', '**/Cargo.lock') }}
-        restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-
+        # OS/arch-namespaced. Keyed on flake.nix + flake.lock + Cargo.lock: the
+        # flake checks build crane's cargoArtifacts (the dependency closure),
+        # whose derivation depends on all three, so the cache key must rotate on
+        # any of them or the rebuilt deps can never be persisted (the immutable
+        # primary key already exists, so the save is skipped). flake.nix is in
+        # the key because it defines the derivations: a build-config change must
+        # invalidate the store cache. Mirrors the cargo/sccache cache idiom:
+        # exact key, then prefix fallback. runner.arch is included because the
+        # macOS runner fleet spans arm64/x86_64. cache-key-suffix scopes the key
+        # by job role so nix-check's heavy cargoArtifacts cache is not raced by
+        # the lighter dev-shell jobs (see inputs).
+        primary-key: nix-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) || '' }}${{ hashFiles('flake.nix', 'flake.lock', '**/Cargo.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-key-suffix && format('{0}-', inputs.cache-key-suffix) || '' }}
         # Size-bound the saved store via GC (shared ~10 GB budget). BOTH OS
         # inputs must be set: on macOS, GC is SKIPPED unless the -macos input is
         # present. Set defensively even though only Linux jobs use Nix today.
