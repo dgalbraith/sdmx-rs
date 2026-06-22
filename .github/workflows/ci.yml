@@ -697,7 +697,26 @@ jobs:
           tool: nextest
 
       - name: Build Workspace
-        run: cargo build --workspace --all-targets --locked
+        run: cargo build --workspace --all-targets --locked --timings
+
+      - name: Report sccache Stats
+        # Cache request/hit context for the build. Runs on every leg so the
+        # cross-OS comparison is uniform; if: always() so the stats are captured
+        # even when the build or a later step fails (when they matter most).
+        if: always()
+        run: sccache --show-stats
+
+      - name: Upload Build Timings
+        # cargo --timings writes a per-crate wall-clock + critical-path report to
+        # target/cargo-timings/. Uploaded per-OS for the native-build-cost
+        # analysis; if: always() captures the partial report on failure too.
+        # actions/upload-artifact is github-owned (allowed without an allowlist
+        # entry); retention inherits the repo default.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cargo-timings-${{ matrix.os }}
+          path: target/cargo-timings/
 
       - name: Run Tests
         run: cargo nextest run --workspace --locked
