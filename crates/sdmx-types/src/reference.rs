@@ -2,7 +2,8 @@
 //!
 //! A reference names another artefact by its coordinates rather than embedding it. These are the
 //! natural map keys of the model (deduping a set of fetched artefacts, "have I already resolved
-//! this codelist?"), so they derive [`Hash`]; their fields are all `String`, so it is free.
+//! this codelist?"), so using them as keys is a natural case; like every float-free value type in
+//! the crate, they derive [`Hash`].
 //!
 //! The references group by coordinate shape. [`CodelistReference`], [`ValueListReference`],
 //! [`DsdReference`], [`DataflowReference`], and [`ProvisionAgreementReference`] name a maintainable
@@ -17,8 +18,9 @@
 
 Invariant-free pub-field carriers with derived `Serialize`/`Deserialize`: a reference self-validates
 structurally (its parse contract is the scheduled Phase-2 URN work), so there is no construction
-invariant. `Hash` is scoped deliberately to the reference/identity types, the natural map keys, not
-applied blanket to the composite artefacts.
+invariant. `Hash` originated on these reference/identity types as the natural map keys; D-0065 later
+generalised it to every float-free value type, so the references are no longer distinctive in
+deriving it.
 
 One struct per spec reference type rather than a unified `MaintainableReference`: each maps 1-to-1 to
 a distinct concept in the information model, and the item-in-scheme references already diverge from
@@ -34,7 +36,7 @@ data provider is an item in a data-provider scheme, not a maintainable in its ow
 URN-string-versus-decomposed-fields question and the `version: String` to `SdmxVersion` tightening
 are the deferred Phase-2 reference-types pass (D-0002), uniform across all the reference structs.
 
-Decisions: D-0020, D-0021, D-0034, D-0047, D-0048.
+Decisions: D-0020, D-0021, D-0034, D-0047, D-0048, D-0065.
 "#
 )]
 

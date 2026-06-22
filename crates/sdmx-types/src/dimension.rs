@@ -72,7 +72,7 @@ use crate::{
 /// assert_eq!(dimension.effective_position(0), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Dimension {
     metadata: ComponentMetadata,
     concept: ConceptReference,
@@ -210,7 +210,7 @@ impl<'de> serde::Deserialize<'de> for Dimension {
 /// assert_eq!(time_dimension.id(), "TIME_PERIOD");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct TimeDimension {
     metadata: ComponentMetadata,
     concept: ConceptReference,

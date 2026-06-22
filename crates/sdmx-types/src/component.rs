@@ -60,7 +60,7 @@ use crate::{
 /// assert_eq!(inherited.stated_id(), None);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct ComponentMetadata {
     id: Option<String>,
     uri: Option<String>,
@@ -144,7 +144,7 @@ impl<'de> serde::Deserialize<'de> for ComponentMetadata {
 /// The spec's single `UsageType` (`mandatory | optional`), the usage flag attributes and measures
 /// share. It is stored as `Option<Usage>` on those components so the schema default (`optional`)
 /// stays an effective view, never baked into the store.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum Usage {
     /// The component's value must be present.
     Mandatory,

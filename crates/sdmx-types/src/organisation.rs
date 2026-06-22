@@ -54,7 +54,7 @@ use crate::{
 /// Projects the repeated contact-detail choice (`<Telephone>`, `<Fax>`, `<X400>`, `<URI>`,
 /// `<Email>`) into a single Rust enum so a [`Contact`] can store the entries in one interleaved
 /// list, preserving wire order. Exhaustive: exactly these five kinds.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ContactDetail {
     /// A telephone number.
     Telephone(String),
@@ -78,7 +78,7 @@ pub enum ContactDetail {
 ///
 /// Invariant-free pub-field carrier. The localisable Name/Department/Role triple are each optional
 /// (`minOccurs="0"`); the detail endpoints are one interleaved list in wire order.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Contact {
     /// The contact's localised names; `None` ⟺ no names.
     pub names: Option<LocalisedString>,
@@ -118,7 +118,7 @@ pub struct Contact {
 /// assert_eq!(agency.id(), "ESTAT");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Agency {
     metadata: NameableMetadata,
     contacts: Vec<Contact>,
@@ -223,7 +223,7 @@ impl<'de> serde::Deserialize<'de> for Agency {
 /// assert!(scheme("OTHER").is_err());
 /// # Ok::<(), Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct AgencyScheme {
     scheme: ItemScheme<Agency>,
 }

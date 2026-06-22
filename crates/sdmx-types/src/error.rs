@@ -39,7 +39,7 @@ The identifier tiers back the distinct identifier-failure variants (`IDType` for
 Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum Error {
     /// An identifier failed the SDMX `IDType` grammar (`[A-Za-z0-9_@$\-]+`).
     ///

@@ -48,7 +48,7 @@ use crate::{
 /// ## Guarantees
 ///
 /// Always holds at least one dimension id.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DimensionConstraint(Vec<String>);
 
@@ -129,7 +129,7 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 /// assert_eq!(dataflow.agency(), "ECB");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Dataflow {
     /// The maintainable identity of the dataflow.
     pub metadata: MaintainableMetadata,

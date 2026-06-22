@@ -67,7 +67,7 @@ so it is a bare newtype, in contrast to `SdmxVersion`, which retains a parsed de
 Decisions: D-0027.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SdmxDecimal(String);
 
 impl SdmxDecimal {
@@ -129,7 +129,7 @@ makes a fractional value unrepresentable where the schema demands an integer
 Decisions: D-0027.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SdmxInteger(String);
 
 impl SdmxInteger {
@@ -298,6 +298,14 @@ impl PartialEq for SdmxVersion {
 
 impl Eq for SdmxVersion {}
 
+/// Hashing matches [`PartialEq`]: the canonical version string is hashed, so equal versions hash
+/// equally. Hashing the parsed numeric parts instead could disagree with the raw-string equality.
+impl core::hash::Hash for SdmxVersion {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        core::hash::Hash::hash(&self.raw, state);
+    }
+}
+
 /// A [`Display`](core::fmt::Display) adapter for an optional [`SdmxVersion`] that renders
 /// `<unversioned>` when the version is absent.
 ///
@@ -378,7 +386,7 @@ validation, mirroring the spec union one-to-one.
 Decisions: D-0027.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SdmxTimePeriod {
     raw: String,
     kind: SdmxTimePeriodKind,
@@ -434,7 +442,7 @@ is correct and a future member would rightly be a breaking change.
 Decisions: D-0021.
 "#
 )]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum SdmxTimePeriodKind {
     /// `xs:gYear`: a Gregorian calendar year (`YYYY`).
     GregorianYear,
@@ -501,7 +509,7 @@ of the spec-exact kind without losing it.
 Decisions: D-0031.
 "#
 )]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Granularity {
     /// A one-year period.
     Year,
@@ -983,6 +991,32 @@ mod tests {
             SdmxVersion::new("2.1.0".into()).unwrap(),
             SdmxVersion::new("2.1.0".into()).unwrap()
         );
+    }
+
+    #[test]
+    fn version_hash_agrees_with_eq() {
+        // The hand-written Hash hashes the raw string, so equal-by-Eq versions hash identically
+        // (the Hash/Eq contract). Distinct raws need not, and are not asserted here.
+        fn hash_bytes(version: &SdmxVersion) -> alloc::vec::Vec<u8> {
+            #[derive(Default)]
+            struct ByteCollector(alloc::vec::Vec<u8>);
+            impl core::hash::Hasher for ByteCollector {
+                fn finish(&self) -> u64 {
+                    0
+                }
+                fn write(&mut self, bytes: &[u8]) {
+                    self.0.extend_from_slice(bytes);
+                }
+            }
+            let mut collector = ByteCollector::default();
+            core::hash::Hash::hash(version, &mut collector);
+            collector.0
+        }
+
+        let a = SdmxVersion::new("2.1.0".into()).unwrap();
+        let b = SdmxVersion::new("2.1.0".into()).unwrap();
+        assert_eq!(a, b);
+        assert_eq!(hash_bytes(&a), hash_bytes(&b), "equal versions must hash equally");
     }
 
     #[test]

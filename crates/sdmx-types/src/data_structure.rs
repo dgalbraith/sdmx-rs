@@ -99,7 +99,7 @@ use crate::{
 /// assert_eq!(dsd.agency(), "ECB");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataStructureDefinition {
     /// The maintainable identity of the data structure.
     pub metadata: MaintainableMetadata,

@@ -59,7 +59,7 @@ use crate::{
 /// ## Guarantees
 ///
 /// Always holds at least one dimension id.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct GroupDimensions(Vec<String>);
 
@@ -113,7 +113,7 @@ impl<'de> serde::Deserialize<'de> for GroupDimensions {
 /// assert_eq!(group.id(), "SIBLING");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Group {
     /// The group's identity (a required, user-chosen id).
     pub metadata: IdentifiableMetadata,
@@ -174,7 +174,7 @@ impl IdentifiableArtefact for Group {
 /// assert_eq!(dimension_list.dimensions().len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct DimensionList {
     id: Option<String>,
     /// Annotations carried on the descriptor.
@@ -293,7 +293,7 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 /// assert_eq!(attribute_list.members().len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct AttributeList {
     id: Option<String>,
     /// Annotations carried on the descriptor.
@@ -419,7 +419,7 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 /// assert!(measure_list.get("OBS_VALUE").is_some());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct MeasureList {
     id: Option<String>,
     /// Annotations carried on the descriptor.

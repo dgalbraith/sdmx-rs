@@ -68,7 +68,7 @@ view, not a keyed lookup. The non-empty invariant is the sole construction check
 Decisions: D-0051, D-0059.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct LocalisedString(Vec<(Option<String>, String)>);
 
