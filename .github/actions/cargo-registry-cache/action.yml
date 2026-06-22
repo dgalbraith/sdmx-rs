@@ -1,0 +1,18 @@
+name: 'cargo registry cache'
+description: >-
+  Restore/save the Cargo registry, crate cache, and git db with a
+  lockfile-keyed cache (the registry only changes when Cargo.lock does, so the
+  key is stable across runs and restores exactly).
+runs:
+  using: composite
+  steps:
+    - name: Cache Cargo Registry
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
