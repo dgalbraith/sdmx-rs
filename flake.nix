@@ -61,6 +61,11 @@
         in
         {
           default = sdmx-rs-workspace;
+          # The crane dependency-closure derivation, exposed so CI can
+          # `nix build` it with `--out-link` to register a GC root. Without a
+          # root, cache-nix-action's pre-save garbage collection removes it and
+          # the dependency tree recompiles every run (#92).
+          inherit cargoArtifacts;
         }
       );
 
