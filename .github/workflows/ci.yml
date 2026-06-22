@@ -761,6 +761,8 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+        with:
+          cache-key-suffix: flake
 
       - name: Root the Dependency Closure
         # `nix flake check` builds crane's cargoArtifacts (the dependency closure)
