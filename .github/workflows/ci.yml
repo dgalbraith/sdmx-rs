@@ -650,9 +650,13 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     env:
       RUSTC_WRAPPER: sccache
-      # Route the native C/C++ build (aws-lc-sys via CMake) through sccache too,
-      # not just rustc.  CMake initialises these launchers from the environment;
-      # see the "Force MSVC Embedded Debug Info" step for the MSVC cacheability rule.
+      # Route aws-lc-sys's native C/C++ build (via CMake) through sccache. This
+      # works on macOS/Linux (real C/assembler hits) but is a NO-OP on Windows
+      # and cannot be fixed from here: aws-lc-sys's CMake uses the Visual Studio
+      # generator, which ignores CMAKE_*_COMPILER_LAUNCHER; forcing Ninja via
+      # CMAKE_GENERATOR fails because cmake-rs overrides it (aws-lc-sys never
+      # calls .generator()). The Windows aws-lc C build is therefore uncached
+      # (~117s baseline). Do not re-add a /Z7 CFLAGS hack or re-attempt Ninja.
       CMAKE_C_COMPILER_LAUNCHER: sccache
       CMAKE_CXX_COMPILER_LAUNCHER: sccache
     steps:
@@ -673,17 +677,6 @@ jobs:
             "${{ github.workspace }}\target", `
             "$env:USERPROFILE\.cargo", `
             "C:\Users\runner\AppData\Local\sccache"
-
-      - name: Force MSVC Embedded Debug Info
-        # sccache cannot cache MSVC objects compiled with /Zi (debug info written
-        # to a separate, non-reproducible PDB). /Z7 embeds debug info in the
-        # object so the aws-lc-sys C compiles cache cleanly. Windows-only; set
-        # before the build so cargo's native build picks it up.
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          echo "CFLAGS=/Z7" >> "$GITHUB_ENV"
-          echo "CXXFLAGS=/Z7" >> "$GITHUB_ENV"
 
       - uses: ./.github/actions/sccache-cache
 
