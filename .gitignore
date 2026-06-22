@@ -53,6 +53,8 @@
 
 # Github Actions - composite actions
 !/.github/actions/
+!/.github/actions/cargo-registry-cache/
+!/.github/actions/cargo-registry-cache/action.yml
 !/.github/actions/sccache-cache/
 !/.github/actions/sccache-cache/action.yml
 !/.github/actions/setup-nix/

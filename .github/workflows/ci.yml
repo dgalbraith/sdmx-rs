@@ -253,16 +253,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -282,16 +273,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -311,16 +293,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -340,16 +313,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -367,16 +331,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       # MAINTENANCE: dependency-audit
       # Last updated: 2026-05-30
@@ -428,16 +383,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -542,16 +488,7 @@ jobs:
       - name: Install sccache
         uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - name: Verify Codebase Compiles on MSRV
         run: cargo check --workspace --all-targets --locked
@@ -594,16 +531,7 @@ jobs:
       - name: Install sccache
         uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       # cargo-msrv (the installed tool) is intentionally UNPINNED (latest): this is
       # an opportunistic upstream-drift detector, so pinning it would blind it to
@@ -689,16 +617,7 @@ jobs:
       - name: Install sccache
         uses: Mozilla-Actions/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@920ab1831fbf4fb3ef75c8ead83556c918bb7290 # v2.79.8
@@ -810,16 +729,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
@@ -841,16 +751,7 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - uses: ./.github/actions/cargo-registry-cache
 
       - uses: ./.github/actions/sccache-cache
 
