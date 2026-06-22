@@ -653,6 +653,22 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - name: Exclude Build Paths from Defender
+        # Windows real-time antivirus scans every file cargo writes, which on the
+        # NTFS runner dominates the Build Workspace step (~4.5min vs ~1min on
+        # Linux/macOS). Excluding the build output, cargo home, and the sccache
+        # directory removes that tax; runners are admin, so Add-MpPreference is
+        # permitted. Set before the cache restores so unpacked artifacts are also
+        # exempt. The sccache path mirrors the literal in the sccache-cache
+        # composite (SCCACHE_DIR is not yet in the environment at this point).
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-MpPreference -ExclusionPath `
+            "${{ github.workspace }}\target", `
+            "$env:USERPROFILE\.cargo", `
+            "C:\Users\runner\AppData\Local\sccache"
+
       - uses: ./.github/actions/sccache-cache
 
       - name: Install Stable Rust Toolchain
