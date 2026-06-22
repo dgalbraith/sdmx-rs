@@ -769,6 +769,14 @@ jobs:
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
 
+      - name: Root the Dependency Closure
+        # `nix flake check` builds crane's cargoArtifacts (the dependency closure)
+        # in the store but leaves no GC root, so cache-nix-action's pre-save
+        # garbage collection removes it and the deps recompile every run (#92).
+        # Build it with --out-link (outside the workspace, so no stray result
+        # symlink) to register an indirect GC root that survives the pre-save GC.
+        run: nix build .#cargoArtifacts --out-link "$RUNNER_TEMP/cargo-artifacts" --print-build-logs
+
       - name: Run Nix Flake Check
         run: nix flake check --print-build-logs
 
