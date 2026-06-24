@@ -8,9 +8,9 @@
 # half covers verbatim slicing (complexType and simpleType, depth-aware over
 # nested anonymous types), the structural-divergence split versus the
 # documentation-only single-fragment case, the symbol-not-found error, and
-# README preservation. The doctor half must pass when fresh+wired (ignoring the
-# directory's authored README.md and scoped .markdownlint.yaml) and fail on a
-# stale fragment, a missing include, or an orphan include.
+# README preservation. The doctor half must pass when the manifest files are
+# pinned in sources.toml and the rust items are wired, and fail on an unpinned
+# manifest file, a missing include, or an orphan include.
 #
 # Run with: bats tests/bats/check-xsd-fragments.bats
 # ==============================================================================
@@ -25,7 +25,7 @@ setup() {
         "$FIX/crates/sdmx-types/src" "$OUTDIR"
     cp "$REPO/scripts/gen-xsd-fragments.sh" "$REPO/scripts/check-xsd-fragments.sh" "$FIX/scripts/"
     mkdir -p "$FIX/scripts/lib"
-    cp "$REPO/scripts/lib/log.sh" "$FIX/scripts/lib/"
+    cp "$REPO/scripts/lib/log.sh" "$REPO/scripts/lib/specs-fetch.sh" "$FIX/scripts/lib/"
 
     # A minimal schema, identical across both editions.
     schema='<?xml version="1.0"?>
@@ -45,7 +45,8 @@ editions = ["3.0", "3.1"]
 rust     = ["Foo"]
 EOF
 
-    write_src   # without the include, by default
+    write_sources Test.xsd   # the doctor's subset invariant reads sources.toml
+    write_src                # without the include, by default
 }
 
 teardown() {
@@ -60,6 +61,33 @@ write_src() {
         [ -n "$inc" ] && printf '%s\n' "$inc"
         printf 'pub struct Foo;\n'
     } >"$FIX/crates/sdmx-types/src/lib.rs"
+}
+
+# Write a minimal sources.toml pinning the given schema filename for both editions.
+# The doctor's subset invariant checks file NAMES against this, not the shas, so the
+# pin values are placeholders.
+write_sources() { # filename
+    cat >"$FIX/specs/sources.toml" <<EOF
+[upstream]
+owner = "sdmx-twg"
+repo = "sdmx-ml"
+
+[edition."3.0"]
+ref = "v3.0.0"
+rev = "0000000000000000000000000000000000000000"
+narHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+[edition."3.1"]
+ref = "v3.1.0"
+rev = "1111111111111111111111111111111111111111"
+narHash = "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+
+[files."3.0"]
+"$1" = "0000000000000000000000000000000000000000000000000000000000000000"
+
+[files."3.1"]
+"$1" = "0000000000000000000000000000000000000000000000000000000000000000"
+EOF
 }
 
 # Overwrite one edition's schema, wrapping the given type body in a schema envelope.
@@ -185,31 +213,23 @@ write_both() { write_schema 3.0 "$1"; write_schema 3.1 "$1"; }
     [ -f "$OUTDIR/FooType.md" ]
 }
 
-@test "doctor passes when fragments are fresh and wired" {
+@test "doctor passes when fragments are wired and the manifest files are pinned" {
     sh "$FIX/scripts/gen-xsd-fragments.sh"
     write_src wired
     run sh "$FIX/scripts/check-xsd-fragments.sh"
     [ "$status" -eq 0 ]
 }
 
-@test "doctor ignores authored files (README.md, .markdownlint.yaml) in the dir" {
+@test "doctor fails when a manifest file is not pinned in sources.toml" {
     sh "$FIX/scripts/gen-xsd-fragments.sh"
     write_src wired
-    # Both are authored, not generated, so the freshness diff must skip them;
-    # without the -x exclusions, diff -r would flag each as "only in OUT".
-    printf '# XSD Contract Fragments\n' >"$OUTDIR/README.md"
-    printf 'extends: ../../../../.markdownlint.yaml\nMD033: false\n' >"$OUTDIR/.markdownlint.yaml"
-    run sh "$FIX/scripts/check-xsd-fragments.sh"
-    [ "$status" -eq 0 ]
-}
-
-@test "doctor fails on a stale (hand-edited) fragment" {
-    sh "$FIX/scripts/gen-xsd-fragments.sh"
-    write_src wired
-    echo "tampered" >>"$OUTDIR/FooType.md"
+    # Re-pin sources.toml to a different file: the manifest's schemas/Test.xsd is
+    # no longer a pinned source, violating the subset invariant. The cross-check
+    # still passes, so this isolates the subset failure.
+    write_sources Other.xsd
     run sh "$FIX/scripts/check-xsd-fragments.sh"
     [ "$status" -eq 1 ]
-    echo "$output" | grep -q "STALE"
+    echo "$output" | grep -q "not pinned"
 }
 
 @test "doctor fails when an include is missing" {

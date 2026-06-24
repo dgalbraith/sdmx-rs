@@ -30,10 +30,10 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 MANIFEST="$ROOT/crates/sdmx-types/xsd-manifest.toml"
-SPECS="$ROOT/specs"
-# Output dir; overridable (XSD_FRAGMENTS_OUT) so the doctor can regenerate into a
-# temp dir for a non-mutating freshness diff.
-OUT="${XSD_FRAGMENTS_OUT:-$ROOT/crates/sdmx-types/docs/xsd-fragments}"
+# Schema tree root; overridable (SDMX_SPECS_DIR, shared with fetch-specs.sh) so a
+# materialised fetch-on-demand tree can be sliced instead of the in-tree specs/.
+SPECS="${SDMX_SPECS_DIR:-$ROOT/specs}"
+OUT="$ROOT/crates/sdmx-types/docs/xsd-fragments"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
