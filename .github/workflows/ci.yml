@@ -205,6 +205,12 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+        with:
+          # Isolated `specs` nix-store cache shared with docs-internal, plus
+          # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
+          # The materialise step that uses them is wired separately.
+          cache-key-suffix: specs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify XSD contract fragments (freshness + cross-check)
         run: nix develop --command just check-xsd-fragments
@@ -304,7 +310,11 @@ jobs:
     name: Internal Documentation Check
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    # `xsd` joins the gate (not just rust/infra): the design_docs build consumes
+    # the fetched schemas via the manifest, and a re-pin can touch only
+    # specs/sources.toml (which carries the FOD rev + hash, read by fromTOML),
+    # leaving flake.nix unchanged so `infra` alone would miss it.
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.xsd == 'true'
     env:
       RUSTC_WRAPPER: sccache
     steps:
@@ -312,6 +322,12 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+        with:
+          # Isolated `specs` nix-store cache shared with check-xsd-fragments, plus
+          # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
+          # The materialise step that uses them is wired separately.
+          cache-key-suffix: specs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/cargo-registry-cache
 
