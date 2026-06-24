@@ -172,6 +172,8 @@
 !/specs/
 /specs/*
 !/specs/README.md
+# Fetch-on-demand schema pins (commit + per-file sha256)
+!/specs/sources.toml
 
 # SDMX 3.0 schemas — sdmx-ml release v3.0
 !/specs/3.0/
@@ -396,6 +398,7 @@
 !/scripts/lib/forge-spec.sh
 !/scripts/lib/registry-spec.sh
 !/scripts/lib/log.sh
+!/scripts/lib/specs-fetch.sh
 
 # CI scripts
 !/scripts/ci/
@@ -475,6 +478,10 @@
 !/scripts/common.sh
 !/scripts/doc-engine.sh
 
+# Fetch-on-demand schema tooling
+!/scripts/fetch-specs.sh
+!/scripts/update-specs.sh
+
 # XSD contract fragment generator (apply); the doctor (check-xsd-fragments.sh)
 # lives under Verification gates & checkers.
 !/scripts/gen-xsd-fragments.sh
@@ -553,6 +560,11 @@
 !/tests/bats/update-msrv.bats
 !/tests/bats/fixtures
 !/tests/bats/fixtures/update-msrv-manifest.txt
+
+# Fetch-on-demand schema tests
+!/tests/bats/specs-fetch.bats
+!/tests/bats/fetch-specs.bats
+!/tests/bats/update-specs.bats
 
 # Forge diagnostics fixtures (canned gh API responses for doctor-forge tests)
 !/tests/bats/fixtures/forge/

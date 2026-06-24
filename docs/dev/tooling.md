@@ -170,7 +170,6 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just check-commits`         | Local & CI | Validates commit messages in the active branch against Conventional Commit rules.                                        | `commitlint`                                   |
 | `just link-check`            | Local & CI | Validates Markdown link reachability and bans absolute `file://` links in md/toml/rs.                                    | `lychee`, `check-local-links.sh`               |
 | `just check-decision-refs`   | Local & CI | (Supports `verify-docs`) Validates that crate-source decision references (`D-NNNN`) resolve to `docs/decisions.md`.      | `check-decision-refs.sh`                       |
-| `just check-xsd-fragments`   | Local & CI | (Supports `verify-docs`) Validates the generated XSD contract fragments are fresh and correctly wired into `design_docs`.| `check-xsd-fragments.sh`                       |
 | `just check-shebangs`        | Local & CI | (Supports `verify-scripts`) Validates that all scripts in `scripts/` declare the POSIX-portable `#!/bin/sh` shebang.     | `check-shebangs.sh`                            |
 | `just verify-test-manifests` | Local & CI | (Supports `verify-scripts`) Validates that the update-msrv test manifest lists all workspace crate `Cargo.toml` files.   | `check-test-manifests.sh`                      |
 | `just test-workflows`        | Local & CI | (Supports `verify-infra`) Validates GitHub Actions workflows for syntax errors and SHA-pinning compliance.               | `actionlint`                                   |
@@ -192,7 +191,6 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just clippy`            | Local & CI | Strict static analysis under pedantic and nursery lints.                                                           | `cargo-clippy`                                             |
 | `just docs`              | Local & CI | Generates workspace documentation and validates that public API comments are warn-free.                            | `cargo-doc`                                                |
 | `just docs-internal`     | Local      | Renders the internal documentation layer (`design_docs` rationale plus private items); never published to docs.rs. | `cargo-doc`                                                |
-| `just gen-xsd-fragments` | Local      | (Re)generates the sdmx-types XSD contract fragments from `xsd-manifest.toml` for the `design_docs` layer (apply).  | `gen-xsd-fragments.sh`                                     |
 | `just toml-fmt`          | Local      | Formats all TOML files (`Cargo.toml`, `deny.toml`, etc.) in the workspace.                                         | `taplo`                                                    |
 | `just toml-check`        | Local & CI | Validates that all workspace TOML files are formatted correctly.                                                   | `taplo`                                                    |
 | `just md-fmt`            | Local      | Formats all Markdown documentation files for structure and style.                                                  | `markdownlint`                                             |
@@ -239,7 +237,9 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just fuzz-check TARGET` | Local & CI | Runs a short (10-second) smoke-test compilation check on a fuzz target. | `cargo-fuzz`  |
 | `just bench`             | Local      | Runs performance benchmarks for the workspace.                          | `cargo bench` |
 
-### 7. Document Management (ADR, Design, and Guides)
+### 7. Document Management
+
+#### ADRs, Design Docs, and Guides
 
 | Target                                        | Scope      | Description                                                                 | Tool(s)                 |
 |-----------------------------------------------|:----------:|-----------------------------------------------------------------------------|-------------------------|
@@ -256,6 +256,16 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just guide-rename <old_target> <new_title>`  | Local      | Safely renames a User Guide and updates references.                         | `scripts/doc-engine.sh` |
 | `just guide-remove <target>`                  | Local      | Safely removes a User Guide interactively.                                  | `scripts/doc-engine.sh` |
 | `just verify-guide`                           | Local & CI | Validates formatting and integrity of the User Guides ledger.               | `scripts/doc-engine.sh` |
+
+#### XSD Contract Fragments (`design_docs`)
+
+The `sdmx-types` contract-fragment pipeline keeps each type's verbatim XSD excerpt (rendered under its `## Specification` in the internal docs) in lockstep with the pinned schemas: **materialise → generate → verify**. Only `check-xsd-fragments` is a `verify-docs` gate; `fetch-specs` and `gen-xsd-fragments` are the local materialise and apply steps.
+
+| Target                     | Scope      | Description                                                                                                                      | Tool(s)                  |
+|----------------------------|:----------:|----------------------------------------------------------------------------------------------------------------------------------|--------------------------|
+| `just fetch-specs`         | Local      | Materialises the pinned SDMX schemas on demand via the Nix FOD, then sha-verifies every file against `sources.toml`; idempotent. | `fetch-specs.sh`         |
+| `just gen-xsd-fragments`   | Local      | (Re)generates the sdmx-types XSD contract fragments from `xsd-manifest.toml` for the `design_docs` layer (apply).                | `gen-xsd-fragments.sh`   |
+| `just check-xsd-fragments` | Local & CI | (Supports `verify-docs`) Validates the generated XSD contract fragments are fresh and correctly wired into `design_docs`.        | `check-xsd-fragments.sh` |
 
 ### 8. Diagnostics (`just doctor` System)
 
@@ -339,15 +349,16 @@ The two controls are orthogonal defence-in-depth:
 > [!NOTE]
 > The recipes in this section are **maintainer-only** operations: they require forge write access, mutate lockfiles or live configuration, or govern the repository's ongoing health obligations. They are not part of the normal contributor workflow and are intentionally excluded from `just verify`.
 
-| Target                                  | Scope      | Description                                                                                                              | Tool(s)                               |
-|-----------------------------------------|:----------:|--------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
-| `just maintain-help`                    | Local      | **Maintenance diagnostics guide.** Displays maintenance and dependency management commands.                              | `just`                                |
-| `just update-deps *CRATES`              | Maintainer | Refreshes `Cargo.lock` (semver-compatible), validates via `verify-rust`. Updates, no commit [5].                         | `cargo update`                        |
-| `just update-flake`                     | Maintainer | Refreshes `flake.lock` Nix inputs, validates via `verify-infra`. Updates, leaves unstaged, no commit [5].                | `nix flake update`                    |
-| `just update-msrv <old_ver> <new_ver>`  | Maintainer | Raises or lowers the Minimum Supported Rust Version across files and manifests.                                          | `scripts/update-msrv.sh`              |
-| `just update-rulesets`                  | Maintainer | Applies spec rulesets to the live forge (POST to create, PUT to update by name). Idempotent.                             | `scripts/update-rulesets.sh`          |
-| `just update-labels`                    | Maintainer | Applies spec labels to the live forge (PATCH to update, POST to create). Does not delete or rename.                      | `scripts/update-labels.sh`            |
-| `just update-actions-allowlist`         | Maintainer | Pushes the committed actions allowlist to the live forge (single PUT).                                                   | `scripts/update-actions-allowlist.sh` |
+| Target                                  | Scope      | Description                                                                                                                                     | Tool(s)                               |
+|-----------------------------------------|:----------:|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
+| `just maintain-help`                    | Local      | **Maintenance diagnostics guide.** Displays maintenance and dependency management commands.                                                     | `just`                                |
+| `just update-deps *CRATES`              | Maintainer | Refreshes `Cargo.lock` (semver-compatible), validates via `verify-rust`. Updates, no commit [5].                                                | `cargo update`                        |
+| `just update-flake`                     | Maintainer | Refreshes `flake.lock` Nix inputs, validates via `verify-infra`. Updates, leaves unstaged, no commit [5].                                       | `nix flake update`                    |
+| `just update-msrv <old_ver> <new_ver>`  | Maintainer | Raises or lowers the Minimum Supported Rust Version across files and manifests.                                                                 | `scripts/update-msrv.sh`              |
+| `just update-specs <edition> <ref>`     | Maintainer | Re-pins an SDMX schema edition into `specs/sources.toml` (resolves the tag → commit, captures the NAR hash and per-file shas; TOFU). No commit. | `scripts/update-specs.sh`             |
+| `just update-rulesets`                  | Maintainer | Applies spec rulesets to the live forge (POST to create, PUT to update by name). Idempotent.                                                    | `scripts/update-rulesets.sh`          |
+| `just update-labels`                    | Maintainer | Applies spec labels to the live forge (PATCH to update, POST to create). Does not delete or rename.                                             | `scripts/update-labels.sh`            |
+| `just update-actions-allowlist`         | Maintainer | Pushes the committed actions allowlist to the live forge (single PUT).                                                                          | `scripts/update-actions-allowlist.sh` |
 
 [5] **Updates a lockfile but does not commit.** The bump lands in the working tree, left **unstaged**, so you can review the diff and commit a GPG-signed checkpoint manually — mirroring `changelog-generate`. Both targets also refuse to run if the lock is already dirty, so the resulting diff is solely that run's. This preserves the pinned-baseline contract: a lockfile change is a reviewed event, not an automatic side effect. See [Refreshing Pinned Dependencies](#refreshing-pinned-dependencies).
 

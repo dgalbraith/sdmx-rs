@@ -102,14 +102,6 @@ local-link-check:
 check-decision-refs:
     @./scripts/check-decision-refs.sh
 
-# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-vendoring)
-gen-xsd-fragments:
-    @./scripts/gen-xsd-fragments.sh
-
-# Verify the XSD contract fragments are fresh and correctly wired (doctor).
-check-xsd-fragments:
-    @./scripts/check-xsd-fragments.sh
-
 # --- verify-scripts sub-gate helpers ---
 
 # Validate that all scripts in scripts/ use the POSIX-portable #!/bin/sh shebang
@@ -360,7 +352,7 @@ bench:
     cargo bench --workspace
 
 # ============================================================================
-# 7. Document Management (ADR, Design, and Guides)
+# 7. Document Management
 # ============================================================================
 
 # Document management diagnostic guide (lists checks to run)
@@ -386,6 +378,7 @@ docs-help:
     @echo "  just verify-guide                 # Verify User Guide ledger formatting"
     @echo ""
     @echo "XSD Contract Fragments (design_docs layer):"
+    @echo "  just fetch-specs                  # Materialise the pinned SDMX schemas (fetch + sha-verify)"
     @echo "  just gen-xsd-fragments            # Regenerate fragments from xsd-manifest.toml (apply)"
     @echo "  just check-xsd-fragments          # Verify fragments are fresh and wired (doctor)"
     @echo ""
@@ -449,6 +442,22 @@ verify-guide:
 [private]
 _verify-guide-quiet:
     @./scripts/doc-engine.sh verify guide --quiet
+
+# --- XSD contract fragments (design_docs) ---
+# Pipeline: fetch-specs (materialise the pinned schemas) -> gen-xsd-fragments
+# (generate the fragments) -> check-xsd-fragments (verify wiring; verify-docs gate).
+
+# Materialise the pinned SDMX schemas on demand (Nix FOD fetch + per-file sha-verify; idempotent)
+fetch-specs:
+    @./scripts/fetch-specs.sh
+
+# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-vendoring)
+gen-xsd-fragments:
+    @./scripts/gen-xsd-fragments.sh
+
+# Verify the XSD contract fragments are fresh and correctly wired (doctor).
+check-xsd-fragments:
+    @./scripts/check-xsd-fragments.sh
 
 # ============================================================================
 # 8. Diagnostics (`just doctor` System)
@@ -556,13 +565,14 @@ maintain-help:
     @echo "🔧 sdmx-rs Maintenance"
     @echo ""
     @echo "Dependency & toolchain refresh (mutates lockfiles; review + sign manually):"
-    @echo "  just update-deps [crates]   # Refresh Cargo.lock (all or named crates), then validate"
-    @echo "  just update-flake           # Refresh flake.lock (Nix inputs), then validate"
-    @echo "  just update-msrv <o> <n>    # Raise/lower MSRV (add --downgrade to lower)"
+    @echo "  just update-deps [crates]    # Refresh Cargo.lock (all or named crates), then validate"
+    @echo "  just update-flake            # Refresh flake.lock (Nix inputs), then validate"
+    @echo "  just update-msrv <o> <n>     # Raise/lower MSRV (add --downgrade to lower)"
+    @echo "  just update-specs <ed> <ref> # Re-pin an SDMX schema edition (commit + NAR hash + shas)"
     @echo ""
     @echo "Forge governance (maintainer-only; idempotent):"
-    @echo "  just update-rulesets        # Apply spec rulesets to live forge"
-    @echo "  just update-labels          # Apply spec labels to live forge"
+    @echo "  just update-rulesets           # Apply spec rulesets to live forge"
+    @echo "  just update-labels             # Apply spec labels to live forge"
     @echo "  just update-actions-allowlist  # Push committed actions allowlist to live forge"
 
 # Refresh Cargo.lock (semver-compatible); validates via verify-rust. No commit — review diff and sign manually.
@@ -572,6 +582,10 @@ update-deps *CRATES:
 # Refresh flake.lock (Nix inputs); validates via verify-infra. No commit — review diff and sign manually.
 update-flake:
     @./scripts/update-flake.sh
+
+# Re-pin an SDMX schema edition into specs/sources.toml (resolve tag -> commit + NAR hash + per-file shas, TOFU). No commit — review diff, then recompute decisions.md #L anchors.
+update-specs edition ref:
+    @./scripts/update-specs.sh {{ edition }} {{ ref }}
 
 # Raise or lower MSRV across all manifests and files; pass --downgrade to lower, --dry-run to preview
 update-msrv *args:
