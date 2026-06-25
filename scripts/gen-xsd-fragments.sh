@@ -2,7 +2,7 @@
 # ===================================================================
 # gen-xsd-fragments.sh
 #
-# Generates the vendored XSD contract fragments for sdmx-types from
+# Generates the XSD contract fragments for sdmx-types from
 # crates/sdmx-types/xsd-manifest.toml. For each [[fragment]] entry it
 # slices the named complexType/simpleType verbatim out of the pinned
 # schema(s), wraps it in a collapsible <details> Markdown block, and
@@ -19,7 +19,7 @@
 #
 # This is the "apply" half of the spec -> doctor -> apply kernel: the
 # only writer of the fragment files. Run by hand (just gen-xsd-fragments)
-# when adding a manifest entry or re-vendoring a schema; the doctor
+# when adding a manifest entry or re-pinning a schema; the doctor
 # (check-xsd-fragments.sh) verifies the committed result.
 # ===================================================================
 set -eu

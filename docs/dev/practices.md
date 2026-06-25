@@ -91,7 +91,7 @@ Two homographs turn on the referent, not the spelling:
 
 Resolve both by what the word refers to, not by its surface form.
 
-Generated and vendored content is exempt and follows its source verbatim: the vendored `specs/`, the generated XSD fragments under `crates/sdmx-types/docs/xsd-fragments/` (run `just gen-xsd-fragments`), the `CODE_OF_CONDUCT.md` (the adopted Contributor Covenant), and the `LICENSE-*` files.
+Generated and externally-sourced content is exempt and follows its source verbatim: the fetched `specs/`, the generated XSD fragments under `crates/sdmx-types/docs/xsd-fragments/` (run `just gen-xsd-fragments`), the `CODE_OF_CONDUCT.md` (the adopted Contributor Covenant), and the `LICENSE-*` files.
 
 ## Commenting Philosophy
 

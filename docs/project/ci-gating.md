@@ -36,7 +36,7 @@ These checks are mandatory but scoped to specific file types. They block merge i
 | **check-scripts**        | Shell script linting and BATS tests                            | Scripts/infra changes, schedule                 | ✅ Yes       |
 | **check-workflows**      | GitHub Actions workflow validation                             | Infra changes, schedule                         | ✅ Yes       |
 | **validate-scaffolding** | Repository scaffolding conformance                             | Rust/infra changes, schedule                    | ✅ Yes       |
-| **check-xsd-fragments**  | XSD contract fragments fresh and correctly wired (design_docs) | XSD manifest/fragment/source changes, schedule  | ✅ Yes       |
+| **check-xsd-fragments**  | XSD contract fragments wired to their Rust types (design_docs) | XSD manifest/fragment/source changes, schedule  | ✅ Yes       |
 | **check-decision-refs**  | Crate-source `D-NNNN` references resolve to the register       | Crate source / `decisions.md` changes, schedule | ✅ Yes       |
 
 ### 3. Continuous Monitoring & Maintenance
@@ -281,7 +281,7 @@ Verifies that repository scaffolding (crate structure, required files, workspace
 **Purpose**: Catch scaffolding drift — missing or malformed crate metadata, workspace member mismatches, or required file absences — before they compound.
 
 #### check-xsd-fragments
-Verifies the vendored XSD contract fragments are fresh (regenerate-and-diff), that every modelled type's `## Specification` cites its symbol and wires its `include_str!`, and that no orphan includes exist (`just check-xsd-fragments`).
+Verifies that every modelled type's `## Specification` cites its XSD symbol and wires its `include_str!`, that no orphan includes exist, and that every manifest fragment is sliced from a schema pinned in `specs/sources.toml` (the subset invariant) (`just check-xsd-fragments`). Fragment freshness is not diffed: the fragments are a pure function of the pinned schemas, manifest, and generator, regenerated on each build.
 
 **Runs on**: XSD manifest/fragment or crate-source changes, infrastructure changes, or scheduled.
 **Purpose**: Keep the design_docs XSD contracts in lockstep with the pinned schemas.

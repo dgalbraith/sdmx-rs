@@ -69,6 +69,10 @@ Licensed under either of:
 
 at your option.
 
+### SDMX schemas and contract fragments
+
+The dual licence above covers the sdmx-rs project code only. The SDMX XML schemas and the XSD contract fragments sliced from them are copyright the SDMX initiative and are fetched on demand from upstream, not redistributed by this repository; the bundled `xml.xsd` is copyright W3C, fetched within the SDMX release. See [specs/NOTICE](specs/NOTICE) for full provenance and rights.
+
 ### Contributions
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

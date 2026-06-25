@@ -166,14 +166,18 @@
 # VIII. Standard SDMX Schemas
 # ==============================================================================
 # The official SDMX XML schemas the workspace is modelled against, version-pinned.
-# Vendored from the upstream sdmx-ml release as the schemas/ subtree; see
-# specs/README.md for the source tag and provenance. Each schema file is listed
-# explicitly — adding or replacing a schema is a deliberate, reviewed act.
+# Fetched on demand from the upstream sdmx-ml release schemas/ subtree (pinned by
+# commit + per-file sha256 in specs/sources.toml), not redistributed from this
+# repository; see specs/README.md and specs/NOTICE for provenance and rights.
+# Each schema file is listed explicitly until the fetch-on-demand flip untracks
+# the files; adding or replacing a schema is a deliberate, reviewed act.
 !/specs/
 /specs/*
 !/specs/README.md
 # Fetch-on-demand schema pins (commit + per-file sha256)
 !/specs/sources.toml
+# Rights and provenance notice for the fetched schemas
+!/specs/NOTICE
 
 # SDMX 3.0 schemas — sdmx-ml release v3.0
 !/specs/3.0/

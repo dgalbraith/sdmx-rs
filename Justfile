@@ -380,7 +380,7 @@ docs-help:
     @echo "XSD Contract Fragments (design_docs layer):"
     @echo "  just fetch-specs                  # Materialise the pinned SDMX schemas (fetch + sha-verify)"
     @echo "  just gen-xsd-fragments            # Regenerate fragments from xsd-manifest.toml (apply)"
-    @echo "  just check-xsd-fragments          # Verify fragments are fresh and wired (doctor)"
+    @echo "  just check-xsd-fragments          # Verify fragments are wired to their types (doctor)"
     @echo ""
 
 # Create a new Architecture Decision Record using the custom MADR template (non-interactive)
@@ -451,11 +451,11 @@ _verify-guide-quiet:
 fetch-specs:
     @./scripts/fetch-specs.sh
 
-# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-vendoring)
+# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-pinning)
 gen-xsd-fragments:
     @./scripts/gen-xsd-fragments.sh
 
-# Verify the XSD contract fragments are fresh and correctly wired (doctor).
+# Verify the XSD contract fragments are correctly wired to their types (doctor).
 check-xsd-fragments:
     @./scripts/check-xsd-fragments.sh
 
