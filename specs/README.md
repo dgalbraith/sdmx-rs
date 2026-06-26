@@ -43,3 +43,16 @@ Both versions are carried because the workspace targets **both** SDMX 3.0 and 3.
 ## Citing a schema from the decision register
 
 The decision register cites schemas by **pinned upstream blob URL**, not by local path: the `.xsd` files are fetched on demand and are absent from a fresh checkout (see [Layout](#layout)). A `Spec ref` row links to the cited type at the pinned commit with a `#L<start>-L<end>` anchor onto its definition, for example `https://github.com/sdmx-twg/sdmx-ml/blob/<commit>/schemas/SDMXCommon.xsd#L219-L255`. The link text names the file and edition (e.g. `SDMXCommon.xsd 3.1`) and the anchor lands on the cited `complexType`/`simpleType`. The `<commit>` is the per-edition `rev` recorded in [`sources.toml`](sources.toml), so a re-pin moves every link by editing one field; the `#L` anchors are recomputed at re-pin, since they shift if upstream reflows a file.
+
+## Re-pinning or adding an edition
+
+Re-pinning an edition to a newer upstream release, or adding a new one, is driven by `just update-specs <edition> <ref>` (for example `just update-specs 3.2 v3.2.0`). The driver is the mutating counterpart of `fetch-specs`: it resolves the ref to its full 40-character commit SHA, captures the Nix fixed-output NAR hash via trust-on-first-use, materialises the schema tree, records each file's sha256, and re-emits [`sources.toml`](sources.toml) deterministically so the pin file stays canonical regardless of edit history. It is the same path the initial pins were bootstrapped through, so the steady-state operation ships proven.
+
+The driver rewrites `sources.toml` only. The remaining steps are reviewed by hand, not automated:
+
+1. **Re-materialise and regenerate.** Run `just gen-xsd-fragments`, which fetches the new pin (`fetch-specs`) and regenerates the fragments into the build output, so the local validation gates run against the newly pinned schemas. Both the materialised `specs/` tree and the fragments are gitignored build output, not tracked files.
+2. **Recompute the `docs/decisions.md` `#L` anchors.** The register cites each type by a `#L<start>-L<end>` span (see [Citing a schema from the decision register](#citing-a-schema-from-the-decision-register)). These silently rot if upstream reflows a file, so they must be recomputed against the new commit, not carried over: the `specs_symbol_span` helper in [`scripts/lib/specs-fetch.sh`](../scripts/lib/specs-fetch.sh) reports a symbol's start and end lines in the fetched file.
+3. **Record the change** in the [Provenance](#provenance) table (old to new tag/SHA, date, reason) rather than overwriting silently.
+4. **Verify.** `just check-xsd-fragments` and `just docs-internal` confirm every modelled type stays wired to its symbol against the new schemas.
+
+Before committing, review the regenerated `sources.toml` diff (per-edition `rev` and `narHash`, plus the per-file sha256 set): a changed sha you did not expect is a real upstream content change to scrutinise, not noise.
