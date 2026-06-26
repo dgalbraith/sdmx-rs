@@ -42,4 +42,4 @@ Both versions are carried because the workspace targets **both** SDMX 3.0 and 3.
 
 ## Citing a schema from the decision register
 
-Reference the pinned path, e.g. `specs/3.1/schemas/SDMXCommon.xsd`, so "Source: SDMXCommon.xsd 3.1" in a `D-00xx` entry resolves to a concrete, version-tracked file.
+The decision register cites schemas by **pinned upstream blob URL**, not by local path: the `.xsd` files are fetched on demand and are absent from a fresh checkout (see [Layout](#layout)). A `Spec ref` row links to the cited type at the pinned commit with a `#L<start>-L<end>` anchor onto its definition, for example `https://github.com/sdmx-twg/sdmx-ml/blob/<commit>/schemas/SDMXCommon.xsd#L219-L255`. The link text names the file and edition (e.g. `SDMXCommon.xsd 3.1`) and the anchor lands on the cited `complexType`/`simpleType`. The `<commit>` is the per-edition `rev` recorded in [`sources.toml`](sources.toml), so a re-pin moves every link by editing one field; the `#L` anchors are recomputed at re-pin, since they shift if upstream reflows a file.

@@ -157,7 +157,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | annotation, optionality, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.0](../specs/3.0/schemas/SDMXCommon.xsd) + [3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L215-L251) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L219-L255) |
 
 **Observation**: `AnnotationText` is `minOccurs="0"` — every field in `AnnotationType` is optional including text.
 
@@ -276,7 +276,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | datetime, chrono, no_std, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L351-L374) |
 | **Source**   | [chrono docs](https://docs.rs/chrono) |
 
 **Observation**: `validFrom`/`validTo` are `xs:dateTime` in the spec; options were `String`, a validated `DateTimeString` newtype, or first-class `chrono::DateTime`.
@@ -293,7 +293,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | spec-alignment, maintainable, sdmx-3x |
-| **Spec ref** | [SDMXCommon.xsd 3.0](../specs/3.0/schemas/SDMXCommon.xsd) + [3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L390-L409) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L394-L418) |
 | **Related**  | [D-0010](#d-0010) |
 
 **Observation**: `isFinal` was present on `MaintainableType` in SDMX 2.1 but is absent from both 3.0 and 3.1 `MaintainableType`.
@@ -310,7 +310,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | spec-alignment, maintainable, sdmx-3.1, localisation |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L394-L418) |
 | **Related**  | [D-0009](#d-0009) |
 
 **Observation**: `MaintainableType` gains `isPartialLanguage: xs:boolean` (default false) in **SDMX 3.1 only** — it is absent from the 3.0 `MaintainableType` (verified: 0 occurrences in `specs/3.0/schemas/SDMXCommon.xsd`, present in 3.1). This is the same provenance class as `AvailabilityConstraint` (a 3.1 addition the canonical superset must carry).
@@ -325,7 +325,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | annotation, cardinality, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L219-L255) |
 | **Related**  | [D-0001](#d-0001) |
 
 **Observation**: `AnnotationURL` is `0..*` with an optional `xml:lang` attribute; `AnnotationValue` is a non-localised string field also present on `AnnotationType`.
@@ -340,7 +340,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | attribute, attachment, enum, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L220) |
 | **Related**  | [D-0019](#d-0019) |
 
 **Observation**: SDMX `AttributeRelationship` is a structured choice (Dataflow / Observation / Group(id) / Dimensions(ids)), not a flat category enum.
@@ -357,7 +357,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | constraint, availability, maintainable, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L240-L262) |
 
 **Observation**: `AvailabilityConstraintType` in the spec is non-maintainable — no agencyID, no version, no registry identity. It is a response type for availability queries, not a registerable artefact.
 
@@ -373,7 +373,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active (`uri` clause stands; the `Link`-omission clause corrected by [D-0035](#d-0035)) |
 | **Keywords** | identifiable, uri, urn, link, superseded-in-part, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L301-L327) |
 | **Related**  | [D-0035](#d-0035) |
 
 > **`Link`-omission clause corrected 2026-06-10 by [D-0035](#d-0035).** The claim below that `Link` is "a transport-layer affordance belonging in the HTTP response envelope" is **factually wrong on the schema**: `LinkType` is on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship + target url/urn + media-type hint — strictly more than `uri`. It is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (D-0035). The **`uri` addition below stands**; only the Link-omission is reversed. Body retained for provenance.
@@ -394,7 +394,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active (cardinality clause corrected by [D-0025](#d-0025)) |
 | **Keywords** | measure, dsd, optionality, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L81-L95) |
 
 **Observation**: `MeasureList` is `minOccurs="0"` in the DSD `DataStructureComponentsType` — the spec permits measure-less DSDs for metadata use cases.
 
@@ -408,7 +408,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active (value-rejection clause amended by [D-0031](#d-0031); key-rejection stands) |
 | **Keywords** | localisation, validation, xs-language, bcp47, data-quality, round-trip, no_std |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`TextType` = `xs:string`); [xml.xsd](../specs/3.1/schemas/xml.xsd) (`xml:lang` = `xs:language`) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L118-L131) (`TextType` = `xs:string`); [xml.xsd](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/xml.xsd) (`xml:lang` = `xs:language`) |
 | **Related**  | [D-0011](#d-0011), [D-0031](#d-0031) |
 
 > **Amended 2026-06-11 by [D-0051](#d-0051)**: the store is an ordered list of `(language, text)` entries in wire order (duplicate language tags are schema-valid and preserved; `get(lang)` is a first-match view, `first()` is first-in-wire-order). The non-empty and non-blank-key invariants below are unchanged.
@@ -417,7 +417,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 >
 > **REVISED 2026-06-10 under D-0031, and a factual correction.**
 > 1. **Value-rejection WITHDRAWN.** The original rejected a blank/whitespace-only *value*. `TextType` is bare `xs:string`, so a blank value is **mechanically schema-valid** — the rejection traded strict spec adherence for consumer ergonomics by collapsing input for a data-quality reason, an architectural violation D-0031 forbids. Blank values are now **stored verbatim** (round-trippable); "a name with no visible text is dubious" is a non-destructive **lint**, not a `new()` error.
-> 2. **Key-rejection STANDS — with a corrected basis.** The original Observation claimed the spec "does not constrain language key format." That is **wrong**: the key is `xml:lang` = `xs:language` ([xml.xsd](../specs/3.1/schemas/xml.xsd)), whose pattern (`[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*`) requires a leading letter token. A blank key is therefore **mechanically schema-invalid**, so rejecting it enforces the exact XSD constraint (Layer-1 legitimate), not an invented constraint — it survives D-0031 for the right reason. The check remains *under*-strict (blank-only, not full `xs:language`), which is round-trip-safe (accepts a superset, never rejects a valid tag); tightening to full `xs:language` would also be mechanically exact (off-pattern is mechanically invalid) but stays a deferred parser-layer concern.
+> 2. **Key-rejection STANDS — with a corrected basis.** The original Observation claimed the spec "does not constrain language key format." That is **wrong**: the key is `xml:lang` = `xs:language` ([xml.xsd](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/xml.xsd)), whose pattern (`[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*`) requires a leading letter token. A blank key is therefore **mechanically schema-invalid**, so rejecting it enforces the exact XSD constraint (Layer-1 legitimate), not an invented constraint — it survives D-0031 for the right reason. The check remains *under*-strict (blank-only, not full `xs:language`), which is round-trip-safe (accepts a superset, never rejects a valid tag); tightening to full `xs:language` would also be mechanically exact (off-pattern is mechanically invalid) but stays a deferred parser-layer concern.
 >
 > Net: `LocalisedString::new()` rejects an empty map (schema-invalid: ≥1 Name required) and a blank key (schema-invalid `xs:language`); it no longer inspects values. The original body is retained below for provenance.
 
@@ -475,7 +475,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Active |
 | **Keywords** | attribute, enum, newtypes, invariants, unrepresentable |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L220) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
 | **Related**  | [D-0005](#d-0005), [D-0012](#d-0012), [D-0017](#d-0017) |
 
@@ -530,7 +530,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Superseded(D-0031) (canonicalise-in-store → Infoset Store + derived view; residual clause by [D-0052](#d-0052)) |
 | **Keywords** | round-trip, serialisation, canonical-model, position, superseded, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`BaseDimensionType.position`) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L344-L364) (`BaseDimensionType.position`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6, §7; [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) |
 | **Related**  | [D-0017](#d-0017), [D-0031](#d-0031) |
 
@@ -556,7 +556,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | validation, ncname, idtype, identifiers, spec-alignment, no_std |
-| **Spec ref** | [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`IDType`, `NCNameIDType`, `NestedNCNameIDType`); [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`ItemBaseType.id`); [SDMXStructureOrganisation.xsd 3.1](../specs/3.1/schemas/SDMXStructureOrganisation.xsd) (`AgencyType.id`); [SDMXStructureConcept.xsd 3.1](../specs/3.1/schemas/SDMXStructureConcept.xsd) (`ConceptBaseType.id`) |
+| **Spec ref** | [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1572-L1579) (`IDType`, `NCNameIDType`, `NestedNCNameIDType`); [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L43-L58) (`ItemBaseType.id`); [SDMXStructureOrganisation.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureOrganisation.xsd#L229-L250) (`AgencyType.id`); [SDMXStructureConcept.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L50-L77) (`ConceptBaseType.id`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.2, §5.5, §7 |
 | **Related**  | [D-0004](#d-0004), [D-0005](#d-0005), [D-0020](#d-0020) |
 
@@ -592,7 +592,7 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 | **Phase**    | Phase-1 |
 | **Status**   | Active (validation/naming clauses amended by [D-0027](#d-0027)) |
 | **Keywords** | version, optionality, newtype, spec-alignment, round-trip, no_std |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`VersionableType.version` `use="optional"`); [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`VersionType`) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L351-L374) (`VersionableType.version` `use="optional"`); [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1608-L1613) (`VersionType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.2, §5.3 |
 | **Related**  | [D-0008](#d-0008), [D-0016](#d-0016), [D-0022](#d-0022), [D-0027](#d-0027), [D-0031](#d-0031) |
 
@@ -618,7 +618,7 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 | **Phase**    | Phase-1 |
 | **Status**   | Active (no-Option clause amended by [D-0049](#d-0049)) |
 | **Keywords** | measure, dsd, cardinality, usage, spec-alignment, component |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.0](../specs/3.0/schemas/SDMXStructureDataStructure.xsd) + [3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`MeasureListType`, `MeasureType`, `UsageType`); [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`ComponentBaseType` id = `NCNameIDType`) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureDataStructure.xsd#L479-L496) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L491-L508) (`MeasureListType`, `MeasureType`, `UsageType`); [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L151-L168) (`ComponentBaseType` id = `NCNameIDType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6 |
 | **Related**  | [D-0015](#d-0015), [D-0018](#d-0018), [D-0023](#d-0023) |
 
@@ -638,13 +638,13 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 | **Phase**    | Phase-1 |
 | **Status**   | Active (no-per-selection-include claim corrected by [D-0038](#d-0038); `TimeRange` shape amended by [D-0064](#d-0064)) |
 | **Keywords** | cube-region, constraint, superset, cascade, time-range, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) + [3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`CubeRegionType`, `RegionType`, `CubeRegionKeyType`, `ComponentValueSetType`, `MemberSelectionType`, `SimpleComponentValueType`, `TimeRangeValueType`); [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`CascadeSelectionType`) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L470-L485) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L385-L400) (`CubeRegionType`, `RegionType`, `CubeRegionKeyType`, `ComponentValueSetType`, `MemberSelectionType`, `SimpleComponentValueType`, `TimeRangeValueType`); [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L1206-L1208) (`CascadeSelectionType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0013](#d-0013), [D-0017](#d-0017), [D-0018](#d-0018), [D-0022](#d-0022), [D-0038](#d-0038) |
 
 > **Amended 2026-06-11 by [D-0051](#d-0051)/[D-0052](#d-0052)**: the two selection collections are ordered `Vec`s with ids carried on the node structs (not id-keyed maps), and the region-level `include` and per-value `cascade` are stored as `Option` (statedness; the schema defaults are effective views).
 >
-> **CORRECTED 2026-06-11 by [D-0038](#d-0038).** This entry's closing claim — "there is NO per-selection `include` - is itself **incorrect**: the verification looked only at `RegionType`. `include` (`xs:boolean`, optional, default `true`) is declared on **`MemberSelectionType`** ([3.1 line ~314](../specs/3.1/schemas/SDMXStructureConstraint.xsd); 3.0 line ~402; identical both versions) and is inherited by BOTH `CubeRegionKeyType` and `ComponentValueSetType` (neither restriction prohibits it). So `include` exists at the region level **and** the selection level, and the "correction" recorded here was the error. D-0038 models the selection level (wrapper structs `CubeRegionKey`/`ComponentValueSet`), together with two further `MemberSelectionType` attributes this entry's audit also missed (`removePrefix`, both selection kinds; `validFrom`/`validTo`, KeyValue side only) and non-empty `Values` enforcement. The structural model below (two selection kinds, cascade, time range, `Empty`) otherwise **stands**; only the include claim is corrected. Body retained for provenance.
+> **CORRECTED 2026-06-11 by [D-0038](#d-0038).** This entry's closing claim — "there is NO per-selection `include` - is itself **incorrect**: the verification looked only at `RegionType`. `include` (`xs:boolean`, optional, default `true`) is declared on **`MemberSelectionType`** ([3.1 line ~314](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L293-L326); 3.0 line ~402; identical both versions) and is inherited by BOTH `CubeRegionKeyType` and `ComponentValueSetType` (neither restriction prohibits it). So `include` exists at the region level **and** the selection level, and the "correction" recorded here was the error. D-0038 models the selection level (wrapper structs `CubeRegionKey`/`ComponentValueSet`), together with two further `MemberSelectionType` attributes this entry's audit also missed (`removePrefix`, both selection kinds; `validFrom`/`validTo`, KeyValue side only) and non-empty `Values` enforcement. The structural model below (two selection kinds, cascade, time range, `Empty`) otherwise **stands**; only the include claim is corrected. Body retained for provenance.
 >
 > **CORRECTED 2026-06-19 by [D-0064](#d-0064).** The `TimeRange = Before | After | Between { from, to }` shape recorded in the Decision below is incomplete and is superseded: `TimeRangeValueType` carries its own `validFrom`/`validTo` (`StandardTimePeriodType`) attributes, which this entry's model omitted, and the endpoints are renamed `{ start, end }` to match the schema's `StartPeriod`/`EndPeriod`. D-0064 remodels it as `TimeRange { kind, valid_from, valid_to }`. The rest of the CubeRegion structure below stands; only the `TimeRange` shape is amended. Body retained for provenance.
 
@@ -671,7 +671,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | newtype, validation, lossless, no_std, decimal, integer, version, time-period, naming |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`StandardTimePeriodType`, `ObservationalTimePeriodType`); [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`VersionType`); W3C XSD (`xs:decimal`, `xs:integer`); [semver.org §11](https://semver.org/#spec-item-11) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L499-L504) (`StandardTimePeriodType`, `ObservationalTimePeriodType`); [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1608-L1613) (`VersionType`); W3C XSD (`xs:decimal`, `xs:integer`); [semver.org §11](https://semver.org/#spec-item-11) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1.1 |
 | **Related**  | [D-0004](#d-0004), [D-0016](#d-0016), [D-0024](#d-0024), [D-0028](#d-0028) |
 
@@ -697,7 +697,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | representation, textformat, datatype, facets, codelist, component, spec-alignment |
-| **Spec ref** | [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`RepresentationType`, the TextFormat tier chain, `CodeDataType`); [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`SimpleDataStructureRepresentationType`); [SDMXStructureConcept.xsd 3.1](../specs/3.1/schemas/SDMXStructureConcept.xsd) (`ConceptRepresentation`); [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`DataType` subsets); 3.0 identical throughout except the `isMultiLingual` default ([D-0046](#d-0046)) |
+| **Spec ref** | [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L209-L242) (`RepresentationType`, the TextFormat tier chain, `CodeDataType`); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L609-L625) (`SimpleDataStructureRepresentationType`); [SDMXStructureConcept.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L101-L120) (`ConceptRepresentation`); [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L1244-L1470) (`DataType` subsets); 3.0 identical throughout except the `isMultiLingual` default ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6.1 |
 | **Related**  | [D-0021](#d-0021), [D-0025](#d-0025), [D-0027](#d-0027), [D-0029](#d-0029), [D-0048](#d-0048) |
 
@@ -721,7 +721,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | time-dimension, dsd, dimension-list, position, representation, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`DimensionListType`, `TimeDimensionType`, `TimeDimensionRepresentationType`) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L314-L326) (`DimensionListType`, `TimeDimensionType`, `TimeDimensionRepresentationType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6 |
 | **Related**  | [D-0022](#d-0022), [D-0025](#d-0025), [D-0028](#d-0028) |
 
@@ -741,7 +741,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active (mechanism amended by [D-0031](#d-0031), [D-0052](#d-0052)) |
 | **Keywords** | maintainable, external-reference, service-url, structure-url, superset, wire-store, round-trip, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`MaintainableType`, `ExternalReferenceAttributeGroup`); [3.0](../specs/3.0/schemas/SDMXCommon.xsd) (identical) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L394-L418) (`MaintainableType`, `ExternalReferenceAttributeGroup`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L390-L409) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.2 |
 | **Related**  | [D-0010](#d-0010), [D-0014](#d-0014), [D-0016](#d-0016), [D-0019](#d-0019), [D-0023](#d-0023), [D-0031](#d-0031) |
 
@@ -769,7 +769,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Promoted(ADR-0023) |
 | **Keywords** | round-trip, wire-store, derived-view, lint, canonical-superset, foundational, supersedes |
-| **Spec ref** | [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) (guardrail #1, lossless canonical superset); all vendored XSDs (`specs/3.0`, `specs/3.1`) as ground truth |
+| **Spec ref** | [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) (guardrail #1, lossless canonical superset); all pinned XSDs (`specs/3.0`, `specs/3.1`) as ground truth |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §3, §5.2, §7 |
 | **Related**  | [D-0004](#d-0004), [D-0016](#d-0016), [D-0017](#d-0017), [D-0022](#d-0022), [D-0024](#d-0024), [D-0027](#d-0027), [D-0030](#d-0030) |
 
@@ -800,7 +800,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | item-scheme, is-partial, partial-codelist, constraint-context, superset, spec-alignment |
-| **Spec ref** | [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`ItemSchemeType.isPartial`); [3.0](../specs/3.0/schemas/SDMXStructureBase.xsd) (identical) |
+| **Spec ref** | [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L17-L35) (`ItemSchemeType.isPartial`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureBase.xsd#L11-L29) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
 | **Related**  | [D-0010](#d-0010), [D-0013](#d-0013), [D-0031](#d-0031) |
 
@@ -820,7 +820,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | annotation, annotable, extension-point, universal, superset, placement-principle, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`AnnotableType`, `AnnotationType`, `AnnotationsType`); [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`AvailabilityConstraintType`, `RegionType`); 3.0 equivalents |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L195-L202) (`AnnotableType`, `AnnotationType`, `AnnotationsType`); [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L240-L262) (`AvailabilityConstraintType`, `RegionType`); 3.0 equivalents |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.8 |
 | **Related**  | [D-0001](#d-0001), [D-0011](#d-0011), [D-0013](#d-0013), [D-0014](#d-0014), [D-0031](#d-0031) |
 
@@ -842,7 +842,7 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, attachment, restriction, exhaustive, non-empty-vec, cardinality, reference-types, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`ConstraintAttachmentType`, `DataConstraintAttachmentType`, `AvailabilityConstraintAttachmentType`, `MetadataConstraintAttachmentType`); [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`DataProviderReferenceType` = OrganisationReferenceType, `ProvisionAgreementReferenceType`) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L146-L192) (`ConstraintAttachmentType`, `DataConstraintAttachmentType`, `AvailabilityConstraintAttachmentType`, `MetadataConstraintAttachmentType`); [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L952-L959) (`DataProviderReferenceType` = OrganisationReferenceType, `ProvisionAgreementReferenceType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.8 |
 | **Related**  | [D-0002](#d-0002), [D-0013](#d-0013), [D-0019](#d-0019), [D-0021](#d-0021), [D-0031](#d-0031), [D-0033](#d-0033) |
 
@@ -868,7 +868,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | link, identifiable, hateoas, superset, supersedes-d0014, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`LinkType`, `IdentifiableType`); [3.0](../specs/3.0/schemas/SDMXCommon.xsd) (identical) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L278-L299) (`LinkType`, `IdentifiableType`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L274-L295) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1, §5.2, §5.3 |
 | **Related**  | [D-0014](#d-0014), [D-0031](#d-0031), [D-0033](#d-0033) |
 
@@ -888,7 +888,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, cube-region, cardinality, maxOccurs, bounded-newtype, mechanical-vs-prose, lint, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`DataConstraintType` → `CubeRegion minOccurs="0" maxOccurs="2"`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L71-L91) (`DataConstraintType` → `CubeRegion minOccurs="0" maxOccurs="2"`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L75-L95) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.8 |
 | **Related**  | [D-0019](#d-0019), [D-0026](#d-0026), [D-0031](#d-0031), [D-0034](#d-0034) |
 
@@ -908,7 +908,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, role, allowed, actual, superset, divergence, naming, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (`ConstraintType.role` `use="required"`, `ConstraintRoleType`, `MetadataConstraintBaseType` `role` `fixed="Allowed"`); [3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`role` zero occurrences; `AvailabilityConstraintType`) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L29-L54) (`ConstraintType.role` `use="required"`, `ConstraintRoleType`, `MetadataConstraintBaseType` `role` `fixed="Allowed"`); [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L240-L262) (`role` zero occurrences; `AvailabilityConstraintType`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5, §5.8; [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) |
 | **Related**  | [D-0002](#d-0002), [D-0010](#d-0010), [D-0013](#d-0013), [D-0021](#d-0021), [D-0031](#d-0031), [D-0034](#d-0034), [D-0036](#d-0036) |
 
@@ -933,7 +933,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active (three-level-validity enumeration completed by [D-0064](#d-0064)) |
 | **Keywords** | constraint, cube-region, member-selection, include, remove-prefix, validity, non-empty, newtype, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`MemberSelectionType`, `CubeRegionKeyType`, `ComponentValueSetType`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical for this entire cluster) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L293-L326) (`MemberSelectionType`, `CubeRegionKeyType`, `ComponentValueSetType`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L381-L414) (identical for this entire cluster) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0017](#d-0017), [D-0019](#d-0019), [D-0026](#d-0026), [D-0027](#d-0027), [D-0031](#d-0031), [D-0032](#d-0032), [D-0034](#d-0034) |
 
@@ -959,7 +959,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, data-key-set, data-key, superset, divergence, non-empty, newtype, annotable, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`DataKeySetType`, `DataKeyType`, `DataKeyValueType`, `DataComponentValueSetType`, `SimpleKeyValueType`, `DataComponentValueType`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical except `DataKeyValueType` — see Observation) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L128-L144) (`DataKeySetType`, `DataKeyType`, `DataKeyValueType`, `DataComponentValueSetType`, `SimpleKeyValueType`, `DataComponentValueType`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L157-L173) (identical except `DataKeyValueType` — see Observation) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5, §5.8 |
 | **Related**  | [D-0011](#d-0011), [D-0026](#d-0026), [D-0031](#d-0031), [D-0033](#d-0033), [D-0034](#d-0034), [D-0036](#d-0036), [D-0037](#d-0037), [D-0038](#d-0038) |
 
@@ -981,7 +981,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, cube-region, per-value, validity, xml-lang, cascade, newtype, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`SimpleComponentValueType` lines 463–484, `CubeKeyValueType` lines 485–496); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (lines 548–580, identical) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L463-L483) (`SimpleComponentValueType` lines 463–484, `CubeKeyValueType` lines 485–496); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L548-L568) (lines 548–580, identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0011](#d-0011), [D-0026](#d-0026), [D-0027](#d-0027), [D-0031](#d-0031), [D-0034](#d-0034), [D-0038](#d-0038), [D-0039](#d-0039) |
 
@@ -1001,7 +1001,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, attachment, optionality, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`DataConstraintBaseType` `ConstraintAttachment` `minOccurs="0"`; `AvailabilityConstraintType` `ConstraintAttachment` `minOccurs="1"`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (data side identical) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L53-L69) (`DataConstraintBaseType` `ConstraintAttachment` `minOccurs="0"`; `AvailabilityConstraintType` `ConstraintAttachment` `minOccurs="1"`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L56-L73) (data side identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0031](#d-0031), [D-0034](#d-0034), [D-0037](#d-0037) |
 
@@ -1019,7 +1019,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, release-calendar, superset, divergence, sdmx-3.0, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (`ConstraintType` `ReleaseCalendar` `minOccurs="0"` line 41, retained by `DataConstraintBaseType` line 68; `ReleaseCalendarType` lines 134–155); 3.1: zero occurrences in any schema |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L29-L54) (`ConstraintType` `ReleaseCalendar` `minOccurs="0"` line 41, retained by `DataConstraintBaseType` line 68; `ReleaseCalendarType` lines 134–155); 3.1: zero occurrences in any schema |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0010](#d-0010), [D-0031](#d-0031), [D-0034](#d-0034), [D-0037](#d-0037) |
 
@@ -1039,7 +1039,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, availability, counts, xs-int, signedness, verbatim-store, lint, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`AvailabilityConstraintType` `seriesCount`/`obsCount`, `xs:int`, optional — lines 258–259; the type is 3.1-only) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L240-L262) (`AvailabilityConstraintType` `seriesCount`/`obsCount`, `xs:int`, optional — lines 258–259; the type is 3.1-only) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6, §5.8 |
 | **Related**  | [D-0022](#d-0022), [D-0027](#d-0027), [D-0031](#d-0031) |
 
@@ -1059,7 +1059,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, attachment, data-source, superset, divergence, sdmx-3.0, non-empty, spec-alignment |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (`DataConstraintAttachmentType` lines 277–304); [SDMXCommon.xsd 3.0](../specs/3.0/schemas/SDMXCommon.xsd) (`QueryableDataSourceType` line 767); 3.1: both removed from constraint attachments (`QueryableDataSourceType` survives in 3.1 Common for registry use only) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L277-L303) (`DataConstraintAttachmentType` lines 277–304); [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L767-L798) (`QueryableDataSourceType` line 767); 3.1: both removed from constraint attachments (`QueryableDataSourceType` survives in 3.1 Common for registry use only) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5, §5.8 |
 | **Related**  | [D-0014](#d-0014), [D-0031](#d-0031), [D-0034](#d-0034), [D-0037](#d-0037), [D-0042](#d-0042) |
 
@@ -1081,7 +1081,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | dataflow, dsd, dimension-constraint, evolving-structure, superset, divergence, sdmx-3.1, spec-alignment |
-| **Spec ref** | [SDMXStructureDataflow.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataflow.xsd) (`DataflowBaseType.DimensionConstraint` 0..1; `DimensionConstraintType` = `Dimension` `common:IDType` 1..unbounded); [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`DataStructureType.evolvingStructure`, `xs:boolean`, default `false`); 3.0: zero occurrences of either |
+| **Spec ref** | [SDMXStructureDataflow.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataflow.xsd#L19-L34) (`DataflowBaseType.DimensionConstraint` 0..1; `DimensionConstraintType` = `Dimension` `common:IDType` 1..unbounded); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L39-L59) (`DataStructureType.evolvingStructure`, `xs:boolean`, default `false`); 3.0: zero occurrences of either |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6, §5.7; |
 | **Related**  | [D-0010](#d-0010), [D-0019](#d-0019), [D-0020](#d-0020), [D-0031](#d-0031), [D-0034](#d-0034) |
 
@@ -1099,13 +1099,13 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | divergence, superset, carry, reconciliation-baseline, spec-alignment |
-| **Spec ref** | All in-scope vendored XSDs: `SDMXCommon`, `SDMXCommonReferences`, `SDMXStructureBase`, `SDMXStructureCodelist`, `SDMXStructureConcept`, `SDMXStructureOrganisation`, `SDMXStructureDataStructure`, `SDMXStructureDataflow`, `SDMXStructureConstraint`, `xml.xsd` (both `specs/3.0/schemas/` and `specs/3.1/schemas/`) |
+| **Spec ref** | All in-scope pinned XSDs: `SDMXCommon`, `SDMXCommonReferences`, `SDMXStructureBase`, `SDMXStructureCodelist`, `SDMXStructureConcept`, `SDMXStructureOrganisation`, `SDMXStructureDataStructure`, `SDMXStructureDataflow`, `SDMXStructureConstraint`, `xml.xsd` (both `specs/3.0/schemas/` and `specs/3.1/schemas/`) |
 | **Source**   | [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) (unified superset guardrail); 0010 quality assessment |
 | **Related**  | [D-0037](#d-0037), [D-0039](#d-0039), [D-0042](#d-0042), [D-0044](#d-0044), [D-0045](#d-0045) |
 
 **Observation**: 3.0↔3.1 divergences had been discovered ad hoc, leaving open whether the divergence set was complete and whether each member had a consistent resolution. A systematic pass settled the question: a normalised structural diff (annotations, namespace and formatting boilerplate stripped) over every in-scope schema, plus a manual sweep of `SDMXStructureConstraint.xsd`, enumerated the full set. `SDMXStructureOrganisation.xsd` and `xml.xsd` have **no divergence at all** (so the `Contact` gap is a both-versions issue, not a divergence); the complete divergence set over the rest is the table below.
 
-**Decision**: Every divergence touching a modelled type is resolved by **carrying the superset** — the type set holds the union of what 3.0 and 3.1 can express, each version-specific member tagged with its provenance — never by version-branching the type or dropping a side. This is the per-type application of ADR-0008's unified-superset guardrail. The disposition table records the complete divergence set and how each member is carried, ruled a no-op, or routed out of scope; each "carried" row delegates to the entry that draws it. The table is the **reconciliation baseline**: any future schema re-vendoring re-runs the normalised-diff method and reconciles its result against this set.
+**Decision**: Every divergence touching a modelled type is resolved by **carrying the superset** — the type set holds the union of what 3.0 and 3.1 can express, each version-specific member tagged with its provenance — never by version-branching the type or dropping a side. This is the per-type application of ADR-0008's unified-superset guardrail. The disposition table records the complete divergence set and how each member is carried, ruled a no-op, or routed out of scope; each "carried" row delegates to the entry that draws it. The table is the **reconciliation baseline**: any future schema re-pinning re-runs the normalised-diff method and reconciles its result against this set.
 
 | Divergence | Disposition |
 |---|---|
@@ -1123,7 +1123,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 **Rationale**: Carrying the superset over version-branching is what ADR-0008 commits the crate to — one type set both versions deserialize into, so a 3.0 document and a 3.1 document of the same artefact produce the same Rust type, and a value absent in one version is simply an unstated optional member rather than a type the consumer must match on by version. The systematic diff (rather than continued ad-hoc discovery) is what lets the rule be asserted as *exhaustive*: every divergence is accounted for, so "carried the superset" is a closed claim, not an aspiration.
 
-**Consequences**: (1) The disposition table is the reconciliation baseline for future spec updates — re-vendoring reconciles against it. (2) The provenance classes named here (3.0-only, 3.1-only, default-flip) recur as the vocabulary later entries cite when carrying a version-specific member.
+**Consequences**: (1) The disposition table is the reconciliation baseline for future spec updates — re-pinning reconciles against it. (2) The provenance classes named here (3.0-only, 3.1-only, default-flip) recur as the vocabulary later entries cite when carrying a version-specific member.
 
 ---
 
@@ -1133,7 +1133,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | value-list, maintainable, fourth-id-tier, duplicates, ordered, annotable, spec-alignment |
-| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](../specs/3.1/schemas/SDMXStructureCodelist.xsd) (`ValueListBaseType`/`ValueListType`/`ValueItemType`, lines 321–370); [3.0](../specs/3.0/schemas/SDMXStructureCodelist.xsd) (identical, doc typos aside); [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`AnyCodelistReferenceType` — Codelist or ValueList) |
+| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureCodelist.xsd#L321-L336) (`ValueListBaseType`/`ValueListType`/`ValueItemType`, lines 321–370); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureCodelist.xsd#L316-L331) (identical, doc typos aside); [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L870-L878) (`AnyCodelistReferenceType` — Codelist or ValueList) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
 | **Related**  | [D-0023](#d-0023), [D-0031](#d-0031), [D-0033](#d-0033), [D-0048](#d-0048) |
 
@@ -1157,7 +1157,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | representation, enumeration, value-list, text-format, facets, is-multi-lingual, pattern, occurs, constructor, spec-alignment |
-| **Spec ref** | [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`RepresentationType`, the TextFormat tier chain, `CodeDataType`); [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (the four concrete representation types); [SDMXStructureConcept.xsd 3.1](../specs/3.1/schemas/SDMXStructureConcept.xsd) (`ConceptRepresentation`); [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`DataType` subsets); 3.0 identical throughout except the `isMultiLingual` default ([D-0046](#d-0046)) |
+| **Spec ref** | [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L209-L242) (`RepresentationType`, the TextFormat tier chain, `CodeDataType`); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd) (the four concrete representation types); [SDMXStructureConcept.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L101-L120) (`ConceptRepresentation`); [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L1244-L1470) (`DataType` subsets); 3.0 identical throughout except the `isMultiLingual` default ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6.1 |
 | **Related**  | [D-0023](#d-0023), [D-0028](#d-0028), [D-0029](#d-0029), [D-0031](#d-0031), [D-0038](#d-0038), [D-0046](#d-0046), [D-0047](#d-0047) |
 
@@ -1181,7 +1181,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | dsd, descriptor, group, dimension-list, attribute-list, measure-list, identifiable, construction-contract, vec-vs-map, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`DataStructureComponentsType`, `DimensionListType`, `GroupType`/`GroupBaseType`/`GroupDimensionType`, `AttributeListType`, `MeasureListType`); [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`ComponentListType` extends `IdentifiableType`); 3.0 identical throughout ([D-0046](#d-0046)) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L81-L95) (`DataStructureComponentsType`, `DimensionListType`, `GroupType`/`GroupBaseType`/`GroupDimensionType`, `AttributeListType`, `MeasureListType`); [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L130-L143) (`ComponentListType` extends `IdentifiableType`); 3.0 identical throughout ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6, §7 |
 | **Related**  | [D-0017](#d-0017), [D-0019](#d-0019), [D-0025](#d-0025), [D-0029](#d-0029), [D-0033](#d-0033), [D-0039](#d-0039), [D-0045](#d-0045), [D-0047](#d-0047), [D-0050](#d-0050) |
 
@@ -1201,7 +1201,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | attribute-list, metadata-attribute-usage, measure-relationship, component, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`AttributeListType` choice; `MetadataAttributeUsageBaseType`/`MetadataAttributeUsageType`; `AttributeType.MeasureRelationship`, `MeasureRelationshipType`); 3.0 identical ([D-0046](#d-0046)) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L123-L135) (`AttributeListType` choice; `MetadataAttributeUsageBaseType`/`MetadataAttributeUsageType`; `AttributeType.MeasureRelationship`, `MeasureRelationshipType`); 3.0 identical ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
 | **Related**  | [D-0011](#d-0011), [D-0012](#d-0012), [D-0020](#d-0020), [D-0033](#d-0033), [D-0034](#d-0034), [D-0049](#d-0049) |
 
@@ -1269,7 +1269,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | dataflow, dsd-reference, optionality, external-reference, spec-alignment |
-| **Spec ref** | [SDMXStructureDataflow.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataflow.xsd) (`Structure` `minOccurs="0"`, line 47); [3.0](../specs/3.0/schemas/SDMXStructureDataflow.xsd) (line 23, identical) |
+| **Spec ref** | [SDMXStructureDataflow.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataflow.xsd#L36-L61) (`Structure` `minOccurs="0"`, line 47); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureDataflow.xsd#L12-L32) (line 23, identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.7 |
 | **Related**  | [D-0030](#d-0030), [D-0031](#d-0031) |
 
@@ -1287,7 +1287,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | codelist-extension, prefix, member-selection, geo-codelist, scope-boundary, spec-alignment |
-| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](../specs/3.1/schemas/SDMXStructureCodelist.xsd) (`CodelistExtensionType` — on `CodelistType` 0..unbounded; `CodeSelectionType`; `MemberValueType`; `GeographicCodelistType`/`GeoGridCodelistType`); [3.0](../specs/3.0/schemas/SDMXStructureCodelist.xsd) (identical extension structure) |
+| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureCodelist.xsd#L94-L118) (`CodelistExtensionType` — on `CodelistType` 0..unbounded; `CodeSelectionType`; `MemberValueType`; `GeographicCodelistType`/`GeoGridCodelistType`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureCodelist.xsd#L89-L113) (identical extension structure) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
 | **Related**  | [D-0034](#d-0034), [D-0038](#d-0038), [D-0040](#d-0040), [D-0051](#d-0051), [D-0052](#d-0052) |
 
@@ -1305,7 +1305,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | contact, agency, organisation, interleaving, spec-alignment |
-| **Spec ref** | [SDMXStructureOrganisation.xsd 3.1](../specs/3.1/schemas/SDMXStructureOrganisation.xsd) (`ContactType`; `OrganisationType.Contact` 0..unbounded, line 85); [3.0](../specs/3.0/schemas/SDMXStructureOrganisation.xsd) (identical) |
+| **Spec ref** | [SDMXStructureOrganisation.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureOrganisation.xsd#L327-L376) (`ContactType`; `OrganisationType.Contact` 0..unbounded, line 85); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureOrganisation.xsd#L320-L369) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
 | **Related**  | [D-0016](#d-0016), [D-0035](#d-0035), [D-0051](#d-0051) |
 
@@ -1323,7 +1323,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | position, effective-view, convention, lint, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`BaseDimensionType.position`, `xs:int`, optional, base unstated); official sample `ECB_EXR.xml` (`position="1"`…`"5"` for five dimensions in declaration order) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L344-L364) (`BaseDimensionType.position`, `xs:int`, optional, base unstated); official sample `ECB_EXR.xml` (`position="1"`…`"5"` for five dimensions in declaration order) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
 | **Related**  | [D-0022](#d-0022), [D-0031](#d-0031) |
 
@@ -1343,7 +1343,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | component, id-inheritance, statedness, effective-view, time-dimension, fixed, trait-boundary, spec-alignment |
-| **Spec ref** | [SDMXStructureBase.xsd 3.1](../specs/3.1/schemas/SDMXStructureBase.xsd) (`ComponentBaseType.id`, `NCNameIDType`, `use="optional"`); [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`TimeDimensionType.id`, `use="optional" fixed="TIME_PERIOD"`) |
+| **Spec ref** | [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L151-L168) (`ComponentBaseType.id`, `NCNameIDType`, `use="optional"`); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L396-L413) (`TimeDimensionType.id`, `use="optional" fixed="TIME_PERIOD"`) |
 | **Related**  | [D-0029](#d-0029), [D-0031](#d-0031), [D-0051](#d-0051), [D-0052](#d-0052) |
 
 **Observation**: A component's `id` is `use="optional"` (both versions): when absent, the component's identity is inherited from its concept identity. The model required an id, so a schema-valid id-less component was unrepresentable. D-0052 now stores statedness even for attributes the schema itself fills, and a stated-vs-inherited id is more clearly document information than a defaulted boolean; and `TimeDimensionType.id` is an optional **fixed** attribute (`"TIME_PERIOD"`).
@@ -1362,7 +1362,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | attribute-relationship, dimension-reference, optional, statedness, superset, spec-alignment |
-| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](../specs/3.1/schemas/SDMXStructureDataStructure.xsd) (`AttributeRelationshipType.Dimension` line 203; `OptionalLocalDimensionReferenceType` lines 222–228); [3.0](../specs/3.0/schemas/SDMXStructureDataStructure.xsd) (lines 191/210–216, identical) |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L220) (`AttributeRelationshipType.Dimension` line 203; `OptionalLocalDimensionReferenceType` lines 222–228); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureDataStructure.xsd#L180-L208) (lines 191/210–216, identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
 | **Related**  | [D-0019](#d-0019), [D-0020](#d-0020), [D-0031](#d-0031), [D-0052](#d-0052), [D-0057](#d-0057) |
 
@@ -1382,7 +1382,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | localisation, xml-lang, xs-language, statedness, defaults, parsable-within-spec, reject-line, lint, spec-alignment |
-| **Spec ref** | [SDMXCommon.xsd 3.1](../specs/3.1/schemas/SDMXCommon.xsd) (`TextType` `xml:lang` `default="en"`, line 124); [3.0](../specs/3.0/schemas/SDMXCommon.xsd) (line 120, identical); [xml.xsd](../specs/3.1/schemas/xml.xsd) (`xs:language` pattern) |
+| **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L118-L131) (`TextType` `xml:lang` `default="en"`, line 124); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L114-L127) (line 120, identical); [xml.xsd](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/xml.xsd) (`xs:language` pattern) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1 |
 | **Related**  | [D-0011](#d-0011), [D-0016](#d-0016), [D-0031](#d-0031), [D-0051](#d-0051), [D-0052](#d-0052), [D-0055](#d-0055) |
 
@@ -1402,7 +1402,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | sdmx-version, ordering, ord, eq, semver, precedence, deferral, lexical |
-| **Spec ref** | [SDMXCommonReferences.xsd 3.1](../specs/3.1/schemas/SDMXCommonReferences.xsd) (`VersionType`); [Semantic Versioning §11](https://semver.org/#spec-item-11) |
+| **Spec ref** | [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1608-L1613) (`VersionType`); [Semantic Versioning §11](https://semver.org/#spec-item-11) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1 |
 | **Related**  | [D-0024](#d-0024), [D-0027](#d-0027) |
 
@@ -1422,7 +1422,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | codelist-extension, member-value, wildcard, pattern, parsable-within-spec, lint, carrier, spec-alignment |
-| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](../specs/3.1/schemas/SDMXStructureCodelist.xsd) (`WildcardedMemberValueType`, `xs:pattern` `[A-Za-z0-9_@$-%]+`); [3.0](../specs/3.0/schemas/SDMXStructureCodelist.xsd) (identical) |
+| **Spec ref** | [SDMXStructureCodelist.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureCodelist.xsd#L134-L141) (`WildcardedMemberValueType`, `xs:pattern` `[A-Za-z0-9_@$-%]+`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureCodelist.xsd#L129-L136) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5, §5.11 |
 | **Related**  | [D-0023](#d-0023), [D-0031](#d-0031), [D-0054](#d-0054), [D-0059](#d-0059) |
 
@@ -1480,7 +1480,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
 | **Keywords** | constraint, time-range, validity, member-selection, statedness, spec-alignment, fidelity |
-| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](../specs/3.1/schemas/SDMXStructureConstraint.xsd) (`TimeRangeValueType`, `TimePeriodRangeType`); [3.0](../specs/3.0/schemas/SDMXStructureConstraint.xsd) (identical) |
+| **Spec ref** | [SDMXStructureConstraint.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConstraint.xsd#L522-L552) (`TimeRangeValueType`, `TimePeriodRangeType`); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConstraint.xsd#L607-L637) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.8 |
 | **Related**  | [D-0026](#d-0026), [D-0038](#d-0038), [D-0040](#d-0040), [D-0027](#d-0027), [D-0031](#d-0031) |
 
