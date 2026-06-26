@@ -39,7 +39,11 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 # Print the verbatim definition of a named xs:complexType/xs:simpleType,
-# depth-aware so nested anonymous complexTypes do not close it early.
+# depth-aware so nested anonymous complexTypes do not close it early. (Shares the
+# boundary logic of specs_symbol_span in lib/specs-fetch.sh, which additionally
+# tolerates attributes before name= and guards self-closing tags; both cases are
+# dormant for the generator — no manifest symbol is an abstract-before-name or
+# self-closing type — so the simpler start-match here suffices.)
 slice() { # file symbol
   awk -v name="$2" '
     function opens(s,  t){ t=s; return gsub("<xs:"TAG"[ />]","X",t) }

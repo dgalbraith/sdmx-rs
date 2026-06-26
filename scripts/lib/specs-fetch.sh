@@ -96,14 +96,27 @@ specs_blob_url() {
 # complexType does not close it early (the same boundary logic as the generator's
 # slice(), here recording absolute line numbers instead of emitting the body).
 # Line numbers count \n-delimited records, matching GitHub's blob line numbering.
+#
+# Two open-tag subtleties the start-match and depth accounting handle:
+#   - Attribute order: the name= may not be the first attribute. SDMXStructure-
+#     Dataflow.xsd declares <xs:complexType abstract="true" name="DataflowBaseType">,
+#     so the match allows [^>]* (any attributes, but not past the tag's own '>')
+#     before name=.
+#   - Self-closing tags: selfcloses() nets out a same-name <xs:complexType …/>.
+#     opens() counts its "<xs:complexType " as +1 but it has no separate close, so
+#     without this a self-closing NAMED type (start == end) never reaches depth 0
+#     and a nested self-closing anonymous one would close the span late.
+# (The generator's slice() shares this boundary logic; the SDMX schemas carry no
+# self-closing named types, so that case is dormant there.)
 specs_symbol_span() {
     awk -v name="$2" '
         function opens(s,  t) { t = s; return gsub("<xs:" TAG "[ />]", "X", t) }
         function closes(s,  t) { t = s; return gsub("</xs:" TAG ">", "X", t) }
+        function selfcloses(s,  t) { t = s; return gsub("<xs:" TAG "[^>]*/>", "X", t) }
         BEGIN { started = 0; depth = 0; start = 0 }
-        !started && $0 ~ ("<xs:complexType name=\"" name "\"") { TAG = "complexType"; started = 1; start = NR }
-        !started && $0 ~ ("<xs:simpleType name=\"" name "\"")  { TAG = "simpleType";  started = 1; start = NR }
-        started { depth += opens($0) - closes($0); if (depth <= 0) { print start, NR; exit } }
+        !started && $0 ~ ("<xs:complexType[^>]*name=\"" name "\"") { TAG = "complexType"; started = 1; start = NR }
+        !started && $0 ~ ("<xs:simpleType[^>]*name=\"" name "\"")  { TAG = "simpleType";  started = 1; start = NR }
+        started { depth += opens($0) - closes($0) - selfcloses($0); if (depth <= 0) { print start, NR; exit } }
     ' "$1"
 }
 

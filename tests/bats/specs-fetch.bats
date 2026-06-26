@@ -139,3 +139,30 @@ EOF
 EOF
     [ "$(specs_symbol_span "$BATS_TEST_TMPDIR/z.xsd" VersionType)" = "2 4" ]
 }
+
+@test "specs_symbol_span tolerates attributes before name= (abstract base)" {
+    # SDMXStructureDataflow.xsd declares <xs:complexType abstract="true" name="DataflowBaseType">.
+    cat > "$BATS_TEST_TMPDIR/a.xsd" <<'EOF'
+<xs:schema>
+  <xs:complexType abstract="true" name="BaseType">
+    <xs:sequence>
+      <xs:element name="a"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>
+EOF
+    [ "$(specs_symbol_span "$BATS_TEST_TMPDIR/a.xsd" BaseType)" = "2 6" ]
+}
+
+@test "specs_symbol_span handles a self-closing named type (single-line span)" {
+    cat > "$BATS_TEST_TMPDIR/b.xsd" <<'EOF'
+<xs:schema>
+  <xs:complexType name="EmptyType"/>
+  <xs:complexType name="NextType">
+    <xs:attribute name="b"/>
+  </xs:complexType>
+</xs:schema>
+EOF
+    [ "$(specs_symbol_span "$BATS_TEST_TMPDIR/b.xsd" EmptyType)" = "2 2" ]
+    [ "$(specs_symbol_span "$BATS_TEST_TMPDIR/b.xsd" NextType)" = "3 5" ]
+}
