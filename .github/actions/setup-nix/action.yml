@@ -24,6 +24,16 @@ inputs:
       get its own cache; the default (empty) is the dev-shell-only key.
     required: false
     default: ""
+  github-token:
+    description: >-
+      Optional token written to nix.conf as `access-tokens = github.com=<token>`.
+      The fetch-on-demand schema derivation (`nix build .#sdmxSpecs`) fetches the
+      pinned SDMX tree from github.com; an anonymous fetch is rate-limited (60/hr),
+      a flaky-failure axis distinct from availability on the now-required
+      fetch-gated jobs. Only those jobs (docs-internal, check-xsd-fragments) pass
+      the workflow GITHUB_TOKEN secret; every other job leaves it empty (no fetch).
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -40,8 +50,14 @@ runs:
         # optimised store — tar extracts hard links sequentially and .links/
         # targets may not exist at extraction time, leaving a corrupt store.
         # See: https://github.com/nix-community/cache-nix-action/issues/170
+        #
+        # `access-tokens` is appended only when a caller passes `github-token`
+        # (the fetch-gated jobs): it authenticates the `.#sdmxSpecs` FOD fetch to
+        # github.com so it is not anonymously rate-limited. Empty input renders a
+        # blank line (harmless in nix.conf); the GITHUB_TOKEN is masked in logs.
         extra-conf: |
           auto-optimise-store = false
+          ${{ inputs.github-token && format('access-tokens = github.com={0}', inputs.github-token) || '' }}
 
     - name: Cache Nix store
       uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2

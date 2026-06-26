@@ -1,0 +1,93 @@
+# specs/sources.toml: pinned SDMX schema sources.
+#
+# The repo tracks PINS, never the xsd schema files. This file is the single
+# source of truth for BOTH:
+#   - the Nix fixed-output derivation in flake.nix (per-edition commit + NAR
+#     hash), read via builtins.fromTOML; and
+#   - the shell verify gate (scripts/fetch-specs.sh), which re-checks each
+#     file sha256 after materialising (a transport-independent content gate).
+#
+# Records are trust-on-first-use, captured by scripts/update-specs.sh at the
+# pinned commit. Blob URLs are derived as
+#   https://github.com/<owner>/<repo>/blob/<rev>/schemas/<file>
+# (+ a per-symbol #L anchor in docs/decisions.md). GENERATED, re-pin with
+# 'just update-specs <edition> <ref>'; see specs/README.md for the procedure.
+
+[upstream]
+owner = "sdmx-twg"
+repo = "sdmx-ml"
+w3c = ["xml.xsd"]
+
+[edition."3.0"]
+ref = "v3.0.0"
+rev = "29f1a3d856c4259429f5ec0eae811653adc5cdb5"
+narHash = "sha256-bdI7gKELAK2rCxEfRLIwePP1n038Rs9II4F8yhrisGI="
+
+[edition."3.1"]
+ref = "v3.1.0"
+rev = "182248b3c8030b595187dca51ca341d5ff839c24"
+narHash = "sha256-dkXyBbRtpSmUYHyjl6Rl3FE1YBT1HNkc585gIodLh0g="
+
+[files."3.0"]
+"SDMXCommon.xsd" = "cce510004e0796975e3e382dc091cd540cd6a96a07d29c23dffea977bfe58eb8"
+"SDMXCommonReferences.xsd" = "d3f5cb75bc30c5fd2a9704bb9052f5d17d8b7964f6f6f38d3df32e54f1e69ec8"
+"SDMXDataStructureSpecific.xsd" = "eb74cd28f8beff34fe6e8879af19b84aa6e6299bf997d4df9a785d9b2e5267e3"
+"SDMXMessage.xsd" = "1f6b383ff78a95d85dccfbdb7fcbf650de63b5891e2ce21d6b7f164e88614075"
+"SDMXMessageFooter.xsd" = "0ee5c1b0f52bdb4f4224282da61ad38a516116cae3b89090a23ca66a08f83831"
+"SDMXMetadataGeneric.xsd" = "1b77d85d9ea78921a3d1d7d1a2b0a7c6cbd369f662e6222fb8c047e917560eeb"
+"SDMXRegistry.xsd" = "7a153062e686608c5cb06d89df466dc90d0f1571d485641d21a1d928d7896c73"
+"SDMXRegistryBase.xsd" = "3d6e00783c5b91166b1163969d61eb220f8b60265ebbe8e646d67604e661857e"
+"SDMXRegistryRegistration.xsd" = "ec93ce6cc0b27e4296325869a91801d0a862196e530543148e8b2d43fc77a8ef"
+"SDMXRegistryStructure.xsd" = "bf8adbc4172bb6d6f25f862ec46d8bfaa4951a551443b150795d105a35d2edd7"
+"SDMXRegistrySubscription.xsd" = "6d3edde843fd76b7b94594d28eb5087abdfe437b735ee51293244c9554cfaf67"
+"SDMXStructure.xsd" = "73cd6525e682b599565516390199a837b3e2af854f363dffe947c17e3084be2d"
+"SDMXStructureBase.xsd" = "9263c802684c5dc612c4bae4d74f11f78d9b7dc26efbdeeec5fdf991009ea3ae"
+"SDMXStructureCategorisation.xsd" = "4842dc006e8a27cbd51864e6b1401f5959025fd4943d313795c974009aa43c8f"
+"SDMXStructureCategory.xsd" = "41532c647c575f685a8fc95df15b0ef39a3a1813de366292f3dda6869a4714fa"
+"SDMXStructureCodelist.xsd" = "08a540f1a2c22522b3b922c74bcb268336916411625e080a3203362d48e11f40"
+"SDMXStructureConcept.xsd" = "0529f9ba5949a7c08531b0f108902021038be6cf9ce9c0d49ebc145585aefa28"
+"SDMXStructureConstraint.xsd" = "583fbf868c23114a6343fedf36db7b0a42773e1732c553c53b80c4e7b8066448"
+"SDMXStructureDataStructure.xsd" = "21704cffdb68b0e1f19043fa8d0b520f46c983ae7a291ebda9f63e8df6a341c3"
+"SDMXStructureDataflow.xsd" = "3ce88c788669a37dfcba6cbe6101d6d529d6a909dadd2b13c328877d0574c533"
+"SDMXStructureHierarchicalCodelist.xsd" = "562c44a445644d6e2104012b55d08e35d127d4d3a278d60adeb972339af08067"
+"SDMXStructureMetadataStructure.xsd" = "178cd2e313c188ba2572afacab8b0f1a5672e72a396e01c601a88818d8521a39"
+"SDMXStructureMetadataflow.xsd" = "7991696a6c3fd1a60e463d3379acddd7c3b253fcf5237c5021f449cb815561c5"
+"SDMXStructureOrganisation.xsd" = "5987a751f5b8b78792bef159b4ffe47e901f5efa47fe892376c538e50882b889"
+"SDMXStructureProcess.xsd" = "d8ee31381f77b24f60677937ba7bd651697eac92f05a87e2cdd24b456e92f8b4"
+"SDMXStructureProvisionAgreement.xsd" = "fb19eb749f31311378c0c99c89da8df37b160e9d19810468c75afb14e25dfdf3"
+"SDMXStructureReportingTaxonomy.xsd" = "953809871076318bc969d3cfb87a067a18f6deb724f82f5e681ceb571fc3a091"
+"SDMXStructureStructureMappings.xsd" = "a00a25d46ab144356ea96e0a7895920ff000facbc6e871be6d9d7fdfe7d7b90b"
+"SDMXStructureTransformation.xsd" = "41faf1134de6f43e06fbe051c337f23aefe150ed4714a0837cc59bd2b56d205d"
+"xml.xsd" = "ad5f82bf7c0f87b802e3d75f0bcfa59bcd207dd90c0eaa749e51c8c6dbf7e523"
+
+[files."3.1"]
+"SDMXCommon.xsd" = "e95ec3003755a1cf52bf4b77c061e603f28ec8eae4b0b5b27b0cb8dfe136e0ba"
+"SDMXCommonReferences.xsd" = "b6c5e5175be202ffe31baee13a7428762349823e86bc84a1ec9bef0cf3bf33df"
+"SDMXDataStructureSpecific.xsd" = "3f485610bf595c8382a7951aa7da5b3fc973c51b79207cdff1e9f7a4b28a0ea8"
+"SDMXMessage.xsd" = "7df9200d10e55c9369cefc5bd4e95e812b28f34176b3306f011542911934bf65"
+"SDMXMessageFooter.xsd" = "fa8f6327acf5210bf20e5aa1cf90a0471b7f82a573a74ff0b9acb49b0e902080"
+"SDMXMetadataGeneric.xsd" = "9670e2487a6e8bc1e1777f60fe6147d62ae08cfd96e20ff0ec33be780ae188e4"
+"SDMXRegistry.xsd" = "81785f72bf4321aa4676f735d4c5c22732b017202de688e439706fcc47b9ec0d"
+"SDMXRegistryBase.xsd" = "85d55b1df1b21dff602f729267b3ada906dccaa8a8e94ae332cf77c02787fea5"
+"SDMXRegistryRegistration.xsd" = "de242a4563a1acd568404b172ff4e1516bf3df4b10ad7050b2363f6039fc10ce"
+"SDMXRegistryStructure.xsd" = "db3b7d17a6c23640bee7479a976e06dc4f00226d8516874a7679716f67bbef3e"
+"SDMXRegistrySubscription.xsd" = "3981abf191cd4ff8d04b22b8af6cdafc1027c9218f5539a39c4486dc9071c412"
+"SDMXStructure.xsd" = "2da01a2d21055ed8ce79776a3612c07dc41808ee302d6567c013d9865d916983"
+"SDMXStructureBase.xsd" = "390f908a3742fe190b285b72a4c9dd77e179f9f3bae47246276a5d169d09a66d"
+"SDMXStructureCategorisation.xsd" = "a8a4111efb07663b9626e39b68741720b1b774191a6f7623a894ff685cd6b361"
+"SDMXStructureCategory.xsd" = "fa59b99b4de9fe593780dcab8488bedf8669d8bbbfdd2dd6eb96b780d6c9f021"
+"SDMXStructureCodelist.xsd" = "24022f893d6e358f3afc55418cc080cb076c963e930b775e5d7e1965f8ef3515"
+"SDMXStructureConcept.xsd" = "86125fc01d5e5161fefe3f16d2d48e64357120c327de4fd5d90143f9849769c8"
+"SDMXStructureConstraint.xsd" = "0706b49d50bde1b22a1288904b4b02689f842e9299903792423c04772b3afc99"
+"SDMXStructureDataStructure.xsd" = "a163f151c6653c251b4cacb3baaf0affa213f7153973d80f229e580030a882e1"
+"SDMXStructureDataflow.xsd" = "9f79dcd37423ae8d15a772ef4a811a6ddc4303732d40960523f3dd913c26777a"
+"SDMXStructureHierarchicalCodelist.xsd" = "e727c13ce569e7bbdd25cc854da694910e7d9090c1fee707180c6bba7f301ebf"
+"SDMXStructureMetadataStructure.xsd" = "c38706ee3e4c805a02e723160c9e0cf8e08669fa3700de61e65063cbcc9bc565"
+"SDMXStructureMetadataflow.xsd" = "4c8a0f0cbbcd0ca6cb32fdc095e9c8951e7bb9e203bdc6c1bd281568300759b8"
+"SDMXStructureOrganisation.xsd" = "241e3c10e27a2c5668995987b98b597d55716e6f3c36b88a571e994ce81b85e4"
+"SDMXStructureProcess.xsd" = "4ac080369277d21f4369e3782fcb474f06748b3c9ad54d810e157974d30273d3"
+"SDMXStructureProvisionAgreement.xsd" = "ea4da960fa0fe956d06018de1b092d0767bea9aca6d36407473befe991d1e3dd"
+"SDMXStructureReportingTaxonomy.xsd" = "af95b6af4af5e0300660ea684ad16236e86b774e698599b674fd7c61d9b71797"
+"SDMXStructureStructureMappings.xsd" = "42c22cddc06b97cbee1b42567fb6d03dd5eeac1c2380aa51e31fc34b384f8d01"
+"SDMXStructureTransformation.xsd" = "fa2e499bd6a935fa2e3dfa3a42f7d1ba70b5af591c9a73218c2c0e7ad0ee5805"
+"xml.xsd" = "ad5f82bf7c0f87b802e3d75f0bcfa59bcd207dd90c0eaa749e51c8c6dbf7e523"

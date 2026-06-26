@@ -102,14 +102,6 @@ local-link-check:
 check-decision-refs:
     @./scripts/check-decision-refs.sh
 
-# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-vendoring)
-gen-xsd-fragments:
-    @./scripts/gen-xsd-fragments.sh
-
-# Verify the XSD contract fragments are fresh and correctly wired (doctor).
-check-xsd-fragments:
-    @./scripts/check-xsd-fragments.sh
-
 # --- verify-scripts sub-gate helpers ---
 
 # Validate that all scripts in scripts/ use the POSIX-portable #!/bin/sh shebang
@@ -195,8 +187,8 @@ clippy:
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked --quiet
 
-# Generate internal docs: the design_docs rationale layer plus private items (default whole workspace; pass `-p <crate>` to scope)
-docs-internal pkgs="--workspace":
+# Generate internal docs: the design_docs rationale layer plus private items (default whole workspace; pass `-p <crate>` to scope). Fetches the pinned schemas + regenerates the fragments first (design_docs include_str!s them).
+docs-internal pkgs="--workspace": fetch-specs gen-xsd-fragments
     RUSTDOCFLAGS="--cfg design_docs -D warnings" cargo doc {{ pkgs }} --no-deps --document-private-items --all-features --locked --quiet
 
 # === Formats ===
@@ -360,7 +352,7 @@ bench:
     cargo bench --workspace
 
 # ============================================================================
-# 7. Document Management (ADR, Design, and Guides)
+# 7. Document Management
 # ============================================================================
 
 # Document management diagnostic guide (lists checks to run)
@@ -386,8 +378,9 @@ docs-help:
     @echo "  just verify-guide                 # Verify User Guide ledger formatting"
     @echo ""
     @echo "XSD Contract Fragments (design_docs layer):"
+    @echo "  just fetch-specs                  # Materialise the pinned SDMX schemas (fetch + sha-verify)"
     @echo "  just gen-xsd-fragments            # Regenerate fragments from xsd-manifest.toml (apply)"
-    @echo "  just check-xsd-fragments          # Verify fragments are fresh and wired (doctor)"
+    @echo "  just check-xsd-fragments          # Verify fragments are wired to their types (doctor)"
     @echo ""
 
 # Create a new Architecture Decision Record using the custom MADR template (non-interactive)
@@ -449,6 +442,24 @@ verify-guide:
 [private]
 _verify-guide-quiet:
     @./scripts/doc-engine.sh verify guide --quiet
+
+# --- XSD contract fragments (design_docs) ---
+# Pipeline: fetch-specs (materialise the pinned schemas) -> gen-xsd-fragments
+# (generate the fragments into the real $OUT) -> check-xsd-fragments (verify
+# wiring; verify-docs gate). The schemas + fragments are fetched/generated on
+# demand (never committed), so gen + the gates declare the chain as dependencies.
+
+# Materialise the pinned SDMX schemas on demand (Nix FOD fetch + per-file sha-verify; idempotent)
+fetch-specs:
+    @./scripts/fetch-specs.sh
+
+# Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-pinning)
+gen-xsd-fragments: fetch-specs
+    @./scripts/gen-xsd-fragments.sh
+
+# Verify the XSD contract fragments are correctly wired to their types (doctor).
+check-xsd-fragments: fetch-specs gen-xsd-fragments
+    @./scripts/check-xsd-fragments.sh
 
 # ============================================================================
 # 8. Diagnostics (`just doctor` System)
@@ -556,13 +567,14 @@ maintain-help:
     @echo "🔧 sdmx-rs Maintenance"
     @echo ""
     @echo "Dependency & toolchain refresh (mutates lockfiles; review + sign manually):"
-    @echo "  just update-deps [crates]   # Refresh Cargo.lock (all or named crates), then validate"
-    @echo "  just update-flake           # Refresh flake.lock (Nix inputs), then validate"
-    @echo "  just update-msrv <o> <n>    # Raise/lower MSRV (add --downgrade to lower)"
+    @echo "  just update-deps [crates]    # Refresh Cargo.lock (all or named crates), then validate"
+    @echo "  just update-flake            # Refresh flake.lock (Nix inputs), then validate"
+    @echo "  just update-msrv <o> <n>     # Raise/lower MSRV (add --downgrade to lower)"
+    @echo "  just update-specs <ed> <ref> # Re-pin an SDMX schema edition (commit + NAR hash + shas)"
     @echo ""
     @echo "Forge governance (maintainer-only; idempotent):"
-    @echo "  just update-rulesets        # Apply spec rulesets to live forge"
-    @echo "  just update-labels          # Apply spec labels to live forge"
+    @echo "  just update-rulesets           # Apply spec rulesets to live forge"
+    @echo "  just update-labels             # Apply spec labels to live forge"
     @echo "  just update-actions-allowlist  # Push committed actions allowlist to live forge"
 
 # Refresh Cargo.lock (semver-compatible); validates via verify-rust. No commit — review diff and sign manually.
@@ -572,6 +584,10 @@ update-deps *CRATES:
 # Refresh flake.lock (Nix inputs); validates via verify-infra. No commit — review diff and sign manually.
 update-flake:
     @./scripts/update-flake.sh
+
+# Re-pin an SDMX schema edition into specs/sources.toml (resolve tag -> commit + NAR hash + per-file shas, TOFU). No commit — review diff, then recompute decisions.md #L anchors.
+update-specs edition ref:
+    @./scripts/update-specs.sh {{ edition }} {{ ref }}
 
 # Raise or lower MSRV across all manifests and files; pass --downgrade to lower, --dry-run to preview
 update-msrv *args:

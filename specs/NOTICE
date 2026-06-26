@@ -1,0 +1,39 @@
+SDMX XML Schemas: Rights and Provenance
+========================================
+
+This directory documents the official SDMX XML schemas that the sdmx-rs
+workspace is modelled against. The repository tracks PINS and tooling only
+(specs/sources.toml: per-edition commit + per-file sha256), never the schema
+files themselves. The .xsd files are fetched on demand from upstream at the
+pinned commit (see specs/README.md) and are not redistributed from this
+repository.
+
+Schemas
+-------
+The SDMX XML schemas are authored and published by the SDMX initiative and its
+Technical Working Group (https://sdmx.org), sourced from the sdmx-twg/sdmx-ml
+repository (https://github.com/sdmx-twg/sdmx-ml). Copyright in the schemas is
+held by their respective owners. They are reproduced here only transiently, at
+build time, for the purpose of modelling and validation; this project claims no
+rights over them and grants none.
+
+xml.xsd (W3C)
+-------------
+The xml.xsd shipped within each SDMX release tree is the W3C XML namespace
+schema, copyright W3C (https://www.w3.org). It is fetched as part of the SDMX
+release and is likewise not redistributed from this repository.
+
+XSD contract fragments
+----------------------
+The XSD contract fragments under crates/sdmx-types/docs/xsd-fragments/ are
+verbatim slices of the schemas above, generated at build time and used only in
+the internal design_docs render. They carry the same rights as the schemas they
+are sliced from and are likewise not redistributed: neither the published crate
+nor docs.rs ever includes them.
+
+Project code
+------------
+The sdmx-rs source code is licensed MIT OR Apache-2.0 (see LICENSE-MIT and
+LICENSE-APACHE at the repository root). That licensing covers the project's own
+code and does NOT extend to the SDMX schemas or the XSD contract fragments
+sliced from them, which remain the property of their respective owners.

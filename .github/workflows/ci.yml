@@ -205,8 +205,21 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+        with:
+          # Isolated `specs` nix-store cache shared with docs-internal, plus
+          # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
+          cache-key-suffix: specs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify XSD contract fragments (freshness + cross-check)
+      - name: Materialise the pinned SDMX schemas
+        # fetch-specs (run via the gate's Just prerequisite) copies the schema FOD
+        # output into specs/ but leaves no GC root, so cache-nix-action's pre-save
+        # garbage collection would drop the store path and every run would refetch.
+        # Build it with --out-link (outside the workspace, no stray result symlink)
+        # to register an indirect GC root that keeps the `specs` cache warm (#92).
+        run: nix build .#sdmxSpecs --out-link "$RUNNER_TEMP/sdmx-specs" --print-build-logs
+
+      - name: Verify XSD contract fragments (subset + cross-check)
         run: nix develop --command just check-xsd-fragments
 
 
@@ -304,7 +317,11 @@ jobs:
     name: Internal Documentation Check
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    # `xsd` joins the gate (not just rust/infra): the design_docs build consumes
+    # the fetched schemas via the manifest, and a re-pin can touch only
+    # specs/sources.toml (which carries the FOD rev + hash, read by fromTOML),
+    # leaving flake.nix unchanged so `infra` alone would miss it.
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.xsd == 'true'
     env:
       RUSTC_WRAPPER: sccache
     steps:
@@ -312,6 +329,19 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/setup-nix
+        with:
+          # Isolated `specs` nix-store cache shared with check-xsd-fragments, plus
+          # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
+          cache-key-suffix: specs
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Materialise the pinned SDMX schemas
+        # fetch-specs (run via the docs-internal Just prerequisite) copies the
+        # schema FOD output into specs/ but leaves no GC root, so cache-nix-action's
+        # pre-save garbage collection would drop the store path and every run would
+        # refetch. Build it with --out-link (outside the workspace, no stray result
+        # symlink) to register an indirect GC root that keeps the `specs` cache warm (#92).
+        run: nix build .#sdmxSpecs --out-link "$RUNNER_TEMP/sdmx-specs" --print-build-logs
 
       - uses: ./.github/actions/cargo-registry-cache
 

@@ -69,6 +69,51 @@
         }
       );
 
+      # Fetch-on-demand SDMX schemas (see specs/README.md). The pins live
+      # in specs/sources.toml — the SINGLE source of truth for BOTH this
+      # fixed-output derivation (per-edition commit + NAR hash) and the shell
+      # verify gate (per-file sha256, scripts/fetch-specs.sh). The SDMX schema
+      # files are fetched at build time, never committed; a repo-scoped Actions
+      # cache is usage only, never redistribution (must never reach a public
+      # substituter).
+      #
+      # Deliberately exposed under legacyPackages, NOT packages/checks, so that
+      # `nix flake check` never evaluates or builds it (legacyPackages is exempt
+      # from flake check): the schema closure is materialised only by an explicit
+      # `nix build .#sdmxSpecs`, run by scripts/fetch-specs.sh locally and by the
+      # fetch-gated CI jobs. `nix build .#sdmxSpecs` resolves here.
+      legacyPackages = forEachSupportedSystem ({ pkgs, ... }:
+        let
+          specsCfg = builtins.fromTOML (builtins.readFile ./specs/sources.toml);
+          # fetchFromGitHub NAR-hashes the UNPACKED tree at the pinned commit:
+          # robust to GitHub re-compressing the .tar.gz over time (whose bytes
+          # are not stable), unlike a fetchurl of the archive. The rev is the
+          # full 40-char commit SHA (immutable), the hash is trust-on-first-use,
+          # both recorded by scripts/update-specs.sh.
+          fetchEdition = ed: pkgs.fetchFromGitHub {
+            owner = specsCfg.upstream.owner;
+            repo = specsCfg.upstream.repo;
+            rev = specsCfg.edition.${ed}.rev;
+            hash = specsCfg.edition.${ed}.narHash;
+          };
+          # One $out/<ed>/schemas/ per pinned edition, mirroring the in-tree
+          # specs/ layout the generator and parsers expect (xs:include /
+          # xs:import relative paths resolve unchanged).
+          editions = builtins.attrNames specsCfg.edition;
+        in
+        {
+          sdmxSpecs = pkgs.runCommand "sdmx-specs" { } (
+            ''
+              mkdir -p "$out"
+            ''
+            + pkgs.lib.concatMapStrings (ed: ''
+              mkdir -p "$out/${ed}/schemas"
+              cp -R ${fetchEdition ed}/schemas/. "$out/${ed}/schemas/"
+            '') editions
+          );
+        }
+      );
+
       # --- Relationship between `nix flake check` and `just verify` ---
       #
       # `nix flake check` evaluates the derivations below inside a pure Nix sandbox.

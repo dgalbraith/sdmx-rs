@@ -94,10 +94,10 @@ no `## Specification` block.
 
 ## Citing the XSD contract
 
-For the modelled SDMX types, the authoritative grammar is vendored verbatim and
-embedded beneath the `## Specification` block, foldable, so the schema sits beside the
-citation. The fragment is `include_str!`'d through the `design_docs` gate, so it renders
-only in the internal build (`just docs-internal`), never on docs.rs:
+For the modelled SDMX types, the authoritative grammar is fetched verbatim and embedded
+beneath the `## Specification` block, foldable, so the schema sits beside the citation.
+The fragment is `include_str!`'d through the `design_docs` gate, so it renders only in
+dthe internal build (`just docs-internal`), never on docs.rs:
 
 ```rust
 /// - **Editions**: SDMX 3.0 and 3.1

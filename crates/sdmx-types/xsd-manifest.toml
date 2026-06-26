@@ -1,6 +1,6 @@
 # XSD contract fragment manifest for sdmx-types.
 #
-# Each [[fragment]] opts one vendored XSD symbol into a generated contract fragment
+# Each [[fragment]] opts one pinned XSD symbol into a generated contract fragment
 # under docs/xsd-fragments/<symbol>.md, included into the cited Rust item's
 # design_docs block via `#[cfg_attr(design_docs, doc = include_str!(...))]`.
 #

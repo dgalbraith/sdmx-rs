@@ -2,7 +2,7 @@
 # ===================================================================
 # gen-xsd-fragments.sh
 #
-# Generates the vendored XSD contract fragments for sdmx-types from
+# Generates the XSD contract fragments for sdmx-types from
 # crates/sdmx-types/xsd-manifest.toml. For each [[fragment]] entry it
 # slices the named complexType/simpleType verbatim out of the pinned
 # schema(s), wraps it in a collapsible <details> Markdown block, and
@@ -19,7 +19,7 @@
 #
 # This is the "apply" half of the spec -> doctor -> apply kernel: the
 # only writer of the fragment files. Run by hand (just gen-xsd-fragments)
-# when adding a manifest entry or re-vendoring a schema; the doctor
+# when adding a manifest entry or re-pinning a schema; the doctor
 # (check-xsd-fragments.sh) verifies the committed result.
 # ===================================================================
 set -eu
@@ -30,16 +30,20 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 
 ROOT=$(cd "${SCRIPT_DIR}/.." && pwd)
 MANIFEST="$ROOT/crates/sdmx-types/xsd-manifest.toml"
-SPECS="$ROOT/specs"
-# Output dir; overridable (XSD_FRAGMENTS_OUT) so the doctor can regenerate into a
-# temp dir for a non-mutating freshness diff.
-OUT="${XSD_FRAGMENTS_OUT:-$ROOT/crates/sdmx-types/docs/xsd-fragments}"
+# Schema tree root; overridable (SDMX_SPECS_DIR, shared with fetch-specs.sh) so a
+# materialised fetch-on-demand tree can be sliced instead of the in-tree specs/.
+SPECS="${SDMX_SPECS_DIR:-$ROOT/specs}"
+OUT="$ROOT/crates/sdmx-types/docs/xsd-fragments"
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 # Print the verbatim definition of a named xs:complexType/xs:simpleType,
-# depth-aware so nested anonymous complexTypes do not close it early.
+# depth-aware so nested anonymous complexTypes do not close it early. (Shares the
+# boundary logic of specs_symbol_span in lib/specs-fetch.sh, which additionally
+# tolerates attributes before name= and guards self-closing tags; both cases are
+# dormant for the generator — no manifest symbol is an abstract-before-name or
+# self-closing type — so the simpler start-match here suffices.)
 slice() { # file symbol
   awk -v name="$2" '
     function opens(s,  t){ t=s; return gsub("<xs:"TAG"[ />]","X",t) }

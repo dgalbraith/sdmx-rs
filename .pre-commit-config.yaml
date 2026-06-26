@@ -11,10 +11,17 @@ repos:
       - id: check-case-conflict
       - id: check-symlinks
       - id: detect-private-key
+      # Mutating fixers run at commit only (like rust-fmt below). At pre-push
+      # pre-commit feeds them the push range's files, which includes the
+      # gitignored, fetched-on-demand specs/ + xsd-fragments build artefacts
+      # (raw-upstream CRLF/trailing-tab/no-final-newline) they must not rewrite.
       - id: end-of-file-fixer
+        stages: [pre-commit]
       - id: trailing-whitespace
+        stages: [pre-commit]
       - id: mixed-line-ending
         args: [--fix=lf]
+        stages: [pre-commit]
 
   # 2. Secret Leak Prevention (Securely SHA-pinned to v8.30.0)
   - repo: https://github.com/gitleaks/gitleaks
