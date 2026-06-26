@@ -265,7 +265,7 @@ The `sdmx-types` contract-fragment pipeline keeps each type's verbatim XSD excer
 |----------------------------|:----------:|----------------------------------------------------------------------------------------------------------------------------------|--------------------------|
 | `just fetch-specs`         | Local      | Materialises the pinned SDMX schemas on demand via the Nix FOD, then sha-verifies every file against `sources.toml`; idempotent. | `fetch-specs.sh`         |
 | `just gen-xsd-fragments`   | Local      | (Re)generates the sdmx-types XSD contract fragments from `xsd-manifest.toml` for the `design_docs` layer (apply).                | `gen-xsd-fragments.sh`   |
-| `just check-xsd-fragments` | Local & CI | (Supports `verify-docs`) Validates the generated XSD contract fragments are fresh and correctly wired into `design_docs`.        | `check-xsd-fragments.sh` |
+| `just check-xsd-fragments` | Local & CI | (Supports `verify-docs`) Validates the XSD contract fragments are correctly wired into `design_docs`.                            | `check-xsd-fragments.sh` |
 
 ### 8. Diagnostics (`just doctor` System)
 

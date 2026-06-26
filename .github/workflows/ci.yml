@@ -208,11 +208,18 @@ jobs:
         with:
           # Isolated `specs` nix-store cache shared with docs-internal, plus
           # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
-          # The materialise step that uses them is wired separately.
           cache-key-suffix: specs
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify XSD contract fragments (freshness + cross-check)
+      - name: Materialise the pinned SDMX schemas
+        # fetch-specs (run via the gate's Just prerequisite) copies the schema FOD
+        # output into specs/ but leaves no GC root, so cache-nix-action's pre-save
+        # garbage collection would drop the store path and every run would refetch.
+        # Build it with --out-link (outside the workspace, no stray result symlink)
+        # to register an indirect GC root that keeps the `specs` cache warm (#92).
+        run: nix build .#sdmxSpecs --out-link "$RUNNER_TEMP/sdmx-specs" --print-build-logs
+
+      - name: Verify XSD contract fragments (subset + cross-check)
         run: nix develop --command just check-xsd-fragments
 
 
@@ -325,9 +332,16 @@ jobs:
         with:
           # Isolated `specs` nix-store cache shared with check-xsd-fragments, plus
           # github.com auth for the schema FOD fetch (see setup-nix/action.yml).
-          # The materialise step that uses them is wired separately.
           cache-key-suffix: specs
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Materialise the pinned SDMX schemas
+        # fetch-specs (run via the docs-internal Just prerequisite) copies the
+        # schema FOD output into specs/ but leaves no GC root, so cache-nix-action's
+        # pre-save garbage collection would drop the store path and every run would
+        # refetch. Build it with --out-link (outside the workspace, no stray result
+        # symlink) to register an indirect GC root that keeps the `specs` cache warm (#92).
+        run: nix build .#sdmxSpecs --out-link "$RUNNER_TEMP/sdmx-specs" --print-build-logs
 
       - uses: ./.github/actions/cargo-registry-cache
 

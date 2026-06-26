@@ -169,87 +169,11 @@
 # Fetched on demand from the upstream sdmx-ml release schemas/ subtree (pinned by
 # commit + per-file sha256 in specs/sources.toml), not redistributed from this
 # repository; see specs/README.md and specs/NOTICE for provenance and rights.
-# Each schema file is listed explicitly until the fetch-on-demand flip untracks
-# the files; adding or replacing a schema is a deliberate, reviewed act.
 !/specs/
 /specs/*
 !/specs/README.md
-# Fetch-on-demand schema pins (commit + per-file sha256)
 !/specs/sources.toml
-# Rights and provenance notice for the fetched schemas
 !/specs/NOTICE
-
-# SDMX 3.0 schemas — sdmx-ml release v3.0
-!/specs/3.0/
-/specs/3.0/*
-!/specs/3.0/schemas/
-/specs/3.0/schemas/*
-!/specs/3.0/schemas/SDMXCommon.xsd
-!/specs/3.0/schemas/SDMXCommonReferences.xsd
-!/specs/3.0/schemas/SDMXDataStructureSpecific.xsd
-!/specs/3.0/schemas/SDMXMessage.xsd
-!/specs/3.0/schemas/SDMXMessageFooter.xsd
-!/specs/3.0/schemas/SDMXMetadataGeneric.xsd
-!/specs/3.0/schemas/SDMXRegistry.xsd
-!/specs/3.0/schemas/SDMXRegistryBase.xsd
-!/specs/3.0/schemas/SDMXRegistryRegistration.xsd
-!/specs/3.0/schemas/SDMXRegistryStructure.xsd
-!/specs/3.0/schemas/SDMXRegistrySubscription.xsd
-!/specs/3.0/schemas/SDMXStructure.xsd
-!/specs/3.0/schemas/SDMXStructureBase.xsd
-!/specs/3.0/schemas/SDMXStructureCategorisation.xsd
-!/specs/3.0/schemas/SDMXStructureCategory.xsd
-!/specs/3.0/schemas/SDMXStructureCodelist.xsd
-!/specs/3.0/schemas/SDMXStructureConcept.xsd
-!/specs/3.0/schemas/SDMXStructureConstraint.xsd
-!/specs/3.0/schemas/SDMXStructureDataflow.xsd
-!/specs/3.0/schemas/SDMXStructureDataStructure.xsd
-!/specs/3.0/schemas/SDMXStructureHierarchicalCodelist.xsd
-!/specs/3.0/schemas/SDMXStructureMetadataflow.xsd
-!/specs/3.0/schemas/SDMXStructureMetadataStructure.xsd
-!/specs/3.0/schemas/SDMXStructureOrganisation.xsd
-!/specs/3.0/schemas/SDMXStructureProcess.xsd
-!/specs/3.0/schemas/SDMXStructureProvisionAgreement.xsd
-!/specs/3.0/schemas/SDMXStructureReportingTaxonomy.xsd
-!/specs/3.0/schemas/SDMXStructureStructureMappings.xsd
-!/specs/3.0/schemas/SDMXStructureTransformation.xsd
-!/specs/3.0/schemas/xml.xsd
-
-# SDMX 3.1 schemas — sdmx-ml release v3.1
-!/specs/3.1/
-/specs/3.1/*
-!/specs/3.1/schemas/
-/specs/3.1/schemas/*
-!/specs/3.1/schemas/SDMXCommon.xsd
-!/specs/3.1/schemas/SDMXCommonReferences.xsd
-!/specs/3.1/schemas/SDMXDataStructureSpecific.xsd
-!/specs/3.1/schemas/SDMXMessage.xsd
-!/specs/3.1/schemas/SDMXMessageFooter.xsd
-!/specs/3.1/schemas/SDMXMetadataGeneric.xsd
-!/specs/3.1/schemas/SDMXRegistry.xsd
-!/specs/3.1/schemas/SDMXRegistryBase.xsd
-!/specs/3.1/schemas/SDMXRegistryRegistration.xsd
-!/specs/3.1/schemas/SDMXRegistryStructure.xsd
-!/specs/3.1/schemas/SDMXRegistrySubscription.xsd
-!/specs/3.1/schemas/SDMXStructure.xsd
-!/specs/3.1/schemas/SDMXStructureBase.xsd
-!/specs/3.1/schemas/SDMXStructureCategorisation.xsd
-!/specs/3.1/schemas/SDMXStructureCategory.xsd
-!/specs/3.1/schemas/SDMXStructureCodelist.xsd
-!/specs/3.1/schemas/SDMXStructureConcept.xsd
-!/specs/3.1/schemas/SDMXStructureConstraint.xsd
-!/specs/3.1/schemas/SDMXStructureDataflow.xsd
-!/specs/3.1/schemas/SDMXStructureDataStructure.xsd
-!/specs/3.1/schemas/SDMXStructureHierarchicalCodelist.xsd
-!/specs/3.1/schemas/SDMXStructureMetadataflow.xsd
-!/specs/3.1/schemas/SDMXStructureMetadataStructure.xsd
-!/specs/3.1/schemas/SDMXStructureOrganisation.xsd
-!/specs/3.1/schemas/SDMXStructureProcess.xsd
-!/specs/3.1/schemas/SDMXStructureProvisionAgreement.xsd
-!/specs/3.1/schemas/SDMXStructureReportingTaxonomy.xsd
-!/specs/3.1/schemas/SDMXStructureStructureMappings.xsd
-!/specs/3.1/schemas/SDMXStructureTransformation.xsd
-!/specs/3.1/schemas/xml.xsd
 
 # ==============================================================================
 # IX. Design Documentation
@@ -343,11 +267,7 @@
 !/crates/**/CHANGELOG.md
 
 # sdmx-types: XSD contract fragment subsystem (design_docs layer).
-# The authored manifest, the generated fragments, and the scoped markdownlint
-# config that relaxes rules for the verbatim-XSD fragments; see xsd-manifest.toml
-# and scripts/gen-xsd-fragments.sh.
 !/crates/sdmx-types/xsd-manifest.toml
-!/crates/sdmx-types/docs/xsd-fragments/*.md
 !/crates/sdmx-types/docs/xsd-fragments/.markdownlint.yaml
 
 # sdmx-parsers: spec validation fixtures

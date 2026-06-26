@@ -187,8 +187,8 @@ clippy:
 docs:
     RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked --quiet
 
-# Generate internal docs: the design_docs rationale layer plus private items (default whole workspace; pass `-p <crate>` to scope)
-docs-internal pkgs="--workspace":
+# Generate internal docs: the design_docs rationale layer plus private items (default whole workspace; pass `-p <crate>` to scope). Fetches the pinned schemas + regenerates the fragments first (design_docs include_str!s them).
+docs-internal pkgs="--workspace": fetch-specs gen-xsd-fragments
     RUSTDOCFLAGS="--cfg design_docs -D warnings" cargo doc {{ pkgs }} --no-deps --document-private-items --all-features --locked --quiet
 
 # === Formats ===
@@ -445,18 +445,20 @@ _verify-guide-quiet:
 
 # --- XSD contract fragments (design_docs) ---
 # Pipeline: fetch-specs (materialise the pinned schemas) -> gen-xsd-fragments
-# (generate the fragments) -> check-xsd-fragments (verify wiring; verify-docs gate).
+# (generate the fragments into the real $OUT) -> check-xsd-fragments (verify
+# wiring; verify-docs gate). The schemas + fragments are fetched/generated on
+# demand (never committed), so gen + the gates declare the chain as dependencies.
 
 # Materialise the pinned SDMX schemas on demand (Nix FOD fetch + per-file sha-verify; idempotent)
 fetch-specs:
     @./scripts/fetch-specs.sh
 
 # Generate sdmx-types XSD contract fragments (apply; run when adding a manifest entry or re-pinning)
-gen-xsd-fragments:
+gen-xsd-fragments: fetch-specs
     @./scripts/gen-xsd-fragments.sh
 
 # Verify the XSD contract fragments are correctly wired to their types (doctor).
-check-xsd-fragments:
+check-xsd-fragments: fetch-specs gen-xsd-fragments
     @./scripts/check-xsd-fragments.sh
 
 # ============================================================================
