@@ -230,7 +230,7 @@ pub struct AgencyScheme {
 
 impl AgencyScheme {
     /// Builds an empty agency scheme, checking the scheme id against the fixed literal `"AGENCIES"`.
-    /// Agencies are added with [`insert`](Self::insert).
+    /// Agencies are added with [`push`](Self::push).
     ///
     /// # Errors
     ///
@@ -242,8 +242,8 @@ impl AgencyScheme {
     }
 
     /// Appends an agency, preserving wire order.
-    pub fn insert(&mut self, agency: Agency) {
-        self.scheme.insert(agency);
+    pub fn push(&mut self, agency: Agency) {
+        self.scheme.push(agency);
     }
 
     /// The first agency whose id equals `id`, in wire order (a first-match view).
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn agency_scheme_forwards_item_access() {
         let mut scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
-        scheme.insert(Agency::new(nameable("ESTAT"), vec![]).unwrap());
+        scheme.push(Agency::new(nameable("ESTAT"), vec![]).unwrap());
         assert_eq!(scheme.get("ESTAT").map(IdentifiableArtefact::id), Some("ESTAT"));
         assert_eq!(scheme.iter().count(), 1);
         assert_eq!(scheme.agency(), "SDMX");
@@ -429,7 +429,7 @@ mod tests {
     #[test]
     fn agency_scheme_deserialize_round_trips() {
         let mut scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
-        scheme.insert(Agency::new(nameable("ESTAT"), vec![]).unwrap());
+        scheme.push(Agency::new(nameable("ESTAT"), vec![]).unwrap());
         let json = serde_json::to_string(&scheme).unwrap();
         assert_eq!(serde_json::from_str::<AgencyScheme>(&json).unwrap(), scheme);
     }

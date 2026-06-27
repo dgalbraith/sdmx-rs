@@ -195,7 +195,7 @@ pub struct ConceptScheme {
 
 impl ConceptScheme {
     /// Builds an empty concept scheme, validating the scheme id against SDMX `NCNameIDType`.
-    /// Concepts are added with [`insert`](Self::insert).
+    /// Concepts are added with [`push`](Self::push).
     ///
     /// # Errors
     ///
@@ -206,8 +206,8 @@ impl ConceptScheme {
     }
 
     /// Appends a concept, preserving wire order.
-    pub fn insert(&mut self, concept: Concept) {
-        self.scheme.insert(concept);
+    pub fn push(&mut self, concept: Concept) {
+        self.scheme.push(concept);
     }
 
     /// The first concept whose id equals `id`, in wire order (a first-match view).
@@ -415,7 +415,7 @@ mod tests {
         );
 
         let mut scheme = ConceptScheme::new(scheme_metadata("CS_X"), None).unwrap();
-        scheme.insert(Concept::new(nameable("FREQ"), None, None).unwrap());
+        scheme.push(Concept::new(nameable("FREQ"), None, None).unwrap());
         assert_eq!(scheme.get("FREQ").map(IdentifiableArtefact::id), Some("FREQ"));
         assert_eq!(scheme.iter().count(), 1);
     }
@@ -423,7 +423,7 @@ mod tests {
     #[test]
     fn concept_scheme_deserialize_round_trips() {
         let mut scheme = ConceptScheme::new(scheme_metadata("CS_X"), None).unwrap();
-        scheme.insert(Concept::new(nameable("FREQ"), None, None).unwrap());
+        scheme.push(Concept::new(nameable("FREQ"), None, None).unwrap());
         let json = serde_json::to_string(&scheme).unwrap();
         assert_eq!(serde_json::from_str::<ConceptScheme>(&json).unwrap(), scheme);
     }
