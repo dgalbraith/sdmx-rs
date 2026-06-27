@@ -329,7 +329,7 @@ pub struct Codelist {
 
 impl Codelist {
     /// Builds an empty codelist, validating the scheme id against SDMX `NCNameIDType`. Codes are
-    /// added with [`insert`](Self::insert); extensions are assigned to the public field.
+    /// added with [`push`](Self::push); extensions are assigned to the public field.
     ///
     /// # Errors
     ///
@@ -340,8 +340,8 @@ impl Codelist {
     }
 
     /// Appends a code, preserving wire order.
-    pub fn insert(&mut self, code: Code) {
-        self.scheme.insert(code);
+    pub fn push(&mut self, code: Code) {
+        self.scheme.push(code);
     }
 
     /// The first code whose id equals `id`, in wire order (a first-match view).
@@ -557,8 +557,8 @@ mod tests {
     #[test]
     fn forwards_item_access_and_partial_view() {
         let mut codelist = Codelist::new(metadata("CL_FREQ"), Some(true)).unwrap();
-        codelist.insert(code("A"));
-        codelist.insert(code("M"));
+        codelist.push(code("A"));
+        codelist.push(code("M"));
         assert_eq!(codelist.get("A").map(IdentifiableArtefact::id), Some("A"));
         assert_eq!(codelist.iter().count(), 2);
         assert!(codelist.is_partial());
@@ -596,7 +596,7 @@ mod tests {
     #[test]
     fn deserialize_round_trips_and_restores_items() {
         let mut codelist = Codelist::new(metadata("CL_FREQ"), None).unwrap();
-        codelist.insert(code("A"));
+        codelist.push(code("A"));
         let json = serde_json::to_string(&codelist).unwrap();
         // The round-trip restores the items, which new() alone would not carry.
         assert_eq!(serde_json::from_str::<Codelist>(&json).unwrap(), codelist);

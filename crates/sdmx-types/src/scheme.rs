@@ -86,10 +86,8 @@ pub trait SchemeItem: IdentifiableArtefact {}
 /// let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata, None);
 /// let code_names = LocalisedString::new(vec![(Some("en".to_string()), "Annual".to_string())])?;
 /// let code_id = IdentifiableMetadata::new("A".to_string(), None, None, vec![], vec![])?;
-/// scheme.insert(Code {
-///     metadata: NameableMetadata::new(code_id, code_names, None),
-///     parent_id: None,
-/// });
+/// scheme
+///     .push(Code { metadata: NameableMetadata::new(code_id, code_names, None), parent_id: None });
 /// assert_eq!(scheme.get("A").map(IdentifiableArtefact::id), Some("A"));
 /// assert!(!scheme.is_partial());
 /// # Ok::<(), sdmx_types::Error>(())
@@ -108,7 +106,7 @@ pub struct ItemScheme<I: SchemeItem> {
 }
 
 impl<I: SchemeItem> ItemScheme<I> {
-    /// Builds an empty item scheme. Items are added with [`insert`](Self::insert). Infallible: the
+    /// Builds an empty item scheme. Items are added with [`push`](Self::push). Infallible: the
     /// scheme-id invariant (where one exists) is the concrete wrapper's, not the carrier's.
     #[must_use]
     pub const fn new(metadata: MaintainableMetadata, is_partial: Option<bool>) -> Self {
@@ -116,7 +114,7 @@ impl<I: SchemeItem> ItemScheme<I> {
     }
 
     /// Appends an item, preserving wire order.
-    pub fn insert(&mut self, item: I) {
+    pub fn push(&mut self, item: I) {
         self.items.push(item);
     }
 
@@ -226,12 +224,12 @@ mod tests {
     }
 
     #[test]
-    fn insert_preserves_order_and_get_is_first_match() {
+    fn push_preserves_order_and_get_is_first_match() {
         let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata("CL_FREQ"), None);
-        scheme.insert(code("A"));
-        scheme.insert(code("M"));
+        scheme.push(code("A"));
+        scheme.push(code("M"));
         // A second "A" is held verbatim (a duplicate is schema-invalid but not collapsed).
-        scheme.insert(code("A"));
+        scheme.push(code("A"));
 
         let ids: alloc::vec::Vec<&str> = scheme.iter().map(IdentifiableArtefact::id).collect();
         assert_eq!(ids, vec!["A", "M", "A"]);
@@ -319,7 +317,7 @@ mod tests {
     #[test]
     fn deserialize_round_trips() {
         let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata("CL_FREQ"), Some(false));
-        scheme.insert(code("A"));
+        scheme.push(code("A"));
         let json = serde_json::to_string(&scheme).unwrap();
         assert_eq!(serde_json::from_str::<ItemScheme<Code>>(&json).unwrap(), scheme);
     }

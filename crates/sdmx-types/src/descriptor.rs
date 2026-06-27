@@ -15,7 +15,7 @@ carries `annotations`/`links`/`urn` as public fields. Their ids are *optional wi
 private `Option<String>` with a mismatch rejected at `new()` and a `stated_id()` accessor (D-0049 as
 amended by D-0052; private per ADR-0021, since mutation could break the fixed-id invariant). Each
 descriptor owns its own mechanical non-empty invariant (the type owning the invariant enforces it,
-D-0019), takes its initial collection at `new()`, and exposes an `insert()` surface for additions.
+D-0019), takes its initial collection at `new()`, and exposes a `push()` surface for additions.
 
 The collections are `Vec`, not maps (D-0051): wire order is preserved and lookup is a first-match
 view, not a key. The attribute list stores one interleaved `Vec<AttributeListMember>` because the
@@ -224,7 +224,7 @@ impl DimensionList {
     }
 
     /// Appends a dimension, preserving wire order.
-    pub fn insert(&mut self, dimension: Dimension) {
+    pub fn push(&mut self, dimension: Dimension) {
         self.dimensions.push(dimension);
     }
 }
@@ -340,7 +340,7 @@ impl AttributeList {
     }
 
     /// Appends a member, preserving wire order.
-    pub fn insert(&mut self, member: AttributeListMember) {
+    pub fn push(&mut self, member: AttributeListMember) {
         self.members.push(member);
     }
 
@@ -467,7 +467,7 @@ impl MeasureList {
     }
 
     /// Appends a measure, preserving wire order.
-    pub fn insert(&mut self, measure: Measure) {
+    pub fn push(&mut self, measure: Measure) {
         self.measures.push(measure);
     }
 
@@ -666,10 +666,10 @@ mod tests {
     }
 
     #[test]
-    fn dimension_list_insert_and_deserialize() {
+    fn dimension_list_push_and_deserialize() {
         let mut list =
             DimensionList::new(None, vec![dimension("FREQ")], None, vec![], vec![], None).unwrap();
-        list.insert(dimension("CURRENCY"));
+        list.push(dimension("CURRENCY"));
         assert_eq!(list.dimensions().len(), 2);
 
         let json = serde_json::to_string(&list).unwrap();
@@ -719,7 +719,7 @@ mod tests {
     }
 
     #[test]
-    fn attribute_list_insert_and_deserialize() {
+    fn attribute_list_push_and_deserialize() {
         let mut list = AttributeList::new(
             None,
             vec![AttributeListMember::Attribute(attribute("OBS_STATUS"))],
@@ -728,7 +728,7 @@ mod tests {
             None,
         )
         .unwrap();
-        list.insert(AttributeListMember::Attribute(attribute("CONF_STATUS")));
+        list.push(AttributeListMember::Attribute(attribute("CONF_STATUS")));
         assert_eq!(list.members().len(), 2);
 
         let json = serde_json::to_string(&list).unwrap();
@@ -768,10 +768,10 @@ mod tests {
     }
 
     #[test]
-    fn measure_list_insert_and_deserialize() {
+    fn measure_list_push_and_deserialize() {
         let mut list =
             MeasureList::new(None, vec![measure("OBS_VALUE")], vec![], vec![], None).unwrap();
-        list.insert(measure("LOWER_BOUND"));
+        list.push(measure("LOWER_BOUND"));
         assert_eq!(list.iter().count(), 2);
 
         let json = serde_json::to_string(&list).unwrap();
