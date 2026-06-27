@@ -116,7 +116,7 @@ impl<I: SchemeItem> ItemScheme<I> {
     pub fn new(metadata: MaintainableMetadata, is_partial: Option<bool>) -> Self {
         Self { metadata, is_partial, items: Vec::new() }
     }
-    pub fn insert(&mut self, item: I) { self.items.push(item); }
+    pub fn push(&mut self, item: I) { self.items.push(item); }
     /// First-match lookup view (Layer 2). Wire order is preserved (a keyed map sorts); a
     /// duplicate id is schema-invalid for these schemes (Code/Concept/Agency `@id` is
     /// `xs:unique`-enforced), but if a non-conformant document presents one it is held
@@ -198,7 +198,7 @@ The `Serialize` direction is unaffected by this decision: derived `Serialize` re
 
 The `Dimension::position` field is stored verbatim as `Option<i32>` (D-0022 re-homed under D-0031): `DataStructureDefinition::new()` neither sorts nor canonicalises by it (both would collapse wire information — reordering the `Vec` or erasing absent-vs-stated). The spec's "a stated position must be consistent with key-descriptor order" is a prose-only constraint, so it is surfaced as a non-destructive lint; the canonical/effective position is a derived view (`Dimension::effective_position(index)`), not a stored, normalised value.
 
-`ItemScheme<I>` and the DSD descriptor lists (`DimensionList`/`AttributeList`/`MeasureList` — D-0049) deliberately expose a mutating `insert()` surface alongside the `new()` constructor. This is not a violation of the single write path rule — the rule exists to prevent callers from bypassing invariant enforcement, not to prevent multiple validated entry points. All collections are ordered `Vec`s (D-0051), so `insert()` appends in order; for the descriptor lists the mechanical non-empty floor was already established at `new()` and appending cannot lower it. No write path can corrupt an invariant, even though there are multiple entry points. A future reader seeing `insert()` should not interpret it as a loophole in the construction contract.
+`ItemScheme<I>` and the DSD descriptor lists (`DimensionList`/`AttributeList`/`MeasureList` — D-0049) deliberately expose a mutating `push()` surface alongside the `new()` constructor. This is not a violation of the single write path rule — the rule exists to prevent callers from bypassing invariant enforcement, not to prevent multiple validated entry points. All collections are ordered `Vec`s (D-0051), so `push()` appends in order; for the descriptor lists the mechanical non-empty floor was already established at `new()` and appending cannot lower it. No write path can corrupt an invariant, even though there are multiple entry points. A future reader seeing `push()` should not interpret it as a loophole in the construction contract.
 
 ---
 
@@ -762,7 +762,7 @@ impl MaintainableArtefact for MaintainableMetadata {
 
 `ItemScheme<I>` is a transparent pub-field carrier with derived `Serialize` **and** `Deserialize` (D-0051): with items stored as an ordered `Vec`, there is no derived map key and therefore no key/id desync to defend against — every field enforces its own invariants, which is exactly §7's sharper test for the derive. `SchemeItem` is implemented explicitly per item type (not via a blanket impl) so scheme membership is a deliberate opt-in and the marker remains sealable in a later phase if needed.
 
-`Codelist`'s `scheme` field is private — not for item storage (invariant-free) but because the *wrapper* owns the NCName scheme-id invariant; it delegates the full trait hierarchy and forwards the item-access methods (`get`, `iter`, `insert`).
+`Codelist`'s `scheme` field is private — not for item storage (invariant-free) but because the *wrapper* owns the NCName scheme-id invariant; it delegates the full trait hierarchy and forwards the item-access methods (`get`, `iter`, `push`).
 
 ```rust
 pub trait SchemeItem: IdentifiableArtefact {}
@@ -791,7 +791,7 @@ impl<I: SchemeItem> ItemScheme<I> {
     pub fn new(metadata: MaintainableMetadata, is_partial: Option<bool>) -> Self {
         Self { metadata, is_partial, items: Vec::new() }
     }
-    pub fn insert(&mut self, item: I) { self.items.push(item); }
+    pub fn push(&mut self, item: I) { self.items.push(item); }
     /// First-match lookup view (Layer 2), in wire order (D-0051).
     pub fn get(&self, id: &str) -> Option<&I> {
         self.items.iter().find(|i| i.id() == id)
@@ -924,7 +924,7 @@ impl Codelist {
         Ok(Self { scheme: ItemScheme::new(metadata, is_partial), extensions: Vec::new() })
     }
     // Forward item access so the private scheme stays encapsulated.
-    pub fn insert(&mut self, code: Code) { self.scheme.insert(code) }
+    pub fn push(&mut self, code: Code) { self.scheme.push(code) }
     pub fn get(&self, id: &str) -> Option<&Code> { self.scheme.get(id) }
     pub fn iter(&self) -> impl Iterator<Item = &Code> { self.scheme.iter() }
     // `isPartial` is not a maintainable-trait method (no item-scheme trait yet — the shared
@@ -1589,7 +1589,7 @@ impl TimeDimension {
 // (D-0049 as amended by D-0052; visibility per ADR-0021 — report-5 V-4); Group's id is REQUIRED
 // and user-chosen, so Group carries full IdentifiableMetadata. Each list descriptor owns its own
 // mechanical non-empty invariant (the type owning the invariant enforces it — D-0019), takes
-// the initial collection at new(), and exposes the §7 insert() surface for additions.
+// the initial collection at new(), and exposes the §7 push() surface for additions.
 // Identical 3.0/3.1 (D-0046).
 
 pub struct DimensionList {              // spec DimensionListType (id fixed="DimensionDescriptor")
@@ -1624,7 +1624,7 @@ impl DimensionList {
         if dimensions.is_empty() { return Err(Error::EmptyDimensionList); }
         Ok(Self { id, annotations, links, urn, dimensions, time_dimension })
     }
-    pub fn insert(&mut self, dimension: Dimension) { self.dimensions.push(dimension); }
+    pub fn push(&mut self, dimension: Dimension) { self.dimensions.push(dimension); }
     pub fn dimensions(&self) -> &[Dimension] { &self.dimensions }
     /// Layer-1 (infoset): the descriptor id as the wire carried it (D-0052 statedness).
     pub fn stated_id(&self) -> Option<&str> { self.id.as_deref() }
@@ -1710,7 +1710,7 @@ impl AttributeList {
     }
     /// Layer-1 (infoset): the descriptor id as the wire carried it (D-0052 statedness).
     pub fn stated_id(&self) -> Option<&str> { self.id.as_deref() }
-    pub fn insert(&mut self, member: AttributeListMember) { self.members.push(member); }
+    pub fn push(&mut self, member: AttributeListMember) { self.members.push(member); }
     pub fn members(&self) -> &[AttributeListMember] { &self.members }
     /// Filtered view over the Attribute members, in wire order (D-0051).
     pub fn attributes(&self) -> impl Iterator<Item = &Attribute> {
@@ -1759,7 +1759,7 @@ impl MeasureList {
     }
     /// Layer-1 (infoset): the descriptor id as the wire carried it (D-0052 statedness).
     pub fn stated_id(&self) -> Option<&str> { self.id.as_deref() }
-    pub fn insert(&mut self, measure: Measure) { self.measures.push(measure); }
+    pub fn push(&mut self, measure: Measure) { self.measures.push(measure); }
     /// First-match lookup view (Layer 2); duplicate ids are schema-valid (lint).
     pub fn get(&self, id: &str) -> Option<&Measure> {
         self.measures.iter().find(|m| m.id() == id)
