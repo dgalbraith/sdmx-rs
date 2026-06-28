@@ -201,6 +201,14 @@ impl CubeKeyValues {
     }
 }
 
+impl TryFrom<Vec<CubeKeyValue>> for CubeKeyValues {
+    type Error = Error;
+
+    fn try_from(values: Vec<CubeKeyValue>) -> Result<Self, Error> {
+        Self::new(values)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for CubeKeyValues {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<CubeKeyValue>::deserialize(deserializer)?;
@@ -244,6 +252,14 @@ impl SimpleComponentValues {
     #[must_use]
     pub fn as_slice(&self) -> &[SimpleComponentValue] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<SimpleComponentValue>> for SimpleComponentValues {
+    type Error = Error;
+
+    fn try_from(values: Vec<SimpleComponentValue>) -> Result<Self, Error> {
+        Self::new(values)
     }
 }
 
@@ -664,6 +680,14 @@ impl CubeRegions {
     }
 }
 
+impl TryFrom<Vec<CubeRegion>> for CubeRegions {
+    type Error = Error;
+
+    fn try_from(regions: Vec<CubeRegion>) -> Result<Self, Error> {
+        Self::new(regions)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for CubeRegions {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let regions = Vec::<CubeRegion>::deserialize(deserializer)?;
@@ -745,6 +769,14 @@ impl DataComponentValues {
     #[must_use]
     pub fn as_slice(&self) -> &[DataComponentValue] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<DataComponentValue>> for DataComponentValues {
+    type Error = Error;
+
+    fn try_from(values: Vec<DataComponentValue>) -> Result<Self, Error> {
+        Self::new(values)
     }
 }
 
@@ -882,6 +914,14 @@ impl SimpleKeyValues {
     }
 }
 
+impl TryFrom<Vec<String>> for SimpleKeyValues {
+    type Error = Error;
+
+    fn try_from(values: Vec<String>) -> Result<Self, Error> {
+        Self::new(values)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for SimpleKeyValues {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<String>::deserialize(deserializer)?;
@@ -1011,6 +1051,14 @@ impl DataKeys {
     #[must_use]
     pub fn as_slice(&self) -> &[DataKey] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<DataKey>> for DataKeys {
+    type Error = Error;
+
+    fn try_from(keys: Vec<DataKey>) -> Result<Self, Error> {
+        Self::new(keys)
     }
 }
 
@@ -1184,6 +1232,14 @@ impl DataStructureRefs {
     }
 }
 
+impl TryFrom<Vec<DsdReference>> for DataStructureRefs {
+    type Error = Error;
+
+    fn try_from(refs: Vec<DsdReference>) -> Result<Self, Error> {
+        Self::new(refs)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for DataStructureRefs {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<DsdReference>::deserialize(deserializer)?).map_err(to_de_error)
@@ -1226,6 +1282,14 @@ impl DataflowRefs {
     #[must_use]
     pub fn as_slice(&self) -> &[DataflowReference] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<DataflowReference>> for DataflowRefs {
+    type Error = Error;
+
+    fn try_from(refs: Vec<DataflowReference>) -> Result<Self, Error> {
+        Self::new(refs)
     }
 }
 
@@ -1274,6 +1338,14 @@ impl ProvisionAgreementRefs {
     }
 }
 
+impl TryFrom<Vec<ProvisionAgreementReference>> for ProvisionAgreementRefs {
+    type Error = Error;
+
+    fn try_from(refs: Vec<ProvisionAgreementReference>) -> Result<Self, Error> {
+        Self::new(refs)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for ProvisionAgreementRefs {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<ProvisionAgreementReference>::deserialize(deserializer)?)
@@ -1318,6 +1390,14 @@ impl SimpleDataSources {
     #[must_use]
     pub fn as_slice(&self) -> &[String] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<String>> for SimpleDataSources {
+    type Error = Error;
+
+    fn try_from(urls: Vec<String>) -> Result<Self, Error> {
+        Self::new(urls)
     }
 }
 
@@ -2522,5 +2602,74 @@ mod tests {
             let json = serde_json::to_string(&model).unwrap();
             assert_eq!(serde_json::from_str::<ConstraintModel>(&json).unwrap(), model);
         }
+    }
+
+    #[test]
+    fn cube_key_values_try_from_rejects_empty() {
+        assert_eq!(CubeKeyValues::try_from(vec![]).unwrap_err(), Error::EmptyCubeKeyValues);
+    }
+
+    #[test]
+    fn simple_component_values_try_from_rejects_empty() {
+        assert_eq!(
+            SimpleComponentValues::try_from(vec![]).unwrap_err(),
+            Error::EmptySimpleComponentValues
+        );
+    }
+
+    #[test]
+    fn data_component_values_try_from_rejects_empty() {
+        assert_eq!(
+            DataComponentValues::try_from(vec![]).unwrap_err(),
+            Error::EmptyDataComponentValues
+        );
+    }
+
+    #[test]
+    fn simple_key_values_try_from_rejects_empty() {
+        assert_eq!(SimpleKeyValues::try_from(vec![]).unwrap_err(), Error::EmptySimpleKeyValues);
+    }
+
+    #[test]
+    fn data_keys_try_from_rejects_empty() {
+        assert_eq!(DataKeys::try_from(vec![]).unwrap_err(), Error::EmptyDataKeys);
+    }
+
+    #[test]
+    fn data_structure_refs_try_from_rejects_empty() {
+        assert_eq!(DataStructureRefs::try_from(vec![]).unwrap_err(), Error::EmptyDataStructureRefs);
+    }
+
+    #[test]
+    fn dataflow_refs_try_from_rejects_empty() {
+        assert_eq!(DataflowRefs::try_from(vec![]).unwrap_err(), Error::EmptyDataflowRefs);
+    }
+
+    #[test]
+    fn provision_agreement_refs_try_from_rejects_empty() {
+        assert_eq!(
+            ProvisionAgreementRefs::try_from(vec![]).unwrap_err(),
+            Error::EmptyProvisionAgreementRefs
+        );
+    }
+
+    #[test]
+    fn simple_data_sources_try_from_rejects_empty() {
+        assert_eq!(SimpleDataSources::try_from(vec![]).unwrap_err(), Error::EmptySimpleDataSources);
+    }
+
+    #[test]
+    fn cube_regions_try_from_rejects_more_than_two() {
+        // CubeRegions permits empty; its boundary is the >2 cap, so it is exercised there.
+        let region = || CubeRegion {
+            key_values: vec![],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        };
+        assert_eq!(
+            CubeRegions::try_from(vec![region(), region(), region()]).unwrap_err(),
+            Error::TooManyCubeRegions
+        );
     }
 }

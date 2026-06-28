@@ -72,6 +72,14 @@ impl DimensionConstraint {
     }
 }
 
+impl TryFrom<Vec<String>> for DimensionConstraint {
+    type Error = Error;
+
+    fn try_from(dimension_ids: Vec<String>) -> Result<Self, Error> {
+        Self::new(dimension_ids)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for DimensionConstraint {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<String>::deserialize(deserializer)?).map_err(to_de_error)
@@ -365,5 +373,13 @@ mod tests {
         value["dimension_constraint"] = serde_json::json!([]);
         let bad = serde_json::to_string(&value).unwrap();
         assert!(serde_json::from_str::<Dataflow>(&bad).is_err());
+    }
+
+    #[test]
+    fn dimension_constraint_try_from_rejects_empty() {
+        assert_eq!(
+            DimensionConstraint::try_from(vec![]).unwrap_err(),
+            Error::EmptyDimensionConstraint
+        );
     }
 }

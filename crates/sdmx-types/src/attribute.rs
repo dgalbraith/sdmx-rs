@@ -158,6 +158,14 @@ impl DimensionIds {
     }
 }
 
+impl TryFrom<Vec<DimensionRef>> for DimensionIds {
+    type Error = Error;
+
+    fn try_from(refs: Vec<DimensionRef>) -> Result<Self, Error> {
+        Self::new(refs)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for DimensionIds {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<DimensionRef>::deserialize(deserializer)?).map_err(to_de_error)
@@ -267,6 +275,14 @@ impl MeasureRelationship {
     #[must_use]
     pub fn as_slice(&self) -> &[String] {
         &self.0
+    }
+}
+
+impl TryFrom<Vec<String>> for MeasureRelationship {
+    type Error = Error;
+
+    fn try_from(measure_ids: Vec<String>) -> Result<Self, Error> {
+        Self::new(measure_ids)
     }
 }
 
@@ -785,5 +801,18 @@ mod tests {
         let attribute_member = AttributeListMember::Attribute(basic_attribute(None));
         let json = serde_json::to_string(&attribute_member).unwrap();
         assert_eq!(serde_json::from_str::<AttributeListMember>(&json).unwrap(), attribute_member);
+    }
+
+    #[test]
+    fn dimension_ids_try_from_rejects_empty() {
+        assert_eq!(DimensionIds::try_from(vec![]).unwrap_err(), Error::EmptyAttributeDimensions);
+    }
+
+    #[test]
+    fn measure_relationship_try_from_rejects_empty() {
+        assert_eq!(
+            MeasureRelationship::try_from(vec![]).unwrap_err(),
+            Error::EmptyMeasureRelationship
+        );
     }
 }
