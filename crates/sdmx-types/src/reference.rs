@@ -42,6 +42,10 @@ Decisions: D-0020, D-0021, D-0034, D-0047, D-0048, D-0065.
 
 use alloc::string::String;
 
+// ---------------------------------------------------------------------------
+// DsdReference
+// ---------------------------------------------------------------------------
+
 /// A reference to a [`DataStructureDefinition`](crate::DataStructureDefinition) by its maintenance
 /// coordinates.
 ///
@@ -76,6 +80,10 @@ pub struct DsdReference {
     /// The referenced data structure definition's version.
     pub version: String,
 }
+
+// ---------------------------------------------------------------------------
+// ConceptReference
+// ---------------------------------------------------------------------------
 
 /// A reference to a [`Concept`](crate::Concept) by its coordinates within a concept scheme.
 ///
@@ -113,6 +121,10 @@ pub struct ConceptReference {
     pub id: String,
 }
 
+// ---------------------------------------------------------------------------
+// CodelistReference
+// ---------------------------------------------------------------------------
+
 /// A reference to a [`Codelist`](crate::Codelist) by its maintenance coordinates.
 ///
 /// ## Specification
@@ -147,6 +159,10 @@ pub struct CodelistReference {
     pub version: String,
 }
 
+// ---------------------------------------------------------------------------
+// ValueListReference
+// ---------------------------------------------------------------------------
+
 /// A reference to a [`ValueList`](crate::ValueList) by its maintenance coordinates.
 ///
 /// ## Specification
@@ -180,6 +196,10 @@ pub struct ValueListReference {
     /// The referenced value list's version.
     pub version: String,
 }
+
+// ---------------------------------------------------------------------------
+// DataflowReference
+// ---------------------------------------------------------------------------
 
 /// A reference to a [`Dataflow`](crate::Dataflow) by its maintenance coordinates.
 ///
@@ -216,6 +236,10 @@ pub struct DataflowReference {
     pub version: String,
 }
 
+// ---------------------------------------------------------------------------
+// ProvisionAgreementReference
+// ---------------------------------------------------------------------------
+
 /// A reference to a provision agreement by its maintenance coordinates.
 ///
 /// ## Specification
@@ -250,6 +274,10 @@ pub struct ProvisionAgreementReference {
     /// The referenced provision agreement's version.
     pub version: String,
 }
+
+// ---------------------------------------------------------------------------
+// DataProviderReference
+// ---------------------------------------------------------------------------
 
 /// A reference to a data provider by its coordinates within a data-provider scheme.
 ///

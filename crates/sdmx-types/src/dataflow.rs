@@ -33,6 +33,10 @@ use crate::{
     reference::DsdReference,
 };
 
+// ---------------------------------------------------------------------------
+// DimensionConstraint
+// ---------------------------------------------------------------------------
+
 /// A non-empty subset of a data structure's dimensions a dataflow constrains itself to (3.1-only).
 ///
 /// ## Specification
@@ -85,6 +89,10 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
         Self::new(Vec::<String>::deserialize(deserializer)?).map_err(to_de_error)
     }
 }
+
+// ---------------------------------------------------------------------------
+// Dataflow
+// ---------------------------------------------------------------------------
 
 /// A maintainable artefact a dataset is reported against.
 ///

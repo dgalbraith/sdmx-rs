@@ -39,6 +39,10 @@ use crate::{
     metadata::MaintainableMetadata,
 };
 
+// ---------------------------------------------------------------------------
+// SchemeItem
+// ---------------------------------------------------------------------------
+
 /// The marker for a type that may be an item in an [`ItemScheme`].
 ///
 /// ## Specification
@@ -51,6 +55,10 @@ use crate::{
 /// decision that a type is a scheme item. Implemented explicitly for [`Code`](crate::Code),
 /// [`Concept`](crate::Concept), and [`Agency`](crate::Agency); there is no blanket impl.
 pub trait SchemeItem: IdentifiableArtefact {}
+
+// ---------------------------------------------------------------------------
+// ItemScheme
+// ---------------------------------------------------------------------------
 
 /// A maintainable collection of items, generic over the item type.
 ///
