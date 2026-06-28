@@ -1091,6 +1091,20 @@ mod tests {
     }
 
     #[test]
+    fn is_valid_timezone_rejects_structurally_malformed_offsets() {
+        // `split_timezone` only ever hands `is_valid_timezone` a well-formed `±hh:mm`
+        // (or `Z`), so its structural guard is unreachable through `SdmxTimePeriod::new`
+        // and is exercised here at the unit boundary. The guard also keeps the
+        // `tz[1..3]`/`tz[4..6]` range slicing panic-free on a malformed offset.
+        assert!(!is_valid_timezone("+1:00")); // too short (len != 6)
+        assert!(!is_valid_timezone("+01000")); // no colon at index 3
+        assert!(!is_valid_timezone("010:00")); // no sign
+        // The well-formed forms the guard lets through to the range check.
+        assert!(is_valid_timezone("Z"));
+        assert!(is_valid_timezone("+00:00"));
+    }
+
+    #[test]
     fn granularity_projection_collapses_calendar_axis() {
         use Granularity as G;
         use SdmxTimePeriodKind as K;
