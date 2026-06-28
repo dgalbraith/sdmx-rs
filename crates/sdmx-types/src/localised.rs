@@ -137,6 +137,14 @@ impl LocalisedString {
     }
 }
 
+impl TryFrom<Vec<(Option<String>, String)>> for LocalisedString {
+    type Error = Error;
+
+    fn try_from(entries: Vec<(Option<String>, String)>) -> Result<Self, Error> {
+        Self::new(entries)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for LocalisedString {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let entries = Vec::<(Option<String>, String)>::deserialize(deserializer)?;
@@ -215,5 +223,10 @@ mod tests {
         assert_eq!(serde_json::from_str::<LocalisedString>(&json).unwrap(), sample());
         // An empty entry list is mechanically schema-invalid and rejected on the wire path.
         assert!(serde_json::from_str::<LocalisedString>("[]").is_err());
+    }
+
+    #[test]
+    fn localised_string_try_from_rejects_empty() {
+        assert_eq!(LocalisedString::try_from(vec![]).unwrap_err(), Error::EmptyLocalisation);
     }
 }

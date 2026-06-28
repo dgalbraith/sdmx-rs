@@ -83,6 +83,14 @@ impl GroupDimensions {
     }
 }
 
+impl TryFrom<Vec<String>> for GroupDimensions {
+    type Error = Error;
+
+    fn try_from(dimension_ids: Vec<String>) -> Result<Self, Error> {
+        Self::new(dimension_ids)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for GroupDimensions {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<String>::deserialize(deserializer)?).map_err(to_de_error)
@@ -779,5 +787,10 @@ mod tests {
 
         let empty = r#"{"id":null,"annotations":[],"links":[],"urn":null,"measures":[]}"#;
         assert!(serde_json::from_str::<MeasureList>(empty).is_err());
+    }
+
+    #[test]
+    fn group_dimensions_try_from_rejects_empty() {
+        assert_eq!(GroupDimensions::try_from(vec![]).unwrap_err(), Error::EmptyGroupDimensions);
     }
 }

@@ -149,6 +149,14 @@ impl MemberValues {
     }
 }
 
+impl TryFrom<Vec<MemberValue>> for MemberValues {
+    type Error = Error;
+
+    fn try_from(values: Vec<MemberValue>) -> Result<Self, Error> {
+        Self::new(values)
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for MemberValues {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let values = Vec::<MemberValue>::deserialize(deserializer)?;
@@ -610,5 +618,10 @@ mod tests {
         // through new().
         let bad = json.replace("CL_FREQ", "9FREQ");
         assert!(serde_json::from_str::<Codelist>(&bad).is_err());
+    }
+
+    #[test]
+    fn member_values_try_from_rejects_empty() {
+        assert_eq!(MemberValues::try_from(vec![]).unwrap_err(), Error::EmptyMemberValues);
     }
 }
