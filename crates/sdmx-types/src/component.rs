@@ -33,6 +33,10 @@ use crate::{
     validate::validate_ncname,
 };
 
+// ---------------------------------------------------------------------------
+// ComponentMetadata
+// ---------------------------------------------------------------------------
+
 /// The component identity leaf: an optional, conditionally validated id plus optional URI, URN,
 /// annotations, and links.
 ///
@@ -132,6 +136,10 @@ impl<'de> serde::Deserialize<'de> for ComponentMetadata {
         Self::new(raw.id, raw.uri, raw.urn, raw.annotations, raw.links).map_err(to_de_error)
     }
 }
+
+// ---------------------------------------------------------------------------
+// Usage
+// ---------------------------------------------------------------------------
 
 /// Whether a component's value is mandatory or optional.
 ///

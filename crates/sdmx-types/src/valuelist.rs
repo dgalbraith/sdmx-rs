@@ -37,6 +37,10 @@ use crate::{
     metadata::MaintainableMetadata,
 };
 
+// ---------------------------------------------------------------------------
+// ValueItem
+// ---------------------------------------------------------------------------
+
 /// A single value in a [`ValueList`].
 ///
 /// ## Specification
@@ -59,6 +63,10 @@ pub struct ValueItem {
     /// The value's annotations; empty ⟺ none.
     pub annotations: Vec<Annotation>,
 }
+
+// ---------------------------------------------------------------------------
+// ValueList
+// ---------------------------------------------------------------------------
 
 /// A maintainable closed set of [`ValueItem`]s.
 ///

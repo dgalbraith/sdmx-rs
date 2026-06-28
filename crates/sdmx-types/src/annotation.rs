@@ -20,6 +20,10 @@ use alloc::{string::String, vec::Vec};
 
 use crate::localised::LocalisedString;
 
+// ---------------------------------------------------------------------------
+// AnnotationUrl
+// ---------------------------------------------------------------------------
+
 /// An SDMX `AnnotationURL` element: a single URL with an optional language tag.
 ///
 /// ## Specification
@@ -66,6 +70,10 @@ pub struct AnnotationUrl {
     /// This is stored verbatim and is not mechanically validated.
     pub lang: Option<String>,
 }
+
+// ---------------------------------------------------------------------------
+// Annotation
+// ---------------------------------------------------------------------------
 
 /// An SDMX `Annotation`: free-form metadata attached to any annotable artefact.
 ///
@@ -125,6 +133,10 @@ pub struct Annotation {
     /// Optional localised annotation text (`AnnotationText`); `None` when absent.
     pub texts: Option<LocalisedString>,
 }
+
+// ---------------------------------------------------------------------------
+// Link
+// ---------------------------------------------------------------------------
 
 /// An SDMX `Link`: a typed association from an identifiable artefact to another resource.
 ///
