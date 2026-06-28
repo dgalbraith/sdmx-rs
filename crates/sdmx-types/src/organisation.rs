@@ -78,7 +78,7 @@ pub enum ContactDetail {
 ///
 /// Invariant-free pub-field carrier. The localisable Name/Department/Role triple are each optional
 /// (`minOccurs="0"`); the detail endpoints are one interleaved list in wire order.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Contact {
     /// The contact's localised names; `None` ⟺ no names.
     pub names: Option<LocalisedString>,
@@ -521,5 +521,20 @@ mod tests {
         assert_eq!(agency.links().len(), 1);
         assert_eq!(agency.names().first(), "Eurostat");
         assert_eq!(agency.descriptions().map(LocalisedString::first), Some("Statistical office"));
+    }
+
+    #[test]
+    fn contact_default_is_all_absent() {
+        let contact = Contact::default();
+        assert!(contact.names.is_none());
+        assert!(contact.departments.is_none());
+        assert!(contact.roles.is_none());
+        assert!(contact.details.is_empty());
+
+        // Struct-update sets only the stated field; the rest fall back to the default.
+        let with_email =
+            Contact { details: vec![ContactDetail::Email("x@y".into())], ..Default::default() };
+        assert_eq!(with_email.details.len(), 1);
+        assert!(with_email.names.is_none());
     }
 }
