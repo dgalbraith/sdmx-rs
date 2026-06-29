@@ -167,6 +167,12 @@ impl LocalisedString {
         &self.0
     }
 
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<LocalisedText> {
+        self.0
+    }
+
     /// The effective language of each entry in order (the stated tag, else `"en"`). The raw
     /// stated tags remain reachable via [`iter`](Self::iter).
     pub fn languages(&self) -> impl Iterator<Item = &str> {
@@ -178,6 +184,12 @@ impl LocalisedString {
     #[allow(clippy::len_without_is_empty)] // invariant: always ≥ 1 entry, so is_empty() is always false
     pub const fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl From<LocalisedString> for Vec<LocalisedText> {
+    fn from(value: LocalisedString) -> Self {
+        value.into_inner()
     }
 }
 
@@ -199,7 +211,7 @@ impl<'de> serde::Deserialize<'de> for LocalisedString {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{string::ToString, vec};
 
     use super::*;
 
@@ -281,5 +293,12 @@ mod tests {
     #[test]
     fn localised_string_try_from_rejects_empty() {
         assert_eq!(LocalisedString::try_from(vec![]).unwrap_err(), Error::EmptyLocalisation);
+    }
+
+    #[test]
+    fn localised_string_into_inner_and_from() {
+        let v = vec![LocalisedText { language: None, text: "T".to_string() }];
+        assert_eq!(LocalisedString::new(v.clone()).unwrap().into_inner(), v);
+        assert_eq!(Vec::from(LocalisedString::new(v.clone()).unwrap()), v);
     }
 }

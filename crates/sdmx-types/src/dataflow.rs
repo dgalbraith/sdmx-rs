@@ -74,6 +74,18 @@ impl DimensionConstraint {
     pub fn as_slice(&self) -> &[String] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl From<DimensionConstraint> for Vec<String> {
+    fn from(value: DimensionConstraint) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<String>> for DimensionConstraint {
@@ -219,7 +231,7 @@ impl MaintainableArtefact for Dataflow {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::ToString, vec, vec::Vec};
 
     use super::*;
     use crate::{
@@ -409,5 +421,12 @@ mod tests {
             DimensionConstraint::try_from(vec![]).unwrap_err(),
             Error::EmptyDimensionConstraint
         );
+    }
+
+    #[test]
+    fn dimension_constraint_into_inner_and_from() {
+        let v = vec!["FREQ".to_string()];
+        assert_eq!(DimensionConstraint::new(v.clone()).unwrap().into_inner(), v);
+        assert_eq!(Vec::from(DimensionConstraint::new(v.clone()).unwrap()), v);
     }
 }

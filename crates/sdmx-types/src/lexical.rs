@@ -86,6 +86,12 @@ impl SdmxDecimal {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -148,6 +154,12 @@ impl SdmxInteger {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
 }
 
 /// Widens to [`SdmxDecimal`]. Every `xs:integer` lexeme is also a valid `xs:decimal` lexeme, so
@@ -167,6 +179,20 @@ impl TryFrom<SdmxDecimal> for SdmxInteger {
 
     fn try_from(d: SdmxDecimal) -> Result<Self, Error> {
         if is_xs_integer(&d.0) { Ok(Self(d.0)) } else { Err(Error::InvalidInteger(d.0)) }
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<SdmxDecimal> for String {
+    fn from(value: SdmxDecimal) -> Self {
+        value.into_inner()
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<SdmxInteger> for String {
+    fn from(value: SdmxInteger) -> Self {
+        value.into_inner()
     }
 }
 
@@ -1188,5 +1214,15 @@ mod tests {
             assert_eq!(AsRef::<str>::as_ref(&v), raw);
             assert_eq!(v.to_string().parse::<SdmxTimePeriod>(), Ok(v.clone()));
         }
+    }
+
+    #[test]
+    fn lexical_newtype_into_inner_and_from() {
+        let d = SdmxDecimal::new("1.5".to_string()).unwrap();
+        assert_eq!(d.clone().into_inner(), "1.5");
+        assert_eq!(String::from(d), "1.5");
+        let i = SdmxInteger::new("42".to_string()).unwrap();
+        assert_eq!(i.clone().into_inner(), "42");
+        assert_eq!(String::from(i), "42");
     }
 }

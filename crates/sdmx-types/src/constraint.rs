@@ -199,6 +199,18 @@ impl CubeKeyValues {
     pub fn as_slice(&self) -> &[CubeKeyValue] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<CubeKeyValue> {
+        self.0
+    }
+}
+
+impl From<CubeKeyValues> for Vec<CubeKeyValue> {
+    fn from(value: CubeKeyValues) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<CubeKeyValue>> for CubeKeyValues {
@@ -252,6 +264,18 @@ impl SimpleComponentValues {
     #[must_use]
     pub fn as_slice(&self) -> &[SimpleComponentValue] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<SimpleComponentValue> {
+        self.0
+    }
+}
+
+impl From<SimpleComponentValues> for Vec<SimpleComponentValue> {
+    fn from(value: SimpleComponentValues) -> Self {
+        value.into_inner()
     }
 }
 
@@ -702,6 +726,18 @@ impl CubeRegions {
     pub fn as_slice(&self) -> &[CubeRegion] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<CubeRegion> {
+        self.0
+    }
+}
+
+impl From<CubeRegions> for Vec<CubeRegion> {
+    fn from(value: CubeRegions) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<CubeRegion>> for CubeRegions {
@@ -793,6 +829,18 @@ impl DataComponentValues {
     #[must_use]
     pub fn as_slice(&self) -> &[DataComponentValue] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<DataComponentValue> {
+        self.0
+    }
+}
+
+impl From<DataComponentValues> for Vec<DataComponentValue> {
+    fn from(value: DataComponentValues) -> Self {
+        value.into_inner()
     }
 }
 
@@ -944,6 +992,18 @@ impl SimpleKeyValues {
     pub fn as_slice(&self) -> &[String] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl From<SimpleKeyValues> for Vec<String> {
+    fn from(value: SimpleKeyValues) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<String>> for SimpleKeyValues {
@@ -1083,6 +1143,18 @@ impl DataKeys {
     #[must_use]
     pub fn as_slice(&self) -> &[DataKey] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<DataKey> {
+        self.0
+    }
+}
+
+impl From<DataKeys> for Vec<DataKey> {
+    fn from(value: DataKeys) -> Self {
+        value.into_inner()
     }
 }
 
@@ -1262,6 +1334,18 @@ impl DataStructureRefs {
     pub fn as_slice(&self) -> &[DsdReference] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<DsdReference> {
+        self.0
+    }
+}
+
+impl From<DataStructureRefs> for Vec<DsdReference> {
+    fn from(value: DataStructureRefs) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<DsdReference>> for DataStructureRefs {
@@ -1315,6 +1399,18 @@ impl DataflowRefs {
     pub fn as_slice(&self) -> &[DataflowReference] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<DataflowReference> {
+        self.0
+    }
+}
+
+impl From<DataflowRefs> for Vec<DataflowReference> {
+    fn from(value: DataflowRefs) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<DataflowReference>> for DataflowRefs {
@@ -1367,6 +1463,18 @@ impl ProvisionAgreementRefs {
     #[must_use]
     pub fn as_slice(&self) -> &[ProvisionAgreementReference] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<ProvisionAgreementReference> {
+        self.0
+    }
+}
+
+impl From<ProvisionAgreementRefs> for Vec<ProvisionAgreementReference> {
+    fn from(value: ProvisionAgreementRefs) -> Self {
+        value.into_inner()
     }
 }
 
@@ -1422,6 +1530,18 @@ impl SimpleDataSources {
     #[must_use]
     pub fn as_slice(&self) -> &[String] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl From<SimpleDataSources> for Vec<String> {
+    fn from(value: SimpleDataSources) -> Self {
+        value.into_inner()
     }
 }
 
@@ -2766,5 +2886,75 @@ mod tests {
             CubeRegions::try_from(vec![region(), region(), region()]).unwrap_err(),
             Error::TooManyCubeRegions
         );
+    }
+
+    #[test]
+    fn collection_newtype_into_inner_and_from() {
+        let ckv = vec![CubeKeyValue {
+            value: "A".to_string(),
+            cascade: None,
+            valid_from: None,
+            valid_to: None,
+        }];
+        assert_eq!(CubeKeyValues::new(ckv.clone()).unwrap().into_inner(), ckv);
+        assert_eq!(Vec::from(CubeKeyValues::new(ckv.clone()).unwrap()), ckv);
+
+        let scv = vec![SimpleComponentValue {
+            value: "EUR".to_string(),
+            cascade: None,
+            lang: None,
+            valid_from: None,
+            valid_to: None,
+        }];
+        assert_eq!(SimpleComponentValues::new(scv.clone()).unwrap().into_inner(), scv);
+        assert_eq!(Vec::from(SimpleComponentValues::new(scv.clone()).unwrap()), scv);
+
+        let cr = vec![CubeRegion {
+            key_values: vec![],
+            components: vec![],
+            include: None,
+            annotations: vec![],
+        }];
+        assert_eq!(CubeRegions::new(cr.clone()).unwrap().into_inner(), cr);
+        assert_eq!(Vec::from(CubeRegions::new(cr.clone()).unwrap()), cr);
+
+        let dcv = vec![DataComponentValue { value: "EUR".to_string(), cascade: None, lang: None }];
+        assert_eq!(DataComponentValues::new(dcv.clone()).unwrap().into_inner(), dcv);
+        assert_eq!(Vec::from(DataComponentValues::new(dcv.clone()).unwrap()), dcv);
+
+        let skv = vec!["A".to_string()];
+        assert_eq!(SimpleKeyValues::new(skv.clone()).unwrap().into_inner(), skv);
+        assert_eq!(Vec::from(SimpleKeyValues::new(skv.clone()).unwrap()), skv);
+
+        let dk = vec![DataKey {
+            key_values: vec![data_key_value("FREQ", "A")],
+            components: vec![],
+            include: FixedInclude::new(None).unwrap(),
+            annotations: vec![],
+            valid_from: None,
+            valid_to: None,
+        }];
+        assert_eq!(DataKeys::new(dk.clone()).unwrap().into_inner(), dk);
+        assert_eq!(Vec::from(DataKeys::new(dk.clone()).unwrap()), dk);
+
+        let dsr = vec![dsd_ref("DSD")];
+        assert_eq!(DataStructureRefs::new(dsr.clone()).unwrap().into_inner(), dsr);
+        assert_eq!(Vec::from(DataStructureRefs::new(dsr.clone()).unwrap()), dsr);
+
+        let dfr = vec![dataflow_ref("DF")];
+        assert_eq!(DataflowRefs::new(dfr.clone()).unwrap().into_inner(), dfr);
+        assert_eq!(Vec::from(DataflowRefs::new(dfr.clone()).unwrap()), dfr);
+
+        let par = vec![ProvisionAgreementReference {
+            agency: "A".to_string(),
+            id: "P".to_string(),
+            version: "1.0".to_string(),
+        }];
+        assert_eq!(ProvisionAgreementRefs::new(par.clone()).unwrap().into_inner(), par);
+        assert_eq!(Vec::from(ProvisionAgreementRefs::new(par.clone()).unwrap()), par);
+
+        let sds = vec!["http://example.com".to_string()];
+        assert_eq!(SimpleDataSources::new(sds.clone()).unwrap().into_inner(), sds);
+        assert_eq!(Vec::from(SimpleDataSources::new(sds.clone()).unwrap()), sds);
     }
 }

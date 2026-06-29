@@ -611,6 +611,8 @@ The lexical newtypes (`SdmxDecimal`, `SdmxInteger`, `SdmxVersion`, `SdmxTimePeri
 | `Borrow<str>`                    | ❌       | Conditional only. It would require `Eq`/`Hash`/`Ord` consistent with `str`, locking the equality/ordering semantics and foreclosing the `SdmxVersion` precedence question. Adopt only if a `str`-keyed lookup need arises and the semantics are settled. |
 | `Deref<str>`                     | ❌       | Rejected. Auto-deref would surface every `str` method as the newtype's own API, dissolving the validated boundary; `AsRef<str>` gives explicit raw access instead.                                                                                       |
 
+The single-`String` newtypes (`SdmxDecimal`, `SdmxInteger`) additionally provide `From<Self> for String` and an inherent `into_inner()`. A *consuming* unwrap moves the value out rather than coercing it while the newtype is live, so it does not dissolve the validated boundary the way `Deref` would. The composite `SdmxVersion`/`SdmxTimePeriod` wrap more than a string and expose no such unwrap.
+
 Decisions: D-0027, D-0060.
 
 ### Const and Const Functions
