@@ -62,10 +62,14 @@ use crate::{
 ///
 /// ```
 /// use sdmx_types::{
-///     Concept, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, NameableMetadata,
+///     Concept, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, LocalisedText,
+///     NameableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Frequency".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Frequency".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
 /// let concept = Concept::new(NameableMetadata::new(identifiable, names, None), None, None)?;
 /// assert_eq!(concept.id(), "FREQ");
@@ -169,11 +173,14 @@ impl<'de> serde::Deserialize<'de> for Concept {
 ///
 /// ```
 /// use sdmx_types::{
-///     ConceptScheme, IdentifiableMetadata, LocalisedString, MaintainableArtefact,
+///     ConceptScheme, IdentifiableMetadata, LocalisedString, LocalisedText, MaintainableArtefact,
 ///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Concepts".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Concepts".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("CS_X".to_string(), None, None, vec![], vec![])?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
@@ -304,12 +311,17 @@ mod tests {
 
     use super::*;
     use crate::{
+        localised::LocalisedText,
         metadata::{IdentifiableMetadata, VersionableMetadata},
         representation::{DataType, RepresentationChoice, TextFormat},
     };
 
     fn nameable(id: &str) -> NameableMetadata {
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         NameableMetadata::new(identifiable, names, None)
@@ -458,9 +470,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
             Some("uri".into()),

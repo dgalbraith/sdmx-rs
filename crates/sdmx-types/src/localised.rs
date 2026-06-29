@@ -1,26 +1,27 @@
 //! Ordered, multilingual text for SDMX names and descriptions.
 //!
-//! [`LocalisedString`] holds a sequence of `(language, text)` entries in wire order. SDMX names
+//! [`LocalisedString`] holds a sequence of [`LocalisedText`] entries in wire order. SDMX names
 //! and descriptions are multilingual, and the same language may legitimately appear more than
 //! once. The language tag is optional on each entry; lookups apply the SDMX `"en"` default when a
 //! tag is absent, so an untagged entry answers to `"en"`.
 //!
 //! The single construction invariant is that the entry list is non-empty: the parent `Name` and
-//! `Description` elements require at least one entry. Keys and values are otherwise stored
+//! `Description` elements require at least one entry. Languages and texts are otherwise stored
 //! verbatim, including a blank value or an unusual language tag.
 #![cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-Stored as an ordered `Vec` in wire order, duplicate languages preserved (no `xs:unique` constrains
-them). The language key is `Option<String>` because `TextType` declares `xml:lang` with
-`default="en"`: an absent tag and a stated `"en"` are distinct documents, so statedness is stored
-(Layer 1) and the `"en"` default is applied only as an effective view (Layer 2). A blank value is
-schema-valid; a blank or off-pattern stated key, though mechanically invalid, is fully
-representable, so its well-formedness is a catalogued Layer-2 lint, not a construction error.
+Stored as an ordered `Vec` of [`LocalisedText`] in wire order, duplicate languages preserved (no
+`xs:unique` constrains them). Each entry's `language` is `Option<String>` because `TextType`
+declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are distinct documents,
+so statedness is stored (Layer 1) and the `"en"` default is applied only as an effective view
+(Layer 2). A blank value is schema-valid; a blank or off-pattern stated tag, though mechanically
+invalid, is fully representable, so its well-formedness is a catalogued Layer-2 lint, not a
+construction error.
 
-Decisions: D-0016, D-0031, D-0051, D-0059.
+Decisions: D-0016, D-0031, D-0051, D-0059, D-0066.
 "#
 )]
 
@@ -28,7 +29,44 @@ use alloc::{string::String, vec::Vec};
 
 use crate::error::{Error, to_de_error};
 
-/// An ordered list of `(language, text)` entries representing SDMX multilingual text.
+/// A single language-tagged text entry: one SDMX `TextType`.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `TextType`
+/// - **Element**: N/A (Reusable Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// `TextType` is `xs:string` content carrying an optional `xml:lang` attribute, reused by the
+/// `Name`, `Description`, and `Text` elements. This type projects one such entry: [`text`] is the
+/// string content and [`language`] is the `xml:lang` tag, absent when the attribute was omitted.
+///
+/// [`text`]: LocalisedText::text
+/// [`language`]: LocalisedText::language
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`language` is `Option<String>` because `TextType` declares `xml:lang` with `default="en"`: an
+absent tag and a stated `"en"` are distinct documents, so statedness is stored (Layer 1) and the
+`"en"` default is applied only as an effective view (Layer 2). A blank `text` is schema-valid; a
+blank or off-pattern stated tag, though mechanically invalid, is held verbatim and its
+well-formedness surfaces as a Layer-2 lint, not a construction error.
+
+Decisions: D-0016, D-0031, D-0059, D-0066.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct LocalisedText {
+    /// The `xml:lang` tag exactly as supplied, `None` when the attribute was absent. Its effective
+    /// value applies the SDMX `"en"` default (see [`LocalisedString::languages`]).
+    pub language: Option<String>,
+    /// The text content, stored verbatim (a blank value is schema-valid).
+    pub text: String,
+}
+
+/// An ordered list of [`LocalisedText`] entries representing SDMX multilingual text.
 ///
 /// ## Specification
 /// - **Schema**: N/A (Virtual Type)
@@ -47,11 +85,11 @@ use crate::error::{Error, to_de_error};
 /// # Examples
 ///
 /// ```
-/// use sdmx_types::LocalisedString;
+/// use sdmx_types::{LocalisedString, LocalisedText};
 ///
 /// let names = LocalisedString::new(vec![
-///     (Some("en".to_string()), "Currency".to_string()),
-///     (Some("fr".to_string()), "Monnaie".to_string()),
+///     LocalisedText { language: Some("en".to_string()), text: "Currency".to_string() },
+///     LocalisedText { language: Some("fr".to_string()), text: "Monnaie".to_string() },
 /// ])?;
 /// assert_eq!(names.get("fr"), Some("Monnaie"));
 /// assert_eq!(names.first(), "Currency");
@@ -65,22 +103,22 @@ use crate::error::{Error, to_de_error};
 `Vec` storage (not a map) preserves wire order and duplicate languages; `get` is a first-match
 view, not a keyed lookup. The non-empty invariant is the sole construction check.
 
-Decisions: D-0051, D-0059.
+Decisions: D-0051, D-0059, D-0066.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
-pub struct LocalisedString(Vec<(Option<String>, String)>);
+pub struct LocalisedString(Vec<LocalisedText>);
 
 impl LocalisedString {
-    /// Builds a localised string from `(language, text)` entries in wire order.
+    /// Builds a localised string from [`LocalisedText`] entries in wire order.
     ///
     /// # Errors
     ///
     /// Returns [`Error::EmptyLocalisation`] if `entries` is empty. This is the sole structural
-    /// invariant: the parent `Name`/`Description` requires at least one entry. Keys and values
-    /// are not otherwise inspected; their well-formedness is a catalogued lint, not an error.
-    pub fn new(entries: Vec<(Option<String>, String)>) -> Result<Self, Error> {
+    /// invariant: the parent `Name`/`Description` requires at least one entry. Languages and
+    /// texts are not otherwise inspected; their well-formedness is a catalogued lint, not an error.
+    pub fn new(entries: Vec<LocalisedText>) -> Result<Self, Error> {
         if entries.is_empty() {
             return Err(Error::EmptyLocalisation);
         }
@@ -100,8 +138,8 @@ impl LocalisedString {
     pub fn get(&self, lang: &str) -> Option<&str> {
         self.0
             .iter()
-            .find(|(key, _)| Self::effective_lang(key.as_deref()) == lang)
-            .map(|(_, value)| value.as_str())
+            .find(|entry| Self::effective_lang(entry.language.as_deref()) == lang)
+            .map(|entry| entry.text.as_str())
     }
 
     /// The first entry's value in wire order: a deterministic fallback, not a locale
@@ -113,20 +151,26 @@ impl LocalisedString {
         // panic-free by contract (workspace clippy `unwrap_used`/`expect_used`), so the unreachable
         // case degrades to "" rather than `expect`-panicking; that default is never observed (and a
         // genuine blank first value is `""` regardless).
-        self.0.first().map_or("", |(_, value)| value.as_str())
+        self.0.first().map_or("", |entry| entry.text.as_str())
     }
 
-    /// Yields `(stated_language, value)` pairs in wire order: the key exactly as supplied,
-    /// `None` when the `xml:lang` attribute was absent. The language is independent data, so both
-    /// halves are exposed (contrast [`languages`](Self::languages), which applies the default).
-    pub fn iter(&self) -> impl Iterator<Item = (Option<&str>, &str)> {
-        self.0.iter().map(|(key, value)| (key.as_deref(), value.as_str()))
+    /// Yields each [`LocalisedText`] entry in wire order, languages and texts exactly as supplied.
+    /// The stated language is preserved (`None` when the `xml:lang` attribute was absent); contrast
+    /// [`languages`](Self::languages), which applies the `"en"` default.
+    pub fn iter(&self) -> impl Iterator<Item = &LocalisedText> {
+        self.0.iter()
+    }
+
+    /// The entries as a slice, in wire order.
+    #[must_use]
+    pub fn as_slice(&self) -> &[LocalisedText] {
+        &self.0
     }
 
     /// The effective language of each entry in order (the stated tag, else `"en"`). The raw
-    /// stated keys remain reachable via [`iter`](Self::iter).
+    /// stated tags remain reachable via [`iter`](Self::iter).
     pub fn languages(&self) -> impl Iterator<Item = &str> {
-        self.0.iter().map(|(key, _)| Self::effective_lang(key.as_deref()))
+        self.0.iter().map(|entry| Self::effective_lang(entry.language.as_deref()))
     }
 
     /// The number of entries (always at least one).
@@ -137,17 +181,17 @@ impl LocalisedString {
     }
 }
 
-impl TryFrom<Vec<(Option<String>, String)>> for LocalisedString {
+impl TryFrom<Vec<LocalisedText>> for LocalisedString {
     type Error = Error;
 
-    fn try_from(entries: Vec<(Option<String>, String)>) -> Result<Self, Error> {
+    fn try_from(entries: Vec<LocalisedText>) -> Result<Self, Error> {
         Self::new(entries)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for LocalisedString {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let entries = Vec::<(Option<String>, String)>::deserialize(deserializer)?;
+        let entries = Vec::<LocalisedText>::deserialize(deserializer)?;
         Self::new(entries).map_err(to_de_error)
     }
 }
@@ -159,11 +203,15 @@ mod tests {
 
     use super::*;
 
+    fn entry(language: Option<&str>, text: &str) -> LocalisedText {
+        LocalisedText { language: language.map(Into::into), text: text.into() }
+    }
+
     fn sample() -> LocalisedString {
         LocalisedString::new(vec![
-            (Some("en".into()), "Name".into()),
-            (Some("fr".into()), "Nom".into()),
-            (None, "Untagged".into()),
+            entry(Some("en"), "Name"),
+            entry(Some("fr"), "Nom"),
+            entry(None, "Untagged"),
         ])
         .unwrap()
     }
@@ -185,7 +233,7 @@ mod tests {
     fn tagless_entry_has_effective_en() {
         // A tag-less entry's effective language is "en"; first-match means the stated "en"
         // wins here, but a sole tag-less entry resolves to "en".
-        let only_untagged = LocalisedString::new(vec![(None, "Fallback".into())]).unwrap();
+        let only_untagged = LocalisedString::new(vec![entry(None, "Fallback")]).unwrap();
         assert_eq!(only_untagged.get("en"), Some("Fallback"));
     }
 
@@ -199,19 +247,24 @@ mod tests {
         // Three entries that all resolve to effective "en" (the middle one untagged); first-match
         // in wire order wins, the behaviour the design's duplicate-language handling relies on.
         let ls = LocalisedString::new(vec![
-            (Some("en".into()), "First".into()),
-            (None, "Second".into()),
-            (Some("en".into()), "Third".into()),
+            entry(Some("en"), "First"),
+            entry(None, "Second"),
+            entry(Some("en"), "Third"),
         ])
         .unwrap();
         assert_eq!(ls.get("en"), Some("First"));
     }
 
     #[test]
-    fn iter_exposes_raw_keys_languages_applies_default() {
+    fn iter_and_slice_expose_raw_entries_languages_applies_default() {
         let ls = sample();
-        let raw: Vec<_> = ls.iter().collect();
-        assert_eq!(raw, vec![(Some("en"), "Name"), (Some("fr"), "Nom"), (None, "Untagged")]);
+        let expected =
+            [entry(Some("en"), "Name"), entry(Some("fr"), "Nom"), entry(None, "Untagged")];
+        // `iter` yields the entries by reference; `as_slice` hands back the same backing slice.
+        let iterated: Vec<&LocalisedText> = ls.iter().collect();
+        assert_eq!(iterated, expected.iter().collect::<Vec<_>>());
+        assert_eq!(ls.as_slice(), &expected);
+        // `languages` applies the `"en"` default to the untagged entry.
         let effective: Vec<_> = ls.languages().collect();
         assert_eq!(effective, vec!["en", "fr", "en"]);
         assert_eq!(ls.len(), 3);

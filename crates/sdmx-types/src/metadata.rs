@@ -303,11 +303,14 @@ impl<'de> serde::Deserialize<'de> for VersionableMetadata {
 ///
 /// ```
 /// use sdmx_types::{
-///     IdentifiableMetadata, LocalisedString, MaintainableArtefact, MaintainableMetadata,
-///     NameableMetadata, VersionableMetadata,
+///     IdentifiableMetadata, LocalisedString, LocalisedText, MaintainableArtefact,
+///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Frequency".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Frequency".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
 /// let nameable = NameableMetadata::new(identifiable, names, None);
 /// let versionable = VersionableMetadata::new(nameable, None, None, None);
@@ -446,9 +449,14 @@ mod tests {
     use alloc::vec;
 
     use super::*;
+    use crate::localised::LocalisedText;
 
     fn names() -> LocalisedString {
-        LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap()
+        LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap()
     }
 
     fn identifiable(id: &str) -> Result<IdentifiableMetadata, Error> {
@@ -545,8 +553,11 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let version = SdmxVersion::new("1.2.3".into()).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
 

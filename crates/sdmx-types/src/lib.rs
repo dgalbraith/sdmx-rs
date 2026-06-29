@@ -104,7 +104,7 @@ pub use crate::{
         Granularity, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxTimePeriodKind, SdmxVersion,
         VersionDisplay,
     },
-    localised::LocalisedString,
+    localised::{LocalisedString, LocalisedText},
     measure::Measure,
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
@@ -131,7 +131,11 @@ mod tests {
     fn public_surface_constructs_in_no_std() {
         // Smoke test over the re-exported foundation API: a validated identifier, a localised
         // name, and the trait hierarchy are all reachable from the crate root.
-        let names = LocalisedString::new(vec![(Some("en".into()), "Currency".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Currency".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new("CL_CURRENCY".into(), None, None, vec![], vec![]).unwrap();
         let nameable = NameableMetadata::new(identifiable, names, None);

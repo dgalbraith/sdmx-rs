@@ -112,10 +112,14 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 /// ```
 /// use sdmx_types::{
 ///     Dataflow, DsdReference, IdentifiableArtefact, IdentifiableMetadata, LocalisedString,
-///     MaintainableArtefact, MaintainableMetadata, NameableMetadata, VersionableMetadata,
+///     LocalisedText, MaintainableArtefact, MaintainableMetadata, NameableMetadata,
+///     VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Exchange rates".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Exchange rates".to_string(),
+/// }])?;
 /// let identifiable =
 ///     IdentifiableMetadata::new("ECB_EXR_FLOW".to_string(), None, None, vec![], vec![])?;
 /// let metadata = MaintainableMetadata::new(
@@ -215,11 +219,17 @@ mod tests {
     use alloc::{vec, vec::Vec};
 
     use super::*;
-    use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
+    use crate::{
+        localised::LocalisedText,
+        metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata},
+    };
 
     fn maintainable(id: &str, agency: &str) -> MaintainableMetadata {
-        let names =
-            LocalisedString::new(vec![(Some("en".into()), "Exchange rates".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Exchange rates".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         MaintainableMetadata::new(
@@ -280,10 +290,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names =
-            LocalisedString::new(vec![(Some("en".into()), "Exchange rates".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Exchange rates".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let version = SdmxVersion::new("1.2.3".into()).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(

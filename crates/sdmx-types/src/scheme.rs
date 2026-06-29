@@ -77,10 +77,13 @@ pub trait SchemeItem: IdentifiableArtefact {}
 /// ```
 /// use sdmx_types::{
 ///     Code, IdentifiableArtefact, IdentifiableMetadata, ItemScheme, LocalisedString,
-///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
+///     LocalisedText, MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Frequency".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Frequency".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
@@ -92,7 +95,10 @@ pub trait SchemeItem: IdentifiableArtefact {}
 ///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
 ///
 /// let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata, None);
-/// let code_names = LocalisedString::new(vec![(Some("en".to_string()), "Annual".to_string())])?;
+/// let code_names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Annual".to_string(),
+/// }])?;
 /// let code_id = IdentifiableMetadata::new("A".to_string(), None, None, vec![], vec![])?;
 /// scheme
 ///     .push(Code { metadata: NameableMetadata::new(code_id, code_names, None), parent_id: None });
@@ -208,11 +214,16 @@ mod tests {
     use super::*;
     use crate::{
         codelist::Code,
+        localised::LocalisedText,
         metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata},
     };
 
     fn metadata(id: &str) -> MaintainableMetadata {
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         let versionable = VersionableMetadata::new(
@@ -225,7 +236,11 @@ mod tests {
     }
 
     fn code(id: &str) -> Code {
-        let names = LocalisedString::new(vec![(Some("en".into()), id.to_string())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: id.to_string(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
@@ -276,9 +291,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let version = SdmxVersion::new("1.2.3".into()).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(

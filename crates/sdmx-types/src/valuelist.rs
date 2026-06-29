@@ -83,11 +83,14 @@ pub struct ValueItem {
 ///
 /// ```
 /// use sdmx_types::{
-///     IdentifiableMetadata, LocalisedString, MaintainableArtefact, MaintainableMetadata,
-///     NameableMetadata, ValueItem, ValueList, VersionableMetadata,
+///     IdentifiableMetadata, LocalisedString, LocalisedText, MaintainableArtefact,
+///     MaintainableMetadata, NameableMetadata, ValueItem, ValueList, VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Currencies".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Currencies".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("VL_CUR".to_string(), None, None, vec![], vec![])?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
@@ -179,10 +182,17 @@ mod tests {
     use alloc::vec;
 
     use super::*;
-    use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
+    use crate::{
+        localised::LocalisedText,
+        metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata},
+    };
 
     fn metadata(id: &str) -> MaintainableMetadata {
-        let names = LocalisedString::new(vec![(Some("en".into()), "Currencies".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Currencies".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         let versionable = VersionableMetadata::new(
@@ -246,9 +256,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names = LocalisedString::new(vec![(Some("en".into()), "Currencies".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "ISO codes".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Currencies".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "ISO codes".into(),
+        }])
+        .unwrap();
         let version = SdmxVersion::new("1.2.3".into()).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(

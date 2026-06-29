@@ -1745,11 +1745,14 @@ pub struct AvailabilityConstraint {
 /// use sdmx_types::{
 ///     AvailabilityConstraint, AvailabilityConstraintAttachment, ConstraintModel, CubeRegion,
 ///     CubeRegions, DataConstraint, DsdReference, IdentifiableMetadata, LocalisedString,
-///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
+///     LocalisedText, MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
 /// // A data constraint is a maintainable artefact, so it carries maintainable metadata.
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Allowed".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Allowed".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("CR_EXR".to_string(), None, None, vec![], vec![])?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
@@ -1821,6 +1824,7 @@ mod tests {
     use alloc::{format, string::ToString, vec};
 
     use super::*;
+    use crate::localised::LocalisedText;
 
     fn period(p: &str) -> TimePeriodRange {
         TimePeriodRange { period: p.to_string(), inclusive: None }
@@ -2397,9 +2401,11 @@ mod tests {
 
     fn constraint_metadata(id: &str) -> MaintainableMetadata {
         use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
-        let names =
-            LocalisedString::new(vec![(Some("en".to_string()), "A constraint".to_string())])
-                .unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".to_string()),
+            text: "A constraint".to_string(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.to_string(), None, None, vec![], vec![]).unwrap();
         let versionable = VersionableMetadata::new(
@@ -2454,10 +2460,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names =
-            LocalisedString::new(vec![(Some("en".to_string()), "Constraint".to_string())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".to_string()), "How much".to_string())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".to_string()),
+            text: "Constraint".to_string(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".to_string()),
+            text: "How much".to_string(),
+        }])
+        .unwrap();
         let identifiable = IdentifiableMetadata::new(
             "CR_EXR".to_string(),
             Some("uri".to_string()),
