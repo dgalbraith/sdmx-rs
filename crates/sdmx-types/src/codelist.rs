@@ -147,6 +147,18 @@ impl MemberValues {
     pub fn as_slice(&self) -> &[MemberValue] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<MemberValue> {
+        self.0
+    }
+}
+
+impl From<MemberValues> for Vec<MemberValue> {
+    fn from(value: MemberValues) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<MemberValue>> for MemberValues {
@@ -656,5 +668,12 @@ mod tests {
     #[test]
     fn member_values_try_from_rejects_empty() {
         assert_eq!(MemberValues::try_from(vec![]).unwrap_err(), Error::EmptyMemberValues);
+    }
+
+    #[test]
+    fn member_values_into_inner_and_from() {
+        let v = vec![MemberValue { value: "V".to_string(), cascade: None }];
+        assert_eq!(MemberValues::new(v.clone()).unwrap().into_inner(), v);
+        assert_eq!(Vec::from(MemberValues::new(v.clone()).unwrap()), v);
     }
 }

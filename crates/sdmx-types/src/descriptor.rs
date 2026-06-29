@@ -81,6 +81,18 @@ impl GroupDimensions {
     pub fn as_slice(&self) -> &[String] {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl From<GroupDimensions> for Vec<String> {
+    fn from(value: GroupDimensions) -> Self {
+        value.into_inner()
+    }
 }
 
 impl TryFrom<Vec<String>> for GroupDimensions {
@@ -512,7 +524,7 @@ impl<'de> serde::Deserialize<'de> for MeasureList {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::ToString, vec, vec::Vec};
 
     use super::*;
     use crate::{
@@ -796,5 +808,12 @@ mod tests {
     #[test]
     fn group_dimensions_try_from_rejects_empty() {
         assert_eq!(GroupDimensions::try_from(vec![]).unwrap_err(), Error::EmptyGroupDimensions);
+    }
+
+    #[test]
+    fn group_dimensions_into_inner_and_from() {
+        let v = vec!["FREQ".to_string()];
+        assert_eq!(GroupDimensions::new(v.clone()).unwrap().into_inner(), v);
+        assert_eq!(Vec::from(GroupDimensions::new(v.clone()).unwrap()), v);
     }
 }

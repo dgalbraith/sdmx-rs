@@ -80,6 +80,18 @@ impl GroupId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
+impl From<GroupId> for String {
+    fn from(value: GroupId) -> Self {
+        value.into_inner()
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for GroupId {
@@ -155,6 +167,18 @@ impl DimensionIds {
     #[must_use]
     pub fn as_slice(&self) -> &[DimensionRef] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<DimensionRef> {
+        self.0
+    }
+}
+
+impl From<DimensionIds> for Vec<DimensionRef> {
+    fn from(value: DimensionIds) -> Self {
+        value.into_inner()
     }
 }
 
@@ -275,6 +299,18 @@ impl MeasureRelationship {
     #[must_use]
     pub fn as_slice(&self) -> &[String] {
         &self.0
+    }
+
+    /// Consumes the newtype, returning the inner vector.
+    #[must_use]
+    pub fn into_inner(self) -> Vec<String> {
+        self.0
+    }
+}
+
+impl From<MeasureRelationship> for Vec<String> {
+    fn from(value: MeasureRelationship) -> Self {
+        value.into_inner()
     }
 }
 
@@ -500,7 +536,7 @@ pub enum AttributeListMember {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::ToString, vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
@@ -818,5 +854,18 @@ mod tests {
             MeasureRelationship::try_from(vec![]).unwrap_err(),
             Error::EmptyMeasureRelationship
         );
+    }
+
+    #[test]
+    fn newtype_into_inner_and_from() {
+        let g = GroupId::new("G".to_string()).unwrap();
+        assert_eq!(g.clone().into_inner(), "G");
+        assert_eq!(String::from(g), "G");
+        let refs = vec![DimensionRef { id: "D".to_string(), optional: None }];
+        assert_eq!(DimensionIds::new(refs.clone()).unwrap().into_inner(), refs);
+        assert_eq!(Vec::from(DimensionIds::new(refs.clone()).unwrap()), refs);
+        let m = vec!["M".to_string()];
+        assert_eq!(MeasureRelationship::new(m.clone()).unwrap().into_inner(), m);
+        assert_eq!(Vec::from(MeasureRelationship::new(m.clone()).unwrap()), m);
     }
 }
