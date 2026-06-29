@@ -118,7 +118,7 @@ because the spec leaves the type open (adhere, don't invent).
 Decisions: D-0011.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Annotation {
     /// An optional id that disambiguates the annotation (the `id` attribute).
     pub id: Option<String>,
@@ -190,4 +190,25 @@ pub struct Link {
     /// An optional hint at the link's format (the spec's `type` attribute, for example `"PDF"`),
     /// renamed to avoid the Rust keyword.
     pub link_type: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn annotation_default_is_all_absent() {
+        let note = Annotation::default();
+        assert!(note.id.is_none());
+        assert!(note.annotation_type.is_none());
+        assert!(note.annotation_title.is_none());
+        assert!(note.annotation_urls.is_empty());
+        assert!(note.annotation_value.is_none());
+        assert!(note.texts.is_none());
+
+        // Struct-update sets only the stated field; the rest fall back to the default.
+        let with_value = Annotation { annotation_value: Some("x".into()), ..Default::default() };
+        assert_eq!(with_value.annotation_value.as_deref(), Some("x"));
+        assert!(with_value.id.is_none());
+    }
 }
