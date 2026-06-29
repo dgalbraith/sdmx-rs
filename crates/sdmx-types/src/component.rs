@@ -107,6 +107,12 @@ impl ComponentMetadata {
         self.urn.as_deref()
     }
 
+    /// The component's URI, if any. A component delegates its `IdentifiableArtefact::uri` here.
+    #[must_use]
+    pub fn uri(&self) -> Option<&str> {
+        self.uri.as_deref()
+    }
+
     /// The annotations carried on the component. A component delegates its
     /// `IdentifiableArtefact::annotations` here.
     #[must_use]

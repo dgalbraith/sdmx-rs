@@ -41,7 +41,7 @@ use crate::{
 // IdentifiableMetadata
 // ---------------------------------------------------------------------------
 
-/// The identifiable metadata leaf: a validated id plus optional URN, annotations, and links.
+/// The identifiable metadata leaf: a validated id plus optional URI, URN, annotations, and links.
 ///
 /// ## Specification
 /// - **Schema**: N/A (Virtual Type)
@@ -49,8 +49,8 @@ use crate::{
 /// - **Element**: N/A
 /// - **Editions**: SDMX 3.0 and 3.1
 ///
-/// The storage leaf bundling the `IdentifiableType` attributes (id, URN, annotations, links) that
-/// the [`IdentifiableArtefact`] trait exposes.
+/// The storage leaf bundling the `IdentifiableType` attributes (id, URI, URN, annotations, links)
+/// that the [`IdentifiableArtefact`] trait exposes.
 ///
 /// # Examples
 ///
@@ -98,6 +98,9 @@ impl IdentifiableArtefact for IdentifiableMetadata {
     }
     fn urn(&self) -> Option<&str> {
         self.urn.as_deref()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.uri.as_deref()
     }
     fn annotations(&self) -> &[Annotation] {
         &self.annotations
@@ -163,6 +166,9 @@ impl IdentifiableArtefact for NameableMetadata {
     }
     fn urn(&self) -> Option<&str> {
         self.identifiable.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.identifiable.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.identifiable.annotations()
@@ -239,6 +245,9 @@ impl IdentifiableArtefact for VersionableMetadata {
     }
     fn urn(&self) -> Option<&str> {
         self.nameable.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.nameable.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.nameable.annotations()
@@ -369,6 +378,9 @@ impl IdentifiableArtefact for MaintainableMetadata {
     }
     fn urn(&self) -> Option<&str> {
         self.versionable.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.versionable.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.versionable.annotations()
@@ -591,6 +603,7 @@ mod tests {
         ] {
             assert_eq!(leaf.id(), "FREQ");
             assert_eq!(leaf.urn(), Some("urn:sdmx:freq"));
+            assert_eq!(leaf.uri(), Some("urn:x"));
             assert_eq!(leaf.annotations().len(), 1);
             assert_eq!(leaf.links().len(), 1);
         }

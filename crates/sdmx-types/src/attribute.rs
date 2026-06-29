@@ -411,6 +411,9 @@ impl IdentifiableArtefact for Attribute {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -782,6 +785,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(attribute.urn(), Some("urn:x"));
+        assert_eq!(attribute.uri(), Some("uri"));
         assert_eq!(attribute.annotations().len(), 1);
         assert_eq!(attribute.links().len(), 1);
     }

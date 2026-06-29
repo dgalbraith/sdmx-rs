@@ -271,6 +271,9 @@ impl IdentifiableArtefact for Code {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -383,6 +386,9 @@ impl IdentifiableArtefact for Codelist {
     }
     fn urn(&self) -> Option<&str> {
         self.scheme.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.scheme.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.scheme.annotations()
@@ -553,6 +559,7 @@ mod tests {
         // Every forwarded accessor on the wrapper resolves through the inner scheme.
         assert_eq!(codelist.id(), "CL_FREQ");
         assert_eq!(codelist.urn(), Some("urn:x"));
+        assert_eq!(codelist.uri(), Some("uri"));
         assert_eq!(codelist.annotations().len(), 1);
         assert_eq!(codelist.links().len(), 1);
         assert_eq!(codelist.names().first(), "Frequency");
@@ -570,6 +577,7 @@ mod tests {
         let carrier = Code { metadata: full_nameable("A"), parent_id: Some("ROOT".into()) };
         assert_eq!(carrier.id(), "A");
         assert_eq!(carrier.urn(), Some("urn:x"));
+        assert_eq!(carrier.uri(), Some("uri"));
         assert_eq!(carrier.annotations().len(), 1);
         assert_eq!(carrier.links().len(), 1);
         assert_eq!(carrier.names().first(), "Frequency");

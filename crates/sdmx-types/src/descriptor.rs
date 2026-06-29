@@ -136,6 +136,9 @@ impl IdentifiableArtefact for Group {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -627,6 +630,7 @@ mod tests {
         // IdentifiableArtefact delegates every accessor to the metadata leaf.
         assert_eq!(group.id(), "SIBLING");
         assert_eq!(group.urn(), Some("urn:x"));
+        assert_eq!(group.uri(), None);
         assert_eq!(group.annotations().len(), 1);
         assert_eq!(group.links().len(), 1);
         assert_eq!(group.dimensions.as_slice().len(), 2);

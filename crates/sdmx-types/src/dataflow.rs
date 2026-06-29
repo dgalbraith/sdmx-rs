@@ -166,6 +166,9 @@ impl IdentifiableArtefact for Dataflow {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -335,6 +338,7 @@ mod tests {
         };
         assert_eq!(dataflow.id(), "ECB_EXR_FLOW");
         assert_eq!(dataflow.urn(), Some("urn:x"));
+        assert_eq!(dataflow.uri(), Some("uri"));
         assert_eq!(dataflow.annotations().len(), 1);
         assert_eq!(dataflow.links().len(), 1);
         assert_eq!(dataflow.names().first(), "Exchange rates");

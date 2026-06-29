@@ -159,6 +159,9 @@ impl<I: SchemeItem> IdentifiableArtefact for ItemScheme<I> {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -330,6 +333,7 @@ mod tests {
 
         assert_eq!(scheme.id(), "CL_FREQ");
         assert_eq!(scheme.urn(), Some("urn:x"));
+        assert_eq!(scheme.uri(), Some("uri"));
         assert_eq!(scheme.annotations().len(), 1);
         assert_eq!(scheme.links().len(), 1);
         assert_eq!(scheme.names().first(), "Frequency");

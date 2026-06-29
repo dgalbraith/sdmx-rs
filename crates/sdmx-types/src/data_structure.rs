@@ -135,6 +135,9 @@ impl IdentifiableArtefact for DataStructureDefinition {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -387,6 +390,7 @@ mod tests {
         };
         assert_eq!(dsd.id(), "ECB_EXR");
         assert_eq!(dsd.urn(), Some("urn:x"));
+        assert_eq!(dsd.uri(), Some("uri"));
         assert_eq!(dsd.annotations().len(), 1);
         assert_eq!(dsd.links().len(), 1);
         assert_eq!(dsd.names().first(), "Exchange rates");

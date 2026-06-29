@@ -129,6 +129,9 @@ impl IdentifiableArtefact for ValueList {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -294,6 +297,7 @@ mod tests {
 
         assert_eq!(value_list.id(), "VL_CUR");
         assert_eq!(value_list.urn(), Some("urn:x"));
+        assert_eq!(value_list.uri(), Some("uri"));
         assert_eq!(value_list.annotations().len(), 1);
         assert_eq!(value_list.links().len(), 1);
         assert_eq!(value_list.names().first(), "Currencies");

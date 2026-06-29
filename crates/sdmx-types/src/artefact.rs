@@ -27,7 +27,7 @@ use crate::{
     localised::LocalisedString,
 };
 
-/// An identifiable artefact: it has an id and may carry a URN, annotations, and links.
+/// An identifiable artefact: it has an id and may carry a URN, a URI, annotations, and links.
 ///
 /// ## Specification
 /// - **Schema**: `SDMXCommon.xsd`
@@ -42,6 +42,8 @@ pub trait IdentifiableArtefact {
     fn id(&self) -> &str;
     /// The artefact's registry URN, if any.
     fn urn(&self) -> Option<&str>;
+    /// The artefact's human-navigable URI, if any.
+    fn uri(&self) -> Option<&str>;
     /// The artefact's annotations (empty slice if none).
     fn annotations(&self) -> &[Annotation];
     /// The artefact's links; empty slice if none. Sibling of

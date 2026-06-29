@@ -153,6 +153,9 @@ impl IdentifiableArtefact for Agency {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -277,6 +280,9 @@ impl IdentifiableArtefact for AgencyScheme {
     }
     fn urn(&self) -> Option<&str> {
         self.scheme.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.scheme.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.scheme.annotations()
@@ -524,6 +530,7 @@ mod tests {
 
         assert_eq!(scheme.id(), "AGENCIES");
         assert_eq!(scheme.urn(), Some("urn:x"));
+        assert_eq!(scheme.uri(), Some("uri"));
         assert_eq!(scheme.annotations().len(), 1);
         assert_eq!(scheme.links().len(), 1);
         assert_eq!(scheme.names().first(), "Eurostat");
@@ -542,6 +549,7 @@ mod tests {
         let agency = Agency::new(full_nameable("ESTAT"), vec![]).unwrap();
         assert_eq!(agency.id(), "ESTAT");
         assert_eq!(agency.urn(), Some("urn:x"));
+        assert_eq!(agency.uri(), Some("uri"));
         assert_eq!(agency.annotations().len(), 1);
         assert_eq!(agency.links().len(), 1);
         assert_eq!(agency.names().first(), "Eurostat");

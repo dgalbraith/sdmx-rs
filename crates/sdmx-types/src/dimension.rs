@@ -143,6 +143,9 @@ impl IdentifiableArtefact for Dimension {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -266,6 +269,9 @@ impl IdentifiableArtefact for TimeDimension {
     }
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
@@ -517,6 +523,7 @@ mod tests {
             Dimension::new(full_metadata(Some("FREQ")), concept_ref.clone(), None, None).unwrap();
         // urn/annotations/links delegate to the ComponentMetadata leaf.
         assert_eq!(dimension.urn(), Some("urn:x"));
+        assert_eq!(dimension.uri(), Some("uri"));
         assert_eq!(dimension.annotations().len(), 1);
         assert_eq!(dimension.links().len(), 1);
         // The component's own field accessors.
@@ -531,6 +538,7 @@ mod tests {
             TimeDimension::new(full_metadata(None), concept_ref.clone(), time_text_format())
                 .unwrap();
         assert_eq!(time_dimension.urn(), Some("urn:x"));
+        assert_eq!(time_dimension.uri(), Some("uri"));
         assert_eq!(time_dimension.annotations().len(), 1);
         assert_eq!(time_dimension.links().len(), 1);
         assert_eq!(time_dimension.concept(), &concept_ref);
