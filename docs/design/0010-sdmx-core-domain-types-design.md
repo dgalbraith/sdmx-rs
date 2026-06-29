@@ -87,7 +87,7 @@ classDiagram
 
 SDMX metadata contains multilingual text (e.g. Names and Descriptions). We define:
 
-- `LocalisedString` as an **ordered list** of `(language, text)` entries in wire order, where the key is the spec's `xml:lang` (= `xs:language`) tag (e.g. `"en"`, `"fr"`) — stored as `Option<String>`, because `TextType` declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are different documents, and the default is an effective view (D-0052/D-0059). See D-0016/D-0051/D-0059.
+- `LocalisedString` as an **ordered list** of `LocalisedText` entries in wire order. Each entry is a named carrier of a `language` and a `text`, where `language` is the spec's `xml:lang` (= `xs:language`) tag (e.g. `"en"`, `"fr"`), stored as `Option<String>`, because `TextType` declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are different documents, and the default is an effective view (D-0052/D-0059). See D-0016/D-0051/D-0059.
 - **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order is wire information no keyed map preserves (a `BTreeMap` sorts), and so are the duplicate identities the schema actually permits (`ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, cube-region selection ids; official samples exhibit them). Most in-scope schemes *do* carry an `xs:unique` on their explicit `@id` (codes, concepts, agencies, explicit DSD component/group ids), so a duplicate there is schema-invalid rather than wire to preserve, but order-faithfulness alone already dictates `Vec`. Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
 - Determinism is **wire-order-out**: serialising a parsed document reproduces the received order, and programmatic insertion order is itself deterministic. (The earlier `BTreeMap`-everywhere policy bought determinism by sorting — itself a normalisation — at the cost of destroying order and duplicates; superseded, D-0006 → D-0051.)
 
@@ -171,7 +171,7 @@ pub trait SdmxSerialize: private::Sealed {}
 
 Only approved domain types implement this trait, allowing the `sdmx-writers` crate to accept them safely under a unified serialisation API.
 
-The crate's own derived `serde::Serialize`/`Deserialize` are an **internal, lossless infoset round-trip, not the SDMX-ML/SDMX-JSON wire format** (D-0063). They read and write the Rust composition directly: nested metadata leaves (`Codelist → scheme → metadata → versionable → …`), `LocalisedString` as ordered `(language, value)` pairs, and externally-tagged enums. A round-trip therefore preserves the stored statedness exactly, but the emitted shape is Rust-structural, not the flat SDMX wire object. The wire shape is owned by `sdmx-writers` / `sdmx-parsers`, which map between these types (through their accessors and validated `new()`) and SDMX-ML / SDMX-JSON. Whether the types' own `serde` should later converge to SDMX-JSON, or remain an internal projection, is a Phase-2 entry-gate decision (see ROADMAP Phase 2 → Parsers).
+The crate's own derived `serde::Serialize`/`Deserialize` are an **internal, lossless infoset round-trip, not the SDMX-ML/SDMX-JSON wire format** (D-0063). They read and write the Rust composition directly: nested metadata leaves (`Codelist → scheme → metadata → versionable → …`), `LocalisedString` as ordered `LocalisedText` entries, and externally-tagged enums. A round-trip therefore preserves the stored statedness exactly, but the emitted shape is Rust-structural, not the flat SDMX wire object. The wire shape is owned by `sdmx-writers` / `sdmx-parsers`, which map between these types (through their accessors and validated `new()`) and SDMX-ML / SDMX-JSON. Whether the types' own `serde` should later converge to SDMX-JSON, or remain an internal projection, is a Phase-2 entry-gate decision (see ROADMAP Phase 2 → Parsers).
 
 #### 7. Deserialisation Construction Contract
 
@@ -286,10 +286,17 @@ impl TryFrom<SdmxDecimal> for SdmxInteger {
 // supersedes the earlier blank-key rejection (D-0016 as first revised): mechanical invalidity
 // marks the CEILING of what new() may reject, not a mandate to reject — see the amended
 // ADR-0023 reject-line. Structural invariants (the non-empty list) are unaffected.
-pub struct LocalisedString(Vec<(Option<String>, String)>);
+// A single TextType: the language tag (xml:lang, None ⟺ absent — D-0059) and the text value,
+// both pub (invariant-free carrier). Naming the two halves replaces the anonymous tuple.
+pub struct LocalisedText {
+    pub language: Option<String>,
+    pub text: String,
+}
+
+pub struct LocalisedString(Vec<LocalisedText>);
 
 impl LocalisedString {
-    pub fn new(entries: Vec<(Option<String>, String)>) -> Result<Self, Error> {
+    pub fn new(entries: Vec<LocalisedText>) -> Result<Self, Error> {
         if entries.is_empty() {
             // The element is `maxOccurs="unbounded"` with the parent requiring ≥1 Name — an empty
             // entry list is mechanically schema-invalid, so rejecting enforces the XSD constraint
@@ -297,23 +304,26 @@ impl LocalisedString {
             // under D-0059.
             return Err(Error::EmptyLocalisation);
         }
-        // No key inspection (D-0059): the VALUE is bare xs:string (blank is schema-valid —
-        // D-0016 as revised), and the KEY — absent, stated, blank, or off-pattern — is stored
+        // No language inspection (D-0059): the TEXT is bare xs:string (blank is schema-valid —
+        // D-0016 as revised), and the LANGUAGE — absent, stated, blank, or off-pattern — is stored
         // verbatim; well-formedness (`is_well_formed_lang`) is a catalogued lint, not an error.
         Ok(Self(entries))
     }
 
     /// Layer-2 view: the entry's effective language — the stated tag, else the schema
     /// default "en" (TextType `xml:lang` `default="en"` — D-0059).
-    fn effective_lang(key: &Option<String>) -> &str {
-        key.as_deref().unwrap_or("en")
+    fn effective_lang(language: Option<&str>) -> &str {
+        language.unwrap_or("en")
     }
 
     /// First-match lookup view (Layer 2): the FIRST entry whose EFFECTIVE language equals
     /// `lang`, in wire order — so `get("en")` finds a tag-less entry (effective "en").
     /// A duplicate (effective) language is schema-valid wire (held verbatim; catalogued lint).
     pub fn get(&self, lang: &str) -> Option<&str> {
-        self.0.iter().find(|(k, _)| Self::effective_lang(k) == lang).map(|(_, v)| v.as_str())
+        self.0
+            .iter()
+            .find(|e| Self::effective_lang(e.language.as_deref()) == lang)
+            .map(|e| e.text.as_str())
     }
     // Infallible: the non-empty invariant guarantees at least one entry — this is the
     // payoff of the validated constructor. Returns the FIRST entry in wire order: a
@@ -322,18 +332,22 @@ impl LocalisedString {
     // Preference ranking is the caller's concern (loop over get(), or a caller-owned helper).
     pub fn first(&self) -> &str {
         // Safe: the constructor rejects empty lists, so the first element always exists.
-        self.0.first().map(|(_, v)| v.as_str()).unwrap()
+        self.0.first().map(|e| e.text.as_str()).unwrap()
     }
-    // yields (stated_language_key, value) pairs in wire order — Layer 1 (infoset): the key
-    // exactly as the wire carried it, None ⟺ absent (D-0059). The language key is independent
-    // data, not derivable from the value, so both halves are exposed.
-    pub fn iter(&self) -> impl Iterator<Item = (Option<&str>, &str)> {
-        self.0.iter().map(|(k, v)| (k.as_deref(), v.as_str()))
+    // yields each LocalisedText entry in wire order — Layer 1 (infoset): the language tag
+    // exactly as the wire carried it, None ⟺ absent (D-0059). The language is independent
+    // data, not derivable from the text, so the named entry exposes both halves; as_slice()
+    // hands back the same backing slice.
+    pub fn iter(&self) -> impl Iterator<Item = &LocalisedText> {
+        self.0.iter()
+    }
+    pub fn as_slice(&self) -> &[LocalisedText] {
+        &self.0
     }
     /// Layer-2 view: the EFFECTIVE language of each entry in wire order (stated, else "en").
-    /// The raw stated keys are reachable via iter() (the D-0031 expose-both convention).
+    /// The raw stated tags are reachable via iter() (the D-0031 expose-both convention).
     pub fn languages(&self) -> impl Iterator<Item = &str> {
-        self.0.iter().map(|(k, _)| Self::effective_lang(k))
+        self.0.iter().map(|e| Self::effective_lang(e.language.as_deref()))
     }
     #[allow(clippy::len_without_is_empty)] // invariant: always ≥ 1 entry; is_empty() would always return false
     pub fn len(&self) -> usize {
@@ -344,11 +358,11 @@ impl LocalisedString {
 }
 
 // Custom Deserialize calls LocalisedString::new(), enforcing the single structural invariant:
-// a non-empty entry list (mechanically schema-invalid otherwise — D-0031). Neither keys nor
-// values are otherwise constrained (D-0016 as revised by D-0031/D-0059): blank values are
-// schema-valid and stored verbatim; keys are stored verbatim — absent (None), stated, blank,
-// or off-pattern — with key statedness round-tripping exactly (a writer emits a stated tag and
-// omits an absent one) and key well-formedness a catalogued lint. Derived Serialize reads the
+// a non-empty entry list (mechanically schema-invalid otherwise — D-0031). Neither languages nor
+// texts are otherwise constrained (D-0016 as revised by D-0031/D-0059): blank texts are
+// schema-valid and stored verbatim; languages are stored verbatim — absent (None), stated, blank,
+// or off-pattern — with language statedness round-tripping exactly (a writer emits a stated tag and
+// omits an absent one) and language well-formedness a catalogued lint. Derived Serialize reads the
 // inner entries directly, in wire order.
 
 // `lang` is a loose Option<String> tag, not a LocalisedString: the spec attaches a single
