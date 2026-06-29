@@ -138,6 +138,8 @@ Concrete domain types wrap or compose this generic container to expose a domain-
 - `ConceptScheme` composed of `ItemScheme<Concept>`
 - `AgencyScheme` composed of `ItemScheme<Agency>`
 
+The visibility split is deliberate: `ItemScheme<I>` stays public and invariant-light so generic code can process any scheme uniformly, while each concrete wrapper owns the scheme-level construction invariant (the `NCNameIDType` scheme id on `Codelist`/`ConceptScheme`, the fixed `AGENCIES` id on `AgencyScheme`), so exposing the carrier bypasses no validation (D-0067).
+
 #### 4. Data Structure Definition (DSD) & Component Layout
 
 A DSD (`DataStructureDefinition`) is a maintainable artefact defining the dimensions, attributes, and measures of a dataset. The spec's component containers are **identifiable descriptors** (`ComponentListType` extends `IdentifiableType` — each carries annotations/links/urn; their ids are fixed values, except `Group`'s, which is required and user-chosen), modelled as structs that own their content and their mechanical non-empty invariants (D-0049):
