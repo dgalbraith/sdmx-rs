@@ -103,7 +103,7 @@ impl<'de> serde::Deserialize<'de> for GroupId {
 ///
 /// The id is a structural reference, not re-validated. `optional` carries statedness: `None` means
 /// the wire omitted it, and the schema default (`false`) is the
-/// [`effective_optional`](Self::effective_optional) view.
+/// [`effective_is_optional`](Self::effective_is_optional) view.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DimensionRef {
     /// The referenced dimension's id.
@@ -115,7 +115,7 @@ pub struct DimensionRef {
 impl DimensionRef {
     /// Effective: the `optional` flag, applying the schema default of `false`.
     #[must_use]
-    pub fn effective_optional(&self) -> bool {
+    pub fn effective_is_optional(&self) -> bool {
         self.optional.unwrap_or(false)
     }
 }
@@ -532,9 +532,9 @@ mod tests {
     }
 
     #[test]
-    fn dimension_ref_effective_optional_defaults_false() {
-        assert!(!DimensionRef { id: "FREQ".into(), optional: None }.effective_optional());
-        assert!(DimensionRef { id: "FREQ".into(), optional: Some(true) }.effective_optional());
+    fn dimension_ref_effective_is_optional_defaults_false() {
+        assert!(!DimensionRef { id: "FREQ".into(), optional: None }.effective_is_optional());
+        assert!(DimensionRef { id: "FREQ".into(), optional: Some(true) }.effective_is_optional());
     }
 
     #[test]
