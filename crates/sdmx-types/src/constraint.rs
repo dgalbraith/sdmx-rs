@@ -536,6 +536,14 @@ pub struct CubeRegionKey {
     pub valid_to: Option<SdmxTimePeriod>,
 }
 
+impl CubeRegionKey {
+    /// Effective: whether the named values are included, with the schema default `true` applied.
+    #[must_use]
+    pub fn effective_is_included(&self) -> bool {
+        self.include.unwrap_or(true)
+    }
+}
+
 /// A component selection within a cube region: a component id and the values it admits.
 ///
 /// ## Specification
@@ -571,6 +579,14 @@ pub struct ComponentValueSet {
     pub include: Option<bool>,
     /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
     pub remove_prefix: Option<bool>,
+}
+
+impl ComponentValueSet {
+    /// Effective: whether the named values are included, with the schema default `true` applied.
+    #[must_use]
+    pub fn effective_is_included(&self) -> bool {
+        self.include.unwrap_or(true)
+    }
 }
 
 /// A region of a data cube: the dimension and component selections that bound it.
@@ -638,6 +654,14 @@ pub struct CubeRegion {
     pub include: Option<bool>,
     /// The region's annotations; empty ⟺ absent.
     pub annotations: Vec<Annotation>,
+}
+
+impl CubeRegion {
+    /// Effective: whether the region is included, with the schema default `true` applied.
+    #[must_use]
+    pub fn effective_is_included(&self) -> bool {
+        self.include.unwrap_or(true)
+    }
 }
 
 /// A bounded list of [`CubeRegion`]s, holding at most two.
@@ -857,6 +881,14 @@ pub struct DataComponentValueSet {
     pub include: Option<bool>,
     /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
     pub remove_prefix: Option<bool>,
+}
+
+impl DataComponentValueSet {
+    /// Effective: whether the named values are included, with the schema default `true` applied.
+    #[must_use]
+    pub fn effective_is_included(&self) -> bool {
+        self.include.unwrap_or(true)
+    }
 }
 
 /// A non-empty list of bare dimension key values.
@@ -1915,6 +1947,53 @@ mod tests {
         assert!(
             !TimePeriodRange { period: "2024".to_string(), inclusive: Some(false) }
                 .effective_is_inclusive()
+        );
+    }
+
+    #[test]
+    fn include_flags_effective_is_included_apply_default() {
+        // Each `include`-bearing carrier defaults to `true` when the flag is absent.
+        assert!(cube_key("FREQ", "A").effective_is_included());
+        assert!(
+            ComponentValueSet {
+                id: "OBS_STATUS".to_string(),
+                selection: ComponentSelection::Empty,
+                include: None,
+                remove_prefix: None,
+            }
+            .effective_is_included()
+        );
+        assert!(
+            CubeRegion {
+                key_values: vec![],
+                components: vec![],
+                include: None,
+                annotations: vec![]
+            }
+            .effective_is_included()
+        );
+        assert!(
+            DataComponentValueSet {
+                id: "TIME_PERIOD".to_string(),
+                selection: DataComponentSelection::TimeRange(TimeRange {
+                    kind: TimeRangeKind::Before(period("2024")),
+                    valid_from: None,
+                    valid_to: None,
+                }),
+                include: None,
+                remove_prefix: None,
+            }
+            .effective_is_included()
+        );
+        // A stated `false` is honoured (one representative carrier).
+        assert!(
+            !CubeRegion {
+                key_values: vec![],
+                components: vec![],
+                include: Some(false),
+                annotations: vec![],
+            }
+            .effective_is_included()
         );
     }
 
