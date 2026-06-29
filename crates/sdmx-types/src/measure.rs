@@ -123,6 +123,9 @@ impl IdentifiableArtefact for Measure {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -281,6 +284,7 @@ mod tests {
         .unwrap();
         let measure = Measure::new(full, concept("OBS_VALUE"), None, None).unwrap();
         assert_eq!(measure.urn(), Some("urn:x"));
+        assert_eq!(measure.uri(), Some("uri"));
         assert_eq!(measure.annotations().len(), 1);
         assert_eq!(measure.links().len(), 1);
     }

@@ -122,6 +122,9 @@ impl IdentifiableArtefact for Concept {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -241,6 +244,9 @@ impl IdentifiableArtefact for ConceptScheme {
     }
     fn urn(&self) -> Option<&str> {
         self.scheme.urn()
+    }
+    fn uri(&self) -> Option<&str> {
+        self.scheme.uri()
     }
     fn annotations(&self) -> &[Annotation] {
         self.scheme.annotations()
@@ -508,6 +514,7 @@ mod tests {
 
         assert_eq!(scheme.id(), "CS_X");
         assert_eq!(scheme.urn(), Some("urn:x"));
+        assert_eq!(scheme.uri(), Some("uri"));
         assert_eq!(scheme.annotations().len(), 1);
         assert_eq!(scheme.links().len(), 1);
         assert_eq!(scheme.names().first(), "Frequency");
@@ -526,6 +533,7 @@ mod tests {
         let concept = Concept::new(full_nameable("FREQ"), None, None).unwrap();
         assert_eq!(concept.id(), "FREQ");
         assert_eq!(concept.urn(), Some("urn:x"));
+        assert_eq!(concept.uri(), Some("uri"));
         assert_eq!(concept.annotations().len(), 1);
         assert_eq!(concept.links().len(), 1);
         assert_eq!(concept.names().first(), "Frequency");

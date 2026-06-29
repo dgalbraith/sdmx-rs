@@ -1636,6 +1636,9 @@ impl IdentifiableArtefact for DataConstraint {
     fn urn(&self) -> Option<&str> {
         self.metadata.urn()
     }
+    fn uri(&self) -> Option<&str> {
+        self.metadata.uri()
+    }
     fn annotations(&self) -> &[Annotation] {
         self.metadata.annotations()
     }
@@ -2505,6 +2508,7 @@ mod tests {
         // Every forwarded accessor resolves through the metadata leaf.
         assert_eq!(constraint.id(), "CR_EXR");
         assert_eq!(constraint.urn(), Some("urn:x"));
+        assert_eq!(constraint.uri(), Some("uri"));
         assert_eq!(constraint.annotations().len(), 1);
         assert_eq!(constraint.links().len(), 1);
         assert_eq!(constraint.names().first(), "Constraint");
