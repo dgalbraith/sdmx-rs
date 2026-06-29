@@ -147,8 +147,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0064](#d-0064) | Constraints                 | TimeRange remodelled to { kind, valid_from, valid_to }; carries TimeRangeValueType's wrapper validFrom/validTo, the validity arm D-0038 missed           |
 | [D-0065](#d-0065) | Conventions                 | Hash/Eq/PartialEq derived uniformly wherever float-free; SdmxVersion hand-writes Hash over its raw string (Eq/Hash contract)                             |
 | [D-0066](#d-0066) | Localisation                | LocalisedString element is the named LocalisedText { language, text }, not an anonymous tuple; pub-field carrier; amends [D-0059](#d-0059)'s store shape |
+| [D-0067](#d-0067) | Item schemes                | ItemScheme kept a public, invariant-light generic carrier; the wrappers own the construction invariants, so exposure bypasses no validation              |
 
-<!-- Next ID: D-0067 -->
+<!-- Next ID: D-0068 -->
 
 ## Entries
 
@@ -1533,5 +1534,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A named two-field struct names the language and text halves at the boundary the anonymous tuple obscured (the Rust API Guidelines' C-CUSTOM-TYPE), done pre-0.1.0 while the surface can still change without a release. The fields stay public because the carrier holds no invariant: the non-empty rule lives on `LocalisedString`, not its element. Construction takes `Vec<LocalisedText>` directly rather than re-blessing tuple input through a `From` conversion the freeze exists to retire.
 
 **Consequences**: (1) [D-0059](#d-0059)'s store-shape clause is amended (note added there); its semantics are untouched. (2) `Contact`'s localisable triple ([D-0055](#d-0055)) and `Annotation.texts` reuse `LocalisedString` unchanged. (3) 0010 §5.1 snippet and value-model prose are updated to the named element, keeping design and register in sync. (4) The serde shape shifts from array-of-pairs to array-of-objects, immaterial pre-parsers and parked at the D-0063 Phase-2 gate. (5) `LocalisedText` is re-exported from the crate root; no new `Error` variant.
+
+---
+
+### D-0067 — ItemScheme kept a public, invariant-light generic carrier
+
+| **Area**     | Item schemes |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | item-scheme, visibility, public-api, generics, carrier, wrapper-invariants, extensibility, sealing |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §3 |
+| **Related**  | [D-0032](#d-0032), [D-0051](#d-0051), [D-0062](#d-0062) |
+
+**Observation**: `ItemScheme<I>` is the generic carrier the scheme wrappers (`Codelist`/`ConceptScheme`/`AgencyScheme`) compose. It is a transparent pub-field carrier (ADR-0021) with an infallible `new()` plus `push`/`get`/`iter`, and carries no construction invariant of its own; the scheme-level invariants — the `NCNameIDType` scheme id (`Codelist`/`ConceptScheme`) and `AgencyScheme`'s fixed `AGENCIES` id — live on the concrete wrappers' fallible `new()`. A public-surface review raised whether the carrier should be made private or sealed.
+
+**Decision**: Keep `ItemScheme<I>` public: a deliberately public, generic, invariant-light carrier, with the concrete wrappers owning the construction invariants. The rationale is that it lets downstream code process any scheme generically (over `I: SchemeItem`) without exposing a validation bypass, because the carrier holds no invariant for public exposure to bypass.
+
+**Rationale**: Sealing or privatising the carrier would remove the generic, extensible processing the open-`SchemeItem` design (§3) presupposes, for no safety gain: there is no invariant on `ItemScheme` for a caller to break, and `I: IdentifiableArtefact` already supplies the only thing it needs. This mirrors §3's seal-only-when-openness-would-break-an-invariant policy (the `SdmxSerialize` contrast). The wrappers remain the validation boundary.
+
+**Consequences**: (1) `ItemScheme<I>` stays `pub`; no code change. (2) 0010 §3 gains a sentence recording the carrier-versus-wrapper-invariants split. (3) Future generic scheme processing (e.g. the deferred `ItemSchemeArtefact`, [D-0062](#d-0062)) builds on the public carrier; sealing is off the table unless an invariant is later added to the carrier itself.
 
 ---
