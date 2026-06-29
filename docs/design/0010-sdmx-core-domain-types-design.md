@@ -1427,7 +1427,7 @@ impl GroupId {
 // (both versions — D-0058): NCName element content PLUS a per-ref `optional` attribute
 // (xs:boolean, default "false") — whether the attribute's value may vary when this dimension
 // is wildcarded. STATEDNESS stored (D-0052): None ⟺ absent; the default is the
-// effective_optional() view. Earlier drafts stored bare Strings, silently dropping the
+// effective_is_optional() view. Earlier drafts stored bare Strings, silently dropping the
 // attribute — the report-5 V-1 superset hole. The id is structural-only (D-0020).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DimensionRef {
@@ -1437,7 +1437,7 @@ pub struct DimensionRef {
 
 impl DimensionRef {
     /// EFFECTIVE view (D-0052): the schema default is "false".
-    pub fn effective_optional(&self) -> bool { self.optional.unwrap_or(false) }
+    pub fn effective_is_optional(&self) -> bool { self.optional.unwrap_or(false) }
 }
 
 pub struct DimensionIds(Vec<DimensionRef>); // private field; constructor rejects empty
