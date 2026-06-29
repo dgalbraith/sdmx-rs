@@ -655,6 +655,7 @@ impl MaintainableMetadata {
 pub trait IdentifiableArtefact {
     fn id(&self) -> &str;
     fn urn(&self) -> Option<&str>;
+    fn uri(&self) -> Option<&str>;
     fn annotations(&self) -> &[Annotation];
     /// The artefact's `Link`s (D-0035). Sibling of `annotations()` — both are `IdentifiableType`
     /// members carried on `IdentifiableMetadata`; empty slice = none on the wire.
@@ -714,6 +715,7 @@ All metadata and domain structs implement the corresponding trait hierarchy thro
 impl IdentifiableArtefact for IdentifiableMetadata {
     fn id(&self) -> &str { &self.id }
     fn urn(&self) -> Option<&str> { self.urn.as_deref() }
+    fn uri(&self) -> Option<&str> { self.uri.as_deref() }
     fn annotations(&self) -> &[Annotation] { &self.annotations }
     fn links(&self) -> &[Link] { &self.links }
 }
@@ -721,6 +723,7 @@ impl IdentifiableArtefact for IdentifiableMetadata {
 impl IdentifiableArtefact for NameableMetadata {
     fn id(&self) -> &str { self.identifiable.id() }
     fn urn(&self) -> Option<&str> { self.identifiable.urn() }
+    fn uri(&self) -> Option<&str> { self.identifiable.uri() }
     fn annotations(&self) -> &[Annotation] { self.identifiable.annotations() }
     fn links(&self) -> &[Link] { self.identifiable.links() }
 }
@@ -732,6 +735,7 @@ impl NameableArtefact for NameableMetadata {
 impl IdentifiableArtefact for VersionableMetadata {
     fn id(&self) -> &str { self.nameable.id() }
     fn urn(&self) -> Option<&str> { self.nameable.urn() }
+    fn uri(&self) -> Option<&str> { self.nameable.uri() }
     fn annotations(&self) -> &[Annotation] { self.nameable.annotations() }
     fn links(&self) -> &[Link] { self.nameable.links() }
 }
@@ -748,6 +752,7 @@ impl VersionableArtefact for VersionableMetadata {
 impl IdentifiableArtefact for MaintainableMetadata {
     fn id(&self) -> &str { self.versionable.id() }
     fn urn(&self) -> Option<&str> { self.versionable.urn() }
+    fn uri(&self) -> Option<&str> { self.versionable.uri() }
     fn annotations(&self) -> &[Annotation] { self.versionable.annotations() }
     fn links(&self) -> &[Link] { self.versionable.links() }
 }
@@ -828,6 +833,7 @@ impl<I: SchemeItem> ItemScheme<I> {
 impl<I: SchemeItem> IdentifiableArtefact for ItemScheme<I> {
     fn id(&self) -> &str { self.metadata.id() }
     fn urn(&self) -> Option<&str> { self.metadata.urn() }
+    fn uri(&self) -> Option<&str> { self.metadata.uri() }
     fn annotations(&self) -> &[Annotation] { self.metadata.annotations() }
     fn links(&self) -> &[Link] { self.metadata.links() }
 }
@@ -867,6 +873,7 @@ pub struct Code {
 impl IdentifiableArtefact for Code {
     fn id(&self) -> &str { self.metadata.id() }
     fn urn(&self) -> Option<&str> { self.metadata.urn() }
+    fn uri(&self) -> Option<&str> { self.metadata.uri() }
     fn annotations(&self) -> &[Annotation] { self.metadata.annotations() }
     fn links(&self) -> &[Link] { self.metadata.links() }
 }
@@ -972,6 +979,7 @@ impl NameableArtefact for Codelist {
 impl IdentifiableArtefact for Codelist {
     fn id(&self) -> &str { self.scheme.id() }
     fn urn(&self) -> Option<&str> { self.scheme.urn() }
+    fn uri(&self) -> Option<&str> { self.scheme.uri() }
     fn annotations(&self) -> &[Annotation] { self.scheme.annotations() }
     fn links(&self) -> &[Link] { self.scheme.links() }
 }
