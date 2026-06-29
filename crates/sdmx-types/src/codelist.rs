@@ -229,10 +229,14 @@ pub struct CodelistExtension {
 ///
 /// ```
 /// use sdmx_types::{
-///     Code, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, NameableMetadata,
+///     Code, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, LocalisedText,
+///     NameableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Annual".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Annual".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("A".to_string(), None, None, vec![], vec![])?;
 /// let code = Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None };
 /// assert_eq!(code.id(), "A");
@@ -306,11 +310,14 @@ impl SchemeItem for Code {}
 ///
 /// ```
 /// use sdmx_types::{
-///     Codelist, IdentifiableMetadata, LocalisedString, MaintainableArtefact,
+///     Codelist, IdentifiableMetadata, LocalisedString, LocalisedText, MaintainableArtefact,
 ///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Frequency".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Frequency".to_string(),
+/// }])?;
 /// let identifiable =
 ///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, vec![], vec![])?;
 /// let versionable = VersionableMetadata::new(
@@ -448,10 +455,17 @@ mod tests {
     use alloc::{string::ToString, vec};
 
     use super::*;
-    use crate::metadata::{IdentifiableMetadata, VersionableMetadata};
+    use crate::{
+        localised::LocalisedText,
+        metadata::{IdentifiableMetadata, VersionableMetadata},
+    };
 
     fn metadata(id: &str) -> MaintainableMetadata {
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         let versionable = VersionableMetadata::new(
@@ -464,7 +478,11 @@ mod tests {
     }
 
     fn code(id: &str) -> Code {
-        let names = LocalisedString::new(vec![(Some("en".into()), id.to_string())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: id.to_string(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
@@ -490,9 +508,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names = LocalisedString::new(vec![(Some("en".into()), "Frequency".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Frequency".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
             Some("uri".into()),

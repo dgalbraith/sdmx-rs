@@ -109,10 +109,14 @@ pub struct Contact {
 ///
 /// ```
 /// use sdmx_types::{
-///     Agency, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, NameableMetadata,
+///     Agency, IdentifiableArtefact, IdentifiableMetadata, LocalisedString, LocalisedText,
+///     NameableMetadata,
 /// };
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Eurostat".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Eurostat".to_string(),
+/// }])?;
 /// let identifiable = IdentifiableMetadata::new("ESTAT".to_string(), None, None, vec![], vec![])?;
 /// let agency = Agency::new(NameableMetadata::new(identifiable, names, None), vec![])?;
 /// assert_eq!(agency.id(), "ESTAT");
@@ -200,12 +204,15 @@ impl<'de> serde::Deserialize<'de> for Agency {
 ///
 /// ```
 /// use sdmx_types::{
-///     AgencyScheme, Error, IdentifiableMetadata, LocalisedString, MaintainableMetadata,
-///     NameableMetadata, VersionableMetadata,
+///     AgencyScheme, Error, IdentifiableMetadata, LocalisedString, LocalisedText,
+///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
 /// fn scheme(id: &str) -> Result<AgencyScheme, Error> {
-///     let names = LocalisedString::new(vec![(Some("en".to_string()), "Agencies".to_string())])?;
+///     let names = LocalisedString::new(vec![LocalisedText {
+///         language: Some("en".to_string()),
+///         text: "Agencies".to_string(),
+///     }])?;
 ///     let identifiable = IdentifiableMetadata::new(id.to_string(), None, None, vec![], vec![])?;
 ///     let versionable = VersionableMetadata::new(
 ///         NameableMetadata::new(identifiable, names, None),
@@ -339,10 +346,17 @@ mod tests {
     use alloc::vec;
 
     use super::*;
-    use crate::metadata::{IdentifiableMetadata, VersionableMetadata};
+    use crate::{
+        localised::LocalisedText,
+        metadata::{IdentifiableMetadata, VersionableMetadata},
+    };
 
     fn nameable(id: &str) -> NameableMetadata {
-        let names = LocalisedString::new(vec![(Some("en".into()), "Eurostat".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Eurostat".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         NameableMetadata::new(identifiable, names, None)
@@ -372,7 +386,11 @@ mod tests {
     fn contact() -> Contact {
         Contact {
             names: Some(
-                LocalisedString::new(vec![(Some("en".into()), "Helpdesk".into())]).unwrap(),
+                LocalisedString::new(vec![LocalisedText {
+                    language: Some("en".into()),
+                    text: "Helpdesk".into(),
+                }])
+                .unwrap(),
             ),
             departments: None,
             roles: None,
@@ -463,9 +481,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names = LocalisedString::new(vec![(Some("en".into()), "Eurostat".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "Statistical office".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Eurostat".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Statistical office".into(),
+        }])
+        .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
             Some("uri".into()),

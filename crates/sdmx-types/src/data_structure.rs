@@ -54,8 +54,8 @@ use crate::{
 /// ```
 /// use sdmx_types::{
 ///     ComponentMetadata, ConceptReference, DataStructureDefinition, Dimension, DimensionList,
-///     IdentifiableArtefact, IdentifiableMetadata, LocalisedString, MaintainableArtefact,
-///     MaintainableMetadata, NameableMetadata, VersionableMetadata,
+///     IdentifiableArtefact, IdentifiableMetadata, LocalisedString, LocalisedText,
+///     MaintainableArtefact, MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
 /// let dimension = Dimension::new(
@@ -70,7 +70,10 @@ use crate::{
 /// )?;
 /// let dimension_list = DimensionList::new(None, vec![dimension], None, vec![], vec![], None)?;
 ///
-/// let names = LocalisedString::new(vec![(Some("en".to_string()), "Exchange rates".to_string())])?;
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some("en".to_string()),
+///     text: "Exchange rates".to_string(),
+/// }])?;
 /// let identifiable =
 ///     IdentifiableMetadata::new("ECB_EXR".to_string(), None, None, vec![], vec![])?;
 /// let metadata = MaintainableMetadata::new(
@@ -190,6 +193,7 @@ mod tests {
         attribute::{Attribute, AttributeListMember, AttributeRelationship},
         component::ComponentMetadata,
         dimension::{Dimension, TimeDimension},
+        localised::LocalisedText,
         measure::Measure,
         metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata},
         reference::ConceptReference,
@@ -235,8 +239,11 @@ mod tests {
     }
 
     fn maintainable(id: &str, agency: &str) -> MaintainableMetadata {
-        let names =
-            LocalisedString::new(vec![(Some("en".into()), "Exchange rates".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Exchange rates".into(),
+        }])
+        .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
         MaintainableMetadata::new(
@@ -330,10 +337,16 @@ mod tests {
             urn: None,
             link_type: None,
         };
-        let names =
-            LocalisedString::new(vec![(Some("en".into()), "Exchange rates".into())]).unwrap();
-        let descriptions =
-            LocalisedString::new(vec![(Some("en".into()), "How often".into())]).unwrap();
+        let names = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "Exchange rates".into(),
+        }])
+        .unwrap();
+        let descriptions = LocalisedString::new(vec![LocalisedText {
+            language: Some("en".into()),
+            text: "How often".into(),
+        }])
+        .unwrap();
         let version = SdmxVersion::new("1.2.3".into()).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(
