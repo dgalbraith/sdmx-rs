@@ -63,7 +63,7 @@
      `just update-msrv` — leave it). If this release BUMPED the MSRV, add bullets
      under the line explaining the trigger and the consumer impact. If unchanged,
      leave just the line. -->
-* **Current MSRV**: `1.91.0`
+* **Current MSRV**: `1.92.0`
 
 ## Feature Flags
 

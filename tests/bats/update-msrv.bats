@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+bats_require_minimum_version 1.5.0
+
 # ==============================================================================
 # Test suite for scripts/update-msrv.sh
 #
@@ -35,6 +37,20 @@ setup() {
             || { echo "ERROR: manifest file not found in repo: $file"; exit 1; }
     done < "$BATS_TEST_DIRNAME/fixtures/update-msrv-manifest.txt"
 
+    # Normalise the copied fixtures to the test's baseline MSRV so the suite is independent
+    # of the repo's actual MSRV (e.g. once an MSRV bump leaves the tree at the new version).
+    # The MSRV appears as the same literal string in every form (rust-version, channel,
+    # badges), so one substitution per file normalises them all back to the baseline the
+    # hardcoded 1.91.0 -> 1.92.0 cases expect.
+    baseline_msrv="1.91.0"
+    current_msrv=$(sed -n 's/^rust-version = "\(.*\)"/\1/p' Cargo.toml)
+    if [ -n "$current_msrv" ] && [ "$current_msrv" != "$baseline_msrv" ]; then
+        while IFS= read -r file; do
+            case "$file" in ""|"#"*) continue ;; esac
+            [ -f "$file" ] && sed -i "s/${current_msrv//./\\.}/$baseline_msrv/g" "$file"
+        done < "$BATS_TEST_DIRNAME/fixtures/update-msrv-manifest.txt"
+    fi
+
     git add .
     git commit -m "Initial test state" -q
 
@@ -47,6 +63,48 @@ setup() {
 teardown() {
     # BATS automatically cleans up $BATS_TEST_TMPDIR
     :
+}
+
+# Mock `nix`: echo the argv (so a test can assert the re-entry happened), then delegate
+# whatever follows `--command`/`-c` to the in-PATH mocks, so a re-provisioned
+# `just verify` resolves to mock_just. Kept file-local on purpose: the shared common.sh
+# must NOT define this, or it would shadow the per-file `nix` mocks other suites
+# (update-flake) define and rely on, since setup() sources common.sh after them.
+mock_nix() {
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/nix" << 'EOF'
+#!/bin/sh
+echo "nix (mock): $*"
+if [ "${1:-}" = "develop" ]; then
+    shift
+    while [ $# -gt 0 ] && [ "$1" != "--command" ] && [ "$1" != "-c" ]; do
+        shift
+    done
+    if [ "${1:-}" = "--command" ] || [ "${1:-}" = "-c" ]; then
+        shift
+        [ $# -gt 0 ] && exec "$@"
+    fi
+fi
+exit 0
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/bin/nix"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
+}
+
+# Recording `cargo` shim: append argv to $CARGO_MOCK_LOG so a test can assert the rustup
+# `cargo +<version>` selector is never invoked. File-local for the same reason as mock_nix
+# (update-deps defines its own `cargo` mock).
+mock_cargo() {
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    : "${CARGO_MOCK_LOG:=$BATS_TEST_TMPDIR/cargo-mock.log}"
+    export CARGO_MOCK_LOG
+    cat > "$BATS_TEST_TMPDIR/bin/cargo" << EOF
+#!/bin/sh
+echo "\$*" >> "$CARGO_MOCK_LOG"
+exit 0
+EOF
+    chmod +x "$BATS_TEST_TMPDIR/bin/cargo"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 # ==============================================================================
@@ -211,6 +269,7 @@ teardown() {
     TEMPLATE="crates/sdmx-rs/release-notes/templates/template.md"
     grep -q '\*\*Current MSRV\*\*: `1.91.0`' "$TEMPLATE"   # precondition
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
     grep -q '\*\*Current MSRV\*\*: `1.92.0`' "$TEMPLATE"
@@ -228,6 +287,7 @@ teardown() {
     # 'MSRV-X.Y.Z' (hyphen). Both forms must be updated.
     grep -q 'MSRV: 1\.91\.0' README.md   # precondition
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
     grep -q 'MSRV: 1\.92\.0' README.md
@@ -240,6 +300,7 @@ teardown() {
         grep -q 'MSRV: 1\.91\.0' "crates/$crate/README.md"   # precondition
     done
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
     for crate in sdmx-types sdmx-parsers sdmx-writers sdmx-client sdmx-rs; do
@@ -254,6 +315,7 @@ teardown() {
     # or currently-bold patterns; needs its own sed.
     grep -q 'MSRV (1\.91\.0)' CONTRIBUTING.md   # precondition
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
     grep -q 'MSRV (1\.92\.0)' CONTRIBUTING.md
@@ -264,21 +326,42 @@ teardown() {
 # Upgrade-Specific Behaviour
 # ==============================================================================
 
-@test "update-msrv (upgrade): updates maintenance.toml dates" {
-    # Full run required: --dry-run exits before file mutations
+@test "update-msrv (upgrade): bumps only the msrv-upgrade-window review window and its marker" {
+    # Full run required: --dry-run exits before file mutations. An MSRV raise reviews only
+    # the msrv-upgrade-window obligation, so the other windows and their markers stay put,
+    # and the Cargo.toml "# Last updated:" comment must track maintenance.toml (the gate
+    # cross-checks the two).
+    today=$(date +%Y-%m-%d)
+    before_rustfmt=$(awk '/item = "rustfmt-date-bump"/,/next_review/' maintenance.toml | grep 'last_updated')
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
-    grep -q 'last_updated = "' maintenance.toml
-    grep -q 'next_review = "' maintenance.toml
+    # msrv-upgrade-window date bumped to today in both maintenance.toml and the Cargo.toml marker
+    awk '/item = "msrv-upgrade-window"/,/next_review/' maintenance.toml | grep -q "last_updated = \"$today\""
+    grep -A1 '# MAINTENANCE: msrv-upgrade-window' Cargo.toml | grep -q "# Last updated: $today"
+    # an unrelated review window is left untouched
+    after_rustfmt=$(awk '/item = "rustfmt-date-bump"/,/next_review/' maintenance.toml | grep 'last_updated')
+    [ "$before_rustfmt" = "$after_rustfmt" ]
 }
 
 @test "update-msrv (upgrade): prints BREAKING CHANGE warning" {
     # Full run required: BREAKING CHANGE is only printed in the post-update summary
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
     [[ "$output" =~ "BREAKING" ]]
+}
+
+@test "update-msrv (upgrade): warns to reload the Nix shell before pushing" {
+    # The bump changes rust-toolchain.toml, but the invoking shell keeps the old toolchain;
+    # the summary must tell the user to reload before a direct verify / push.
+    mock_just
+    mock_nix
+    run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Reload your Nix shell"* ]]
 }
 
 @test "update-msrv (upgrade): warns about 6-month policy" {
@@ -296,6 +379,7 @@ teardown() {
 
     # Full run required: dry-run exits before file mutations
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" --downgrade 1.91.0 1.85.0
     [ "$status" -eq 0 ]
 
@@ -314,22 +398,26 @@ teardown() {
 # Version Reference Updates
 # ==============================================================================
 
-@test "update-msrv: updates docs/project/msrv.md old MSRV example" {
-    # Full run required: sed patterns for msrv.md are context-matched (most fragile)
+@test "update-msrv: rewrites docs/project/msrv.md manual path to the Nix-compatible form" {
+    # The manual path must not use the rustup `cargo +<version>` selector (unavailable
+    # under Nix) and must run its checks via a re-entered nix develop.
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
-    grep -q "1\.92\.0" docs/project/msrv.md
+    run ! grep -qE "cargo \+[0-9]" docs/project/msrv.md
+    grep -q "nix develop" docs/project/msrv.md
 }
 
-@test "update-msrv: updates docs/project/msrv.md new MSRV example" {
-    # Full run required: both old and new version references must be updated
+@test "update-msrv: evergreens the docs/project/msrv.md manual-path version pins" {
+    # Full run required: the channel/rust-version pins shown in the manual path are kept
+    # current by context-matched seds anchored on their comment lines.
     mock_just
+    mock_nix
     run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
     [ "$status" -eq 0 ]
-    # Old version should no longer appear as the new MSRV
-    grep -qv "cargo +1\.91\.0" docs/project/msrv.md || true
-    grep -q "1\.92\.0" docs/project/msrv.md
+    grep -q 'channel = "1.92.0"' docs/project/msrv.md
+    grep -q 'rust-version = "1.92.0"' docs/project/msrv.md
 }
 
 # ==============================================================================
@@ -367,4 +455,26 @@ teardown() {
 
 @test "update-msrv: mentions raising vs lowering in docs" {
     grep -qE "raise|lower|downgrade|upgrade" scripts/update-msrv.sh
+}
+
+# ==============================================================================
+# Toolchain-correct verification (Nix re-provisioning)
+# ==============================================================================
+
+@test "update-msrv: verifies via a re-provisioned Nix toolchain, never cargo +VERSION" {
+    # The Nix flake provisions the toolchain from rust-toolchain.toml at shell entry, so
+    # verification must re-enter Nix AFTER the rewrite to pick up the new version. This is
+    # the regression guard for the bug where `just verify` ran under the stale toolchain
+    # and the lint step used the rustup-only `cargo +<version>` selector.
+    mock_just
+    mock_nix
+    mock_cargo
+    run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
+    [ "$status" -eq 0 ]
+    # Verification re-enters Nix so the rewritten rust-toolchain.toml is provisioned.
+    [[ "$output" == *"nix (mock): develop --command just verify"* ]]
+    # The rustup +<version> toolchain selector is never invoked under Nix.
+    if [ -f "$CARGO_MOCK_LOG" ]; then
+        run ! grep -q '^+' "$CARGO_MOCK_LOG"
+    fi
 }

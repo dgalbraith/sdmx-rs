@@ -37,8 +37,8 @@ marker = "# MAINTENANCE: msrv-upgrade-window"
 review_cadence = 180
 warn_threshold = 210
 fail_threshold = 270
-last_updated = "2026-05-30"
-next_review = "2026-11-26"
+last_updated = "2026-06-30"
+next_review = "2026-12-30"
 
 # Periodic MANUAL dependency-freshness review (outdated-but-not-vulnerable
 # hygiene). Security advisories and license conflicts are NOT gated by this
