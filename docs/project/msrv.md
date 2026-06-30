@@ -88,57 +88,52 @@ just update-msrv --dry-run --downgrade 1.91.0 1.85.0
 
 ### Manual Path (For Understanding or Troubleshooting)
 
-If you need to verify steps manually or the script fails, follow these steps:
+If you need to verify the steps manually, or the script fails, follow these. The Nix
+flake provisions the toolchain from `rust-toolchain.toml` at shell entry, so edit the
+pins first, then run every check inside a fresh `nix develop` that re-reads them. That
+is why no step uses a `cargo +<version>` selector: that is a rustup feature, and this
+workspace has no rustup, so the toolchain comes from the pinned file, not the command.
 
-1. **Update Cargo.toml and verify compilation**:
+1. **Capture the lint baseline on the current toolchain**, before changing any pins, so
+   a lint added by the new toolchain can be told apart from a pre-existing one:
    ```bash
-   # Edit Cargo.toml [workspace.package] rust-version = "1.92.0"
-   # Also update all crate Cargo.toml files:
-   #   crates/sdmx-types/Cargo.toml
-   #   crates/sdmx-parsers/Cargo.toml
-   #   crates/sdmx-writers/Cargo.toml
-   #   crates/sdmx-client/Cargo.toml
-   #   crates/sdmx-rs/Cargo.toml
-   cargo +1.92.0 check --workspace --all-targets
+   cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee /tmp/old-msrv.txt
    ```
 
-2. **Verify clippy lint consistency** — A new clippy lint added between the old and new MSRV may fire on current code. Compare lints across versions:
+2. **Update the version pins** to the new MSRV:
    ```bash
-   # Run on old MSRV
-   cargo +1.91.0 clippy --workspace --all-targets -- -D warnings 2>&1 | tee /tmp/old-msrv.txt
+   # rust-toolchain.toml: channel = "1.92.0"
+   # Cargo.toml [workspace.package] rust-version = "1.92.0", and the same literal in
+   #   each crate manifest: crates/{sdmx-types,sdmx-parsers,sdmx-writers,sdmx-client,sdmx-rs}/Cargo.toml
+   ```
 
-   # Run on new MSRV
-   cargo +1.92.0 clippy --workspace --all-targets -- -D warnings 2>&1 | tee /tmp/new-msrv.txt
-
-   # Compare output
+3. **Verify under the new toolchain in a fresh dev shell**. Re-entering `nix develop`
+   re-reads the rewritten `rust-toolchain.toml` and provisions the new compiler, so a
+   bare `cargo`/`just` resolves to it:
+   ```bash
+   nix develop --command bash -c '
+     cargo clippy --workspace --all-targets -- -D warnings 2>&1 | tee /tmp/new-msrv.txt
+     cargo check --workspace --all-targets
+     cargo nextest run --workspace
+     cargo check --target wasm32-unknown-unknown -p sdmx-types -p sdmx-parsers
+   '
+   # A lint introduced by the new toolchain appears in new-msrv.txt alone:
    diff /tmp/old-msrv.txt /tmp/new-msrv.txt
    ```
 
-   If new lints fire on the code:
-   - Either suppress them with `#[allow(...)]` if they are false positives on the old MSRV
-   - Or fix the code to satisfy the new lint
+   If new lints fire, either suppress them with `#[allow(...)]` if they are false
+   positives, or fix the code to satisfy the new lint.
 
-3. **Run the full test suite on the new MSRV**:
+4. **Update the remaining files**:
    ```bash
-   cargo +1.92.0 nextest run --workspace
+   # maintenance.toml: last_updated and next_review dates (6 months from today)
+   # README.md and crates/*/README.md: badge and MSRV section version numbers
+   # CONTRIBUTING.md: MSRV references
    ```
 
-4. **Verify WebAssembly targets**:
+5. **Run the full gate under the new toolchain**:
    ```bash
-   cargo +1.92.0 check --target wasm32-unknown-unknown -p sdmx-types -p sdmx-parsers
-   ```
-
-5. **Update configuration files**:
-   ```bash
-   # Update rust-toolchain.toml: channel = "1.92.0"
-   # Update maintenance.toml: last_updated and next_review dates (6 months from today)
-   # Update README.md: badge and MSRV section version numbers
-   # Update docs/project/msrv.md: Manual Path examples with actual version numbers
-   ```
-
-6. **Run CI verification locally**:
-   ```bash
-   just verify
+   nix develop --command just verify
    ```
 
 ### Commit and Version Bump

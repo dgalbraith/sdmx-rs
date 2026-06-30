@@ -280,39 +280,15 @@ else
 fi
 
 # ==============================================================================
-# Clippy divergence check (upgrade only; downgrade doesn't need this)
+# Lint compatibility
 # ==============================================================================
-
-if [ $DOWNGRADE -eq 0 ]; then
-    echo "Checking clippy compatibility..."
-
-    if ! command -v cargo >/dev/null 2>&1; then
-        log_fatal "cargo not found. Ensure Rust toolchain is installed."
-    fi
-
-    # Run clippy on old MSRV
-    if ! cargo +"$OLD_MSRV" clippy --workspace --all-targets -- -D warnings >/tmp/old-msrv-clippy.txt 2>&1; then
-        log_warn "Clippy check on $OLD_MSRV failed (may be expected in some cases)"
-    else
-        log_ok "Clippy check on old MSRV ($OLD_MSRV) passed"
-    fi
-
-    # Run clippy on new MSRV
-    if ! cargo +"$NEW_MSRV" clippy --workspace --all-targets -- -D warnings >/tmp/new-msrv-clippy.txt 2>&1; then
-        log_warn "Clippy check on $NEW_MSRV produced warnings"
-        # Extract just the warnings/errors
-        if grep -E "^(warning|error)" /tmp/new-msrv-clippy.txt >/tmp/new-msrv-clippy-summary.txt 2>&1; then
-            log_warn "New lints detected on $NEW_MSRV:"
-            sed 's/^/  /' /tmp/new-msrv-clippy-summary.txt
-            log_warn "Fix with #[allow(...)] or by updating code"
-            echo ""
-        fi
-    else
-        log_ok "Clippy check on new MSRV ($NEW_MSRV) passed"
-    fi
-else
-    log_info "Skipping clippy check (downgrade mode)"
-fi
+#
+# A standalone old-versus-new clippy comparison used to live here, driven by
+# rustup's `cargo +<version>` toolchain selector. This repo provisions Rust through
+# the Nix flake (fromRustupToolchainFile): `cargo +<version>` is unavailable and only
+# one toolchain is on PATH per shell, so that comparison could never run here. New-lint
+# detection is handled instead by the verification step below, which re-enters Nix to
+# run `just verify` (clippy::pedantic -D warnings) under the NEW toolchain.
 
 if [ $DRY_RUN -eq 1 ]; then
     echo ""
@@ -346,11 +322,17 @@ log_ok "Updated 6 Cargo.toml files"
 sed_inplace "s/channel = \"$OLD_MSRV\"/channel = \"$NEW_MSRV\"/g" rust-toolchain.toml
 log_ok "Updated rust-toolchain.toml"
 
-# 3. Update maintenance.toml (raise only; skip for downgrade)
+# 3. Update maintenance.toml and its source marker (raise only; skip for downgrade).
+# An MSRV raise satisfies ONLY the msrv-upgrade-window review obligation, so scope the
+# date bump to that one [[maintenance]] block and leave the unrelated windows alone. The
+# maintenance gate cross-checks maintenance.toml against the "# Last updated:" comment
+# under the marker in Cargo.toml, so bump that comment in lock-step.
 if [ $DOWNGRADE -eq 0 ]; then
-    sed_inplace "s/last_updated = \"[^\"]*\"/last_updated = \"$TODAY_DATE\"/g" maintenance.toml
-    sed_inplace "s/next_review = \"[^\"]*\"/next_review = \"$NEW_REVIEW_DATE\"/g" maintenance.toml
-    log_ok "Updated maintenance.toml (dates)"
+    sed_inplace "/item = \"msrv-upgrade-window\"/,/^\[\[maintenance\]\]/ s/last_updated = \"[^\"]*\"/last_updated = \"$TODAY_DATE\"/" maintenance.toml
+    sed_inplace "/item = \"msrv-upgrade-window\"/,/^\[\[maintenance\]\]/ s/next_review = \"[^\"]*\"/next_review = \"$NEW_REVIEW_DATE\"/" maintenance.toml
+    sed_inplace "/# MAINTENANCE: msrv-upgrade-window/,/# Last updated:/ s/# Last updated: .*/# Last updated: $TODAY_DATE/" Cargo.toml
+    sed_inplace "/# MAINTENANCE: msrv-upgrade-window/,/# Next review:/ s/# Next review: .*/# Next review: $NEW_REVIEW_DATE/" Cargo.toml
+    log_ok "Updated maintenance.toml + Cargo.toml marker (msrv-upgrade-window)"
 else
     log_info "Skipping maintenance.toml (downgrade is not a breaking change)"
 fi
@@ -385,16 +367,14 @@ fi
 # Note: CONTRIBUTING.md section 5c uses evergreen text "previous release" (no version-specific update needed)
 log_ok "Updated CONTRIBUTING.md"
 
-# 6. Update docs/project/msrv.md (manual path examples with context matching)
-# Use context matching to distinguish old vs new MSRV sections
-# Old section: "# Run on old MSRV" → update to OLD_MSRV (which we're moving from)
-# New section: "# Run on new MSRV" → update to NEW_MSRV (which we're moving to)
-# Note: Drop redundant "(e.g., X.Y.Z)" comments; keep versions only in commands
+# 6. Update docs/project/msrv.md manual-path version pins. The Nix-compatible manual path
+# carries the new floor as rust-toolchain.toml/Cargo.toml pin values, not as
+# `cargo +<version>` selectors. Anchor each sed on its manual-path comment line so the
+# policy-section literal and prose elsewhere in the file are left untouched.
+sed_inplace "/# rust-toolchain.toml: channel = /s/\"[0-9][0-9.]*\"/\"$NEW_MSRV\"/" docs/project/msrv.md
+sed_inplace "/# Cargo.toml \[workspace.package\] rust-version = /s/\"[0-9][0-9.]*\"/\"$NEW_MSRV\"/" docs/project/msrv.md
 
-sed_inplace "/# Run on old MSRV/,/cargo check/s/cargo +[0-9]*\.[0-9]*\.[0-9]*/cargo +$OLD_MSRV/" docs/project/msrv.md
-sed_inplace "/# Run on new MSRV/,/cargo check/s/cargo +[0-9]*\.[0-9]*\.[0-9]*/cargo +$NEW_MSRV/" docs/project/msrv.md
-
-log_ok "Updated docs/project/msrv.md (manual path examples)"
+log_ok "Updated docs/project/msrv.md (manual-path version pins)"
 
 # 7. Update the facade release-notes template's "Current MSRV" line. The template
 # carries the MSRV as a LITERAL current value (not a {{VERSION}}-style token) so a
@@ -410,8 +390,12 @@ log_ok "Updated ${RELEASE_NOTES_TEMPLATE} (Current MSRV line)"
 # ==============================================================================
 
 echo ""
-echo "Running full verification suite..."
-if just verify; then
+echo "Running full verification suite under the updated toolchain..."
+# The Nix flake provisions the toolchain at shell entry from rust-toolchain.toml, so a
+# bare `just verify` would run under the PRE-rewrite toolchain still on PATH. Re-enter
+# Nix so the flake re-reads the just-rewritten rust-toolchain.toml and provisions
+# NEW_MSRV for verification.
+if nix develop --command just verify; then
     log_ok "All verification checks passed"
 else
     log_fatal "Verification failed. Fix issues before proceeding."
@@ -479,5 +463,19 @@ else
     echo "No version increment required."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 fi
+
+# Verification above ran in a fresh `nix develop` subshell that picked up the new
+# rust-toolchain.toml, but the INTERACTIVE shell this script was invoked from still has the
+# previous toolchain on PATH (a Nix env binds its toolchain at load time, not per command).
+# Flag it so the next direct `just verify`, cargo invocation, or pre-push hook in this shell
+# does not run the old toolchain against the updated manifests.
+echo ""
+echo "⚠️  Reload your Nix shell before pushing"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Verification ran under the updated toolchain in a fresh Nix shell, but THIS shell"
+echo "still has the pre-update toolchain. Exit and re-enter the directory (or 'direnv"
+echo "reload') so the new toolchain is active before you push or run 'just verify'"
+echo "directly — otherwise they run the old toolchain against the updated manifests and fail."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 unset DRY_RUN FORCE DOWNGRADE OLD_MSRV NEW_MSRV WORKSPACE_MSRV TOOLCHAIN_MSRV TODAY RUST_RELEASES_URL TODAY_DATE NEW_REVIEW_DATE cargo_file
