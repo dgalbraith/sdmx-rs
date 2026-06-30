@@ -250,6 +250,19 @@ impl DimensionList {
     pub fn push(&mut self, dimension: Dimension) {
         self.dimensions.push(dimension);
     }
+
+    /// The first dimension whose effective id equals `id`, in wire order (a first-match view).
+    /// The time dimension is a separate slot and is not searched.
+    #[must_use]
+    pub fn get(&self, id: &str) -> Option<&Dimension> {
+        self.dimensions.iter().find(|dimension| dimension.id() == id)
+    }
+
+    /// Iterates the key dimensions in wire order (always at least one). The time dimension is a
+    /// separate slot and is not yielded.
+    pub fn iter(&self) -> impl Iterator<Item = &Dimension> {
+        self.dimensions.iter()
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for DimensionList {
@@ -653,7 +666,7 @@ mod tests {
     // --- DimensionList ---
 
     #[test]
-    fn dimension_list_validates_fixed_id_and_non_empty() {
+    fn dimension_list_validates_fixed_id_and_non_empty_with_lookup() {
         // The stated fixed `DimensionDescriptor` id passes, and the list keeps wire order.
         let list = DimensionList::new(
             Some("DimensionDescriptor".into()),
@@ -668,6 +681,14 @@ mod tests {
         assert_eq!(list.dimensions().len(), 2);
         assert_eq!(list.dimensions()[0].id(), "FREQ");
         assert!(list.time_dimension.is_some());
+
+        // get/iter range over the key dimensions, in wire order.
+        assert_eq!(list.iter().count(), 2);
+        assert_eq!(list.iter().next().unwrap().id(), "FREQ");
+        assert_eq!(list.get("FREQ").map(IdentifiableArtefact::id), Some("FREQ"));
+        assert!(list.get("MISSING").is_none());
+        // Neither get nor iter surfaces the time dimension (id TIME_PERIOD).
+        assert!(list.get("TIME_PERIOD").is_none());
 
         // A mismatched fixed id is rejected.
         assert_eq!(
@@ -702,6 +723,22 @@ mod tests {
         // The custom Deserialize enforces the non-empty rule on the wire.
         let empty = r#"{"id":null,"annotations":[],"links":[],"urn":null,"dimensions":[],"time_dimension":null}"#;
         assert!(serde_json::from_str::<DimensionList>(empty).is_err());
+    }
+
+    #[test]
+    fn dimension_list_get_returns_first_match() {
+        // Duplicate ids are held verbatim; get returns the first in wire order.
+        let list = DimensionList::new(
+            None,
+            vec![dimension("FREQ"), dimension("FREQ")],
+            None,
+            vec![],
+            vec![],
+            None,
+        )
+        .unwrap();
+        assert_eq!(list.iter().count(), 2);
+        assert!(core::ptr::eq(list.get("FREQ").unwrap(), &raw const list.dimensions()[0]));
     }
 
     // --- AttributeList ---
