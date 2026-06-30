@@ -1,6 +1,6 @@
 [toolchain]
 # The Minimum Supported Rust Version (MSRV) floor for all workspace crates
-channel = "1.91.0"
+channel = "1.92.0"
 
 # Target architectures to pre-install for local validation gates
 targets = [

@@ -11,8 +11,8 @@ members = [
 [workspace.package]
 edition = "2024"
 # MAINTENANCE: msrv-upgrade-window
-# Last updated: 2026-05-30
-# Next review: 2026-11-26
+# Last updated: 2026-06-30
+# Next review: 2026-12-30
 # Evaluate if MSRV can be bumped (Rust releases every 6 weeks, check breaking changes)
 # Also verify: cargo clippy output matches between old and new MSRV (see ci.yml msrv-verify)
 #
@@ -20,7 +20,7 @@ edition = "2024"
 # than inheriting via `rust-version.workspace = true` (cargo-msrv can't resolve
 # inherited MSRV, and update-msrv.sh rewrites literals). Do not "DRY" this away —
 # see docs/project/msrv.md ("MSRV Declaration Layout").
-rust-version = "1.91.0"
+rust-version = "1.92.0"
 authors = ["dgalbraith <dg@lbraith.io>"]
 description = "A high-performance, compliant SDMX parsing and client architecture engine in Rust."
 readme = "README.md"

@@ -317,7 +317,7 @@ This runs the same validation suite as CI and must execute inside the active `di
 4. **`just verify-infra`** — Nix flake and GitHub Actions workflow validation.
 5. **`just verify-maintenance`** — Maintenance obligation tracking and scaffolding validation.
 
-**Optional**: Developers working on optional features should run `just msrv-features` to verify MSRV (1.91.0) compatibility across feature combinations. This is also checked on schedule in CI.
+**Optional**: Developers working on optional features should run `just msrv-features` to verify MSRV (1.92.0) compatibility across feature combinations. This is also checked on schedule in CI.
 
 **Key principle**: If `just verify` passes locally, CI will pass. If any check fails locally, fix it before pushing.
 

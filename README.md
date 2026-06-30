@@ -4,7 +4,7 @@
 <!-- [![docs.rs](https://img.shields.io/docsrs/sdmx-rs)](https://docs.rs/sdmx-rs) -->
 [![CI](https://github.com/dgalbraith/sdmx-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/dgalbraith/sdmx-rs/actions/workflows/ci.yml)
 [![Coverage](https://codecov.io/gh/dgalbraith/sdmx-rs/branch/main/graph/badge.svg)](https://codecov.io/gh/dgalbraith/sdmx-rs)
-[![MSRV: 1.91.0](https://img.shields.io/badge/MSRV-1.91.0-blue)](docs/project/msrv.md)
+[![MSRV: 1.92.0](https://img.shields.io/badge/MSRV-1.92.0-blue)](docs/project/msrv.md)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 
 A Rust implementation of the [SDMX](https://sdmx.org) (Statistical Data and Metadata Exchange) standard — a global framework for the exchange of statistical data and metadata used by central banks, statistical agencies, and international organisations.
