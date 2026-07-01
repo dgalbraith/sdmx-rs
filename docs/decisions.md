@@ -143,13 +143,14 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl          |
 | [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check        |
 | [D-0062](#d-0062) | Item schemes                | ItemSchemeArtefact trait deferred to its first generic consumer (build-at-first-caller); wrappers forward is_partial/get/iter via inherent methods       |
-| [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate          |
+| [D-0063](#d-0063) | Serialisation               | Derived serde is an internal lossless projection, not the SDMX wire format; wrappers serde(transparent); convergence deferred to a Phase-2 gate (amended by [D-0068](#d-0068))          |
 | [D-0064](#d-0064) | Constraints                 | TimeRange remodelled to { kind, valid_from, valid_to }; carries TimeRangeValueType's wrapper validFrom/validTo, the validity arm D-0038 missed           |
 | [D-0065](#d-0065) | Conventions                 | Hash/Eq/PartialEq derived uniformly wherever float-free; SdmxVersion hand-writes Hash over its raw string (Eq/Hash contract)                             |
 | [D-0066](#d-0066) | Localisation                | LocalisedString element is the named LocalisedText { language, text }, not an anonymous tuple; pub-field carrier; amends [D-0059](#d-0059)'s store shape |
 | [D-0067](#d-0067) | Item schemes                | ItemScheme kept a public, invariant-light generic carrier; the wrappers own the construction invariants, so exposure bypasses no validation              |
+| [D-0068](#d-0068) | Serialisation               | Internal serde projection never converges to the wire; round-trip verified through a non-wire format, serde_json dropped; resolves [D-0063](#d-0063)'s deferral |
 
-<!-- Next ID: D-0068 -->
+<!-- Next ID: D-0069 -->
 
 ## Entries
 
@@ -1465,10 +1466,12 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 | **Area**     | Serialisation |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (convergence clause amended by [D-0068](#d-0068)) |
 | **Keywords** | serde, transparent, projection, wire-format, lossless, round-trip, phase-2-gate, foundation |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §6 |
 | **Related**  | [D-0016](#d-0016), [D-0052](#d-0052), [D-0059](#d-0059) |
+
+> **Amended 2026-07-01 by [D-0068](#d-0068)**: the convergence question this entry deferred is resolved. The internal projection never converges to the SDMX wire; the round-trip is verified through a non-wire format, and `serde_json` is removed from the crate. The projection-is-not-the-wire ruling below stands unchanged; only the "deferred to a Phase-2 gate" clause is superseded. Original body retained for provenance.
 
 **Observation**: The domain types derive `serde::Serialize`/`Deserialize`, but it was unstated what that serialisation represents. Serde's default newtype-struct behaviour silently flattens to the inner value for JSON. This leaves the projection unpinned on the type and undefined for non-self-describing formats; consumers and the future parsers/writers have no stated contract to rely on.
 
@@ -1553,5 +1556,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: Sealing or privatising the carrier would remove the generic, extensible processing the open-`SchemeItem` design (§3) presupposes, for no safety gain: there is no invariant on `ItemScheme` for a caller to break, and `I: IdentifiableArtefact` already supplies the only thing it needs. This mirrors §3's seal-only-when-openness-would-break-an-invariant policy (the `SdmxSerialize` contrast). The wrappers remain the validation boundary.
 
 **Consequences**: (1) `ItemScheme<I>` stays `pub`; no code change. (2) 0010 §3 gains a sentence recording the carrier-versus-wrapper-invariants split. (3) Future generic scheme processing (e.g. the deferred `ItemSchemeArtefact`, [D-0062](#d-0062)) builds on the public carrier; sealing is off the table unless an invariant is later added to the carrier itself.
+
+---
+
+### D-0068 — Internal serde projection never converges to the SDMX wire; round-trip verified through a non-wire format
+
+| **Area**     | Serialisation |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | serde, projection, wire-format, convergence, non-wire, round-trip, no_std, public-api |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §6 |
+| **Related**  | [D-0063](#d-0063), [D-0031](#d-0031), [D-0066](#d-0066) |
+
+**Observation**: [D-0063](#d-0063) fixed the derived serde as an internal lossless projection and deferred to a Phase-2 entry gate whether it should later converge to SDMX-JSON. Two facts settle that early. First, the projection is exercised only in tests, and it was exercised through `serde_json`, a JSON wire library in the infoset crate's dev-dependencies, which conflates the internal projection with a wire format `sdmx-parsers`/`sdmx-writers` own. Second, the custom `Deserialize` impls are format-neutral: each delegates to a standard-library type then routes through `new()`, with no `deserialize_any`, no untagged or internally-tagged enums, and no hand-rolled visitors, so the JSON choice is incidental, not structural.
+
+**Decision**: The internal serde projection **never converges** to the SDMX wire format; convergence is resolved, not deferred. The round-trip losslessness property is verified by round-tripping through a **non-wire** serialisation format, and `serde_json` is removed from `sdmx-types` entirely, so the crate carries no wire-format dependency. serde stays a hard, public dependency, so the projection is a **public API surface whose shape is stable by decision**, acceptable because it never converges and so never breaks a consumer that serialises the model.
+
+**Rationale**: Resolving convergence to "never" removes the only reason to hedge the public projection shape, a future wire-convergence that could change it and break serialising consumers, which in turn makes a serde feature-gate unnecessary. Verifying losslessness through a non-wire format makes "parsers own the wire" a property of the dependency graph rather than a doc comment: nothing in `sdmx-types` can be mistaken for owning the wire because no wire-format library is present. Converging the projection to SDMX-JSON instead would reopen the Phase-1 foundation types under the no-breaking-changes-without-a-MINOR-bump rule and couple the types to one wire format over the others.
+
+**Consequences**: (1) [D-0063](#d-0063)'s deferred convergence clause is resolved; its body is amended by blockquote (retained for provenance). (2) The ROADMAP Phase-2 "serde wire-shape convergence" entry gate is retired; its live wire sub-questions (null-vs-omitted statedness, `LocalisedString` wire shape, enum representations) relocate to `sdmx-parsers`/`sdmx-writers`, where the wire lives. (3) 0010 §6 is updated to record convergence as resolved. (4) `serde_json` is removed from `sdmx-types`; the round-trip and construction-rejection tests are re-expressed through a non-wire format and the validated constructors, leaving no wire library in the crate (implementation tracked as a separate `test`-scoped follow-up). (5) Feature-gating serde is declined: with convergence resolved the projection shape is stable, so the gate it would hedge is unnecessary.
 
 ---
