@@ -234,8 +234,7 @@ mod tests {
     #[test]
     fn deserialize_round_trips() {
         let value_list = ValueList { metadata: metadata("VL_CUR"), items: vec![value_item("EUR")] };
-        let json = serde_json::to_string(&value_list).unwrap();
-        assert_eq!(serde_json::from_str::<ValueList>(&json).unwrap(), value_list);
+        crate::test_support::round_trip(&value_list);
     }
 
     #[test]

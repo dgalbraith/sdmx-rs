@@ -417,18 +417,28 @@ mod tests {
     #[test]
     fn agency_deserialize_round_trips() {
         let agency = Agency::new(nameable("ESTAT"), vec![contact()]).unwrap();
-        let json = serde_json::to_string(&agency).unwrap();
-        assert_eq!(serde_json::from_str::<Agency>(&json).unwrap(), agency);
+        crate::test_support::round_trip(&agency);
     }
 
     #[test]
-    fn agency_deserialize_enforces_id() {
-        let agency = Agency::new(nameable("ESTAT"), vec![]).unwrap();
-        let json = serde_json::to_string(&agency).unwrap();
-        // The validated-item contract holds on the wire: a leading-digit id (valid IDType, invalid
-        // NCName) is rejected on deserialisation, routing through new().
-        let bad = json.replace("ESTAT", "9ESTAT");
-        assert!(serde_json::from_str::<Agency>(&bad).is_err());
+    fn agency_new_enforces_ncname_id() {
+        // The validated-item NCName tightening is Agency::new's (composite over the nested nameable
+        // id): a leading-digit id passes IDType but fails NCName.
+        assert!(Agency::new(nameable("9ESTAT"), vec![]).is_err());
+    }
+
+    #[test]
+    fn agency_deserialize_rejects_non_ncname_id() {
+        // Agency's Deserialize declares `Raw { metadata, contacts }` and routes through new().
+        // postcard is positional, so a tuple of those field types carrying a leading-digit id
+        // (valid IDType, so the nested metadata deserialises, but rejected by the NCName tightening
+        // in Agency::new) proves the wire path re-runs the check.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (nameable("ESTAT"), Vec::<Contact>::new());
+        assert!(postcard::from_bytes::<Agency>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (nameable("9ESTAT"), Vec::<Contact>::new());
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Agency>(&bytes).is_err());
     }
 
     #[test]
@@ -454,17 +464,22 @@ mod tests {
     fn agency_scheme_deserialize_round_trips() {
         let mut scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
         scheme.push(Agency::new(nameable("ESTAT"), vec![]).unwrap());
-        let json = serde_json::to_string(&scheme).unwrap();
-        assert_eq!(serde_json::from_str::<AgencyScheme>(&json).unwrap(), scheme);
+        crate::test_support::round_trip(&scheme);
     }
 
     #[test]
-    fn agency_scheme_deserialize_enforces_fixed_id() {
-        let scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
-        let json = serde_json::to_string(&scheme).unwrap();
-        // A stated id other than the fixed "AGENCIES" is rejected on the wire, routing through new().
-        let bad = json.replace("AGENCIES", "OTHER");
-        assert!(serde_json::from_str::<AgencyScheme>(&bad).is_err());
+    fn agency_scheme_deserialize_rejects_non_agencies_id() {
+        // AgencyScheme's Deserialize declares `Raw { scheme: ItemScheme<Agency> }` and routes the
+        // metadata through new(), which checks the id against the fixed literal "AGENCIES".
+        // postcard is positional and a single-field struct encodes exactly as its one field, so an
+        // ItemScheme carrying any other stated id (a valid IDType, so ItemScheme deserialises) is
+        // rejected by new()'s fixed-id check.
+        // A valid ItemScheme decodes — guards the single-field shape if the Raw grows a second field.
+        let ok = ItemScheme::<Agency>::new(scheme_metadata("AGENCIES"), None);
+        assert!(postcard::from_bytes::<AgencyScheme>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let scheme = ItemScheme::<Agency>::new(scheme_metadata("OTHER"), None);
+        let bytes = postcard::to_allocvec(&scheme).unwrap();
+        assert!(postcard::from_bytes::<AgencyScheme>(&bytes).is_err());
     }
 
     /// A nameable leaf with every optional field populated, for the delegation matrix.

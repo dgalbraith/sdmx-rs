@@ -298,22 +298,30 @@ mod tests {
             Some(Usage::Mandatory),
         )
         .unwrap();
-        let json = serde_json::to_string(&measure).unwrap();
-        assert_eq!(serde_json::from_str::<Measure>(&json).unwrap(), measure);
+        crate::test_support::round_trip(&measure);
     }
 
     #[test]
     fn measure_deserialize_enforces_the_rule() {
         // A non-Basic textType is rejected on the wire, routing through new().
-        let measure = Measure::new(
+        // postcard is positional, so a tuple in Measure::deserialize's Raw field order
+        // (metadata, concept, representation, usage) carrying a KeyValues textType decodes
+        // into new(), which rejects the non-Basic type.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
-            Some(text_format(DataType::String)),
-            None,
-        )
-        .unwrap();
-        let json = serde_json::to_string(&measure).unwrap();
-        let bad = json.replace("String", "KeyValues");
-        assert!(serde_json::from_str::<Measure>(&bad).is_err());
+            Some(text_format(DataType::Double)),
+            None::<Usage>,
+        );
+        assert!(postcard::from_bytes::<Measure>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (
+            metadata(Some("OBS_VALUE")),
+            concept("OBS_VALUE"),
+            Some(text_format(DataType::KeyValues)),
+            None::<Usage>,
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Measure>(&bytes).is_err());
     }
 }

@@ -578,6 +578,13 @@ mod tests {
         let refs = vec![DimensionRef { id: "FREQ".into(), optional: None }];
         assert_eq!(DimensionIds::new(refs).unwrap().as_slice().len(), 1);
         assert_eq!(DimensionIds::new(Vec::new()).unwrap_err(), Error::EmptyAttributeDimensions);
+
+        // The invariant holds on the wire: DimensionIds' Deserialize routes the raw Vec<DimensionRef>
+        // through new(), so an empty list is rejected on deserialisation. Any composite that wraps it
+        // (AttributeRelationship::Dimensions, and Attribute above that) is protected because serde
+        // bubbles this nested failure up.
+        let empty = postcard::to_allocvec(&Vec::<DimensionRef>::new()).unwrap();
+        assert!(postcard::from_bytes::<DimensionIds>(&empty).is_err());
     }
 
     #[test]
@@ -612,21 +619,31 @@ mod tests {
 
     #[test]
     fn group_id_deserialize_enforces_non_empty() {
-        // The custom Deserialize routes through new(), so an empty id is rejected on the wire.
-        assert_eq!(serde_json::from_str::<GroupId>(r#""G1""#).unwrap().as_str(), "G1");
-        assert!(serde_json::from_str::<GroupId>(r#""""#).is_err());
+        // GroupId's Deserialize declares an inner `Raw = String` (it does `String::deserialize` then
+        // `Self::new(..)`), and its transparent Serialize encodes as that bare string. postcard is
+        // positional, so an empty `String` decodes into new(), which rejects it, while a non-empty
+        // one round-trips.
+        let empty = String::new();
+        assert!(postcard::from_bytes::<GroupId>(&postcard::to_allocvec(&empty).unwrap()).is_err());
+        let group_id = GroupId::new("G1".into()).unwrap();
+        assert_eq!(group_id.as_str(), "G1");
+        crate::test_support::round_trip(&group_id);
     }
 
     #[test]
     fn measure_relationship_deserialize_enforces_non_empty() {
-        assert_eq!(
-            serde_json::from_str::<MeasureRelationship>(r#"["OBS_VALUE"]"#)
-                .unwrap()
-                .as_slice()
-                .len(),
-            1
+        // MeasureRelationship's Deserialize declares an inner `Raw = Vec<String>` (it does
+        // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
+        // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
+        // which rejects it, while a non-empty one round-trips.
+        let relationship = MeasureRelationship::new(vec!["OBS_VALUE".into()]).unwrap();
+        assert_eq!(relationship.as_slice().len(), 1);
+        crate::test_support::round_trip(&relationship);
+        let empty: Vec<String> = Vec::new();
+        assert!(
+            postcard::from_bytes::<MeasureRelationship>(&postcard::to_allocvec(&empty).unwrap())
+                .is_err()
         );
-        assert!(serde_json::from_str::<MeasureRelationship>("[]").is_err());
     }
 
     #[test]
@@ -638,8 +655,7 @@ mod tests {
             optional: Some(true),
         }])
         .unwrap();
-        let json = serde_json::to_string(&relationship).unwrap();
-        assert_eq!(serde_json::from_str::<AttributeRelationship>(&json).unwrap(), relationship);
+        crate::test_support::round_trip(&relationship);
     }
 
     #[test]
@@ -733,26 +749,47 @@ mod tests {
     }
 
     #[test]
-    fn attribute_deserialize_round_trips_and_rejects_an_empty_relationship() {
+    fn attribute_deserialize_round_trips() {
+        // The empty-Dimensions invariant lives on DimensionIds and is proven on the wire in
+        // dimension_ids_reject_empty; AttributeRelationship::Dimensions wraps it, so serde bubbles
+        // that nested rejection up through Attribute's Deserialize. Attribute's own rule (the Basic
+        // representation subset) is covered by the next test.
         let attribute = basic_attribute(Some(Usage::Mandatory));
-        let json = serde_json::to_string(&attribute).unwrap();
-        assert_eq!(serde_json::from_str::<Attribute>(&json).unwrap(), attribute);
-
-        // An empty Dimensions relationship is rejected on the wire, routing through the newtype's
-        // custom Deserialize that the enum delegates to. (This guards the relationship newtype, not
-        // Attribute::new's representation rule, which the next test covers.)
-        let bad = r#"{"metadata":{"id":"X","uri":null,"urn":null,"annotations":[],"links":[]},"concept":{"agency":"SDMX","scheme_id":"CS","id":"X"},"representation":null,"relationship":{"Dimensions":[]},"measure_relationship":null,"usage":null}"#;
-        assert!(serde_json::from_str::<Attribute>(bad).is_err());
+        crate::test_support::round_trip(&attribute);
     }
 
     #[test]
     fn attribute_deserialize_enforces_the_basic_representation_rule() {
-        // A valid String textType, flipped on the wire to a non-Basic KeyValues: the custom
-        // Deserialize routes through Attribute::new, so validate_basic_representation rejects it
-        // rather than letting it slip past the derive. (String appears only as the textType token.)
+        // Attribute's Deserialize declares
+        // `Raw { metadata: ComponentMetadata, concept: ConceptReference,
+        //        representation: Option<Representation>, relationship: AttributeRelationship,
+        //        measure_relationship: Option<MeasureRelationship>, usage: Option<Usage> }`
+        // and routes through new(), whose validate_basic_representation rejects a textType outside
+        // the Basic subset. KeyValues is a valid DataType token (so Raw deserialises), but is outside
+        // the Basic subset, so new() rejects it. postcard is positional, so a tuple of those field
+        // types carrying that representation proves the wire path re-runs the check rather than
+        // letting it slip past.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok_repr = Representation {
+            choice: RepresentationChoice::TextFormat(TextFormat {
+                text_type: Some(DataType::String), // inside the Basic subset
+                ..TextFormat::default()
+            }),
+            min_occurs: None,
+            max_occurs: None,
+        };
+        let ok = (
+            metadata(Some("OBS_STATUS")),
+            concept("OBS_STATUS"),
+            Some(ok_repr),
+            AttributeRelationship::Observation,
+            Option::<MeasureRelationship>::None,
+            Option::<Usage>::None,
+        );
+        assert!(postcard::from_bytes::<Attribute>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
         let repr = Representation {
             choice: RepresentationChoice::TextFormat(TextFormat {
-                text_type: Some(DataType::String),
+                text_type: Some(DataType::KeyValues), // outside the Basic subset
                 is_sequence: None,
                 interval: None,
                 start_value: None,
@@ -771,18 +808,16 @@ mod tests {
             min_occurs: None,
             max_occurs: None,
         };
-        let attribute = Attribute::new(
+        let raw = (
             metadata(Some("OBS_STATUS")),
             concept("OBS_STATUS"),
             Some(repr),
             AttributeRelationship::Observation,
-            None,
-            None,
-        )
-        .unwrap();
-        let json = serde_json::to_string(&attribute).unwrap();
-        let bad = json.replace("String", "KeyValues");
-        assert!(serde_json::from_str::<Attribute>(&bad).is_err());
+            Option::<MeasureRelationship>::None,
+            Option::<Usage>::None,
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Attribute>(&bytes).is_err());
     }
 
     #[test]
@@ -835,12 +870,10 @@ mod tests {
             link: None,
         };
         let member = AttributeListMember::MetadataAttributeUsage(usage);
-        let json = serde_json::to_string(&member).unwrap();
-        assert_eq!(serde_json::from_str::<AttributeListMember>(&json).unwrap(), member);
+        crate::test_support::round_trip(&member);
 
         let attribute_member = AttributeListMember::Attribute(basic_attribute(None));
-        let json = serde_json::to_string(&attribute_member).unwrap();
-        assert_eq!(serde_json::from_str::<AttributeListMember>(&json).unwrap(), attribute_member);
+        crate::test_support::round_trip(&attribute_member);
     }
 
     #[test]

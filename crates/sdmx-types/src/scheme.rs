@@ -352,7 +352,6 @@ mod tests {
     fn deserialize_round_trips() {
         let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata("CL_FREQ"), Some(false));
         scheme.push(code("A"));
-        let json = serde_json::to_string(&scheme).unwrap();
-        assert_eq!(serde_json::from_str::<ItemScheme<Code>>(&json).unwrap(), scheme);
+        crate::test_support::round_trip(&scheme);
     }
 }

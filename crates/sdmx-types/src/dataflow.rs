@@ -278,11 +278,18 @@ mod tests {
 
     #[test]
     fn dimension_constraint_deserialize_enforces_non_empty() {
-        assert!(serde_json::from_str::<DimensionConstraint>("[]").is_err());
-        assert_eq!(
-            serde_json::from_str::<DimensionConstraint>(r#"["FREQ"]"#).unwrap().as_slice().len(),
-            1
+        // DimensionConstraint's Deserialize declares an inner `Raw = Vec<String>` (it does
+        // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
+        // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
+        // which rejects it, while a non-empty one round-trips.
+        let empty: Vec<String> = Vec::new();
+        assert!(
+            postcard::from_bytes::<DimensionConstraint>(&postcard::to_allocvec(&empty).unwrap())
+                .is_err()
         );
+        let constraint = DimensionConstraint::new(vec!["FREQ".into()]).unwrap();
+        assert_eq!(constraint.as_slice().len(), 1);
+        crate::test_support::round_trip(&constraint);
     }
 
     /// A maintainable leaf with every optional field populated, for the delegation matrix.
@@ -385,8 +392,7 @@ mod tests {
             dsd: Some(dsd_reference()),
             dimension_constraint: Some(DimensionConstraint::new(vec!["FREQ".into()]).unwrap()),
         };
-        let json = serde_json::to_string(&with_dsd).unwrap();
-        assert_eq!(serde_json::from_str::<Dataflow>(&json).unwrap(), with_dsd);
+        crate::test_support::round_trip(&with_dsd);
 
         // A stub dataflow (no DSD) is schema-valid and round-trips (D-0053).
         let stub = Dataflow {
@@ -394,25 +400,38 @@ mod tests {
             dsd: None,
             dimension_constraint: None,
         };
-        let json = serde_json::to_string(&stub).unwrap();
-        let restored = serde_json::from_str::<Dataflow>(&json).unwrap();
+        let bytes = postcard::to_allocvec(&stub).unwrap();
+        let restored: Dataflow = postcard::from_bytes(&bytes).unwrap();
         assert!(restored.dsd.is_none());
         assert_eq!(restored, stub);
     }
 
     #[test]
     fn dataflow_deserialize_enforces_the_dimension_constraint_invariant() {
-        // The derived Deserialize delegates to DimensionConstraint's custom impl, so an empty
-        // constraint is rejected on the wire.
-        let dataflow = Dataflow {
-            metadata: maintainable("ECB_EXR_FLOW", "ECB"),
-            dsd: Some(dsd_reference()),
-            dimension_constraint: Some(DimensionConstraint::new(vec!["FREQ".into()]).unwrap()),
-        };
-        let mut value: serde_json::Value = serde_json::to_value(&dataflow).unwrap();
-        value["dimension_constraint"] = serde_json::json!([]);
-        let bad = serde_json::to_string(&value).unwrap();
-        assert!(serde_json::from_str::<Dataflow>(&bad).is_err());
+        // Bubbling demonstration, not a composite-own proof: the empty-constraint invariant is
+        // DimensionConstraint's (its source-level proof is above). Dataflow's derived Deserialize
+        // reads its fields in declaration order
+        // `(metadata: MaintainableMetadata, dsd: Option<DsdReference>,
+        //   dimension_constraint: Option<DimensionConstraint>)` and delegates the last field to
+        // DimensionConstraint's custom impl. DimensionConstraint is #[serde(transparent)] over
+        // Vec<String>, so its Option is byte-identical to Option<Vec<String>>; postcard is
+        // positional, so a tuple of those types carrying `Some(empty vec)` decodes into
+        // DimensionConstraint::new(), which rejects the empty constraint, and Dataflow's derive
+        // propagates it.
+        // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
+        let ok = (
+            maintainable("ECB_EXR_FLOW", "ECB"),
+            Some(dsd_reference()),
+            Some(vec![String::from("FREQ")]),
+        );
+        assert!(postcard::from_bytes::<Dataflow>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (
+            maintainable("ECB_EXR_FLOW", "ECB"),
+            Some(dsd_reference()),
+            Some(Vec::<String>::new()),
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Dataflow>(&bytes).is_err());
     }
 
     #[test]

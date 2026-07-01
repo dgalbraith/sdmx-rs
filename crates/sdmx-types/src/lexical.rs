@@ -1154,33 +1154,52 @@ mod tests {
 
     #[test]
     fn deserialize_routes_through_new() {
-        // Each lexical newtype deserializes from a JSON string and round-trips verbatim;
-        // a value its grammar rejects fails deserialisation (the §7 construction contract).
-        assert_eq!(serde_json::from_str::<SdmxDecimal>(r#""-3.14""#).unwrap().as_str(), "-3.14");
-        assert!(serde_json::from_str::<SdmxDecimal>(r#""banana""#).is_err());
+        // Each lexical newtype round-trips a valid lexeme verbatim; a value its grammar rejects
+        // fails deserialisation (the §7 construction contract). Every impl declares an inner
+        // `Raw = String` (`String::deserialize` then `Self::new(s)`), and postcard encodes a
+        // newtype identically to that one field, so serialising a `String` carrying a
+        // grammar-invalid lexeme decodes into new(), which rejects it.
+        let decimal = SdmxDecimal::new("-3.14".into()).unwrap();
+        assert_eq!(decimal.as_str(), "-3.14");
+        crate::test_support::round_trip(&decimal);
+        let bad = String::from("banana");
+        assert!(
+            postcard::from_bytes::<SdmxDecimal>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
 
-        assert_eq!(serde_json::from_str::<SdmxInteger>(r#""-7""#).unwrap().as_str(), "-7");
-        assert!(serde_json::from_str::<SdmxInteger>(r#""2.5""#).is_err());
+        let integer = SdmxInteger::new("-7".into()).unwrap();
+        assert_eq!(integer.as_str(), "-7");
+        crate::test_support::round_trip(&integer);
+        let bad = String::from("2.5");
+        assert!(
+            postcard::from_bytes::<SdmxInteger>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
 
-        let version = serde_json::from_str::<SdmxVersion>(r#""1.0.0-rc.1""#).unwrap();
+        let version = SdmxVersion::new("1.0.0-rc.1".into()).unwrap();
         assert_eq!(version.extension(), Some("rc.1"));
-        assert!(serde_json::from_str::<SdmxVersion>(r#""01.0.0""#).is_err());
+        crate::test_support::round_trip(&version);
+        let bad = String::from("01.0.0");
+        assert!(
+            postcard::from_bytes::<SdmxVersion>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
 
-        let period = serde_json::from_str::<SdmxTimePeriod>(r#""2024-Q4""#).unwrap();
+        let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
         assert_eq!(period.kind(), SdmxTimePeriodKind::ReportingQuarter);
-        assert!(serde_json::from_str::<SdmxTimePeriod>(r#""2024-Q5""#).is_err());
+        crate::test_support::round_trip(&period);
+        let bad = String::from("2024-Q5");
+        assert!(
+            postcard::from_bytes::<SdmxTimePeriod>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
     }
 
     #[test]
-    fn serialize_emits_raw_string() {
-        let version = SdmxVersion::new("2.1".into()).unwrap();
-        assert_eq!(serde_json::to_string(&version).unwrap(), r#""2.1""#);
-        let decimal = SdmxDecimal::new("0.001".into()).unwrap();
-        assert_eq!(serde_json::to_string(&decimal).unwrap(), r#""0.001""#);
-        let integer = SdmxInteger::new("-7".into()).unwrap();
-        assert_eq!(serde_json::to_string(&integer).unwrap(), r#""-7""#);
-        let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
-        assert_eq!(serde_json::to_string(&period).unwrap(), r#""2024-Q4""#);
+    fn serialize_round_trips_the_raw_lexeme() {
+        // The projection shape is deliberately not pinned (D-0068); each newtype serialises through
+        // its raw lexeme and reconstructs an equal value.
+        crate::test_support::round_trip(&SdmxVersion::new("2.1".into()).unwrap());
+        crate::test_support::round_trip(&SdmxDecimal::new("0.001".into()).unwrap());
+        crate::test_support::round_trip(&SdmxInteger::new("-7".into()).unwrap());
+        crate::test_support::round_trip(&SdmxTimePeriod::new("2024-Q4".into()).unwrap());
     }
 
     #[test]
