@@ -652,35 +652,74 @@ mod tests {
         let maintainable =
             MaintainableMetadata::new(versionable, "ESTAT".into(), Some(false), None, None, None)
                 .unwrap();
-        let json = serde_json::to_string(&maintainable).unwrap();
-        assert_eq!(serde_json::from_str::<MaintainableMetadata>(&json).unwrap(), maintainable);
+        crate::test_support::round_trip(&maintainable);
     }
 
     #[test]
-    fn deserialize_enforces_identifier_invariants() {
-        // The serde path routes through the validated constructors, so a bad id (IDType tier)
-        // and a bad agency (NestedNCName tier) both fail deserialisation rather than slipping
-        // past the derive, the §7 construction contract.
-        let valid = MaintainableMetadata::new(
-            VersionableMetadata::new(
-                NameableMetadata::new(identifiable("FREQ").unwrap(), names(), None),
-                None,
-                None,
-                None,
-            ),
-            "ESTAT".into(),
-            None,
-            None,
-            None,
-            None,
-        )
-        .unwrap();
-        let json = serde_json::to_string(&valid).unwrap();
+    fn deserialize_routes_through_new_at_the_id_tier() {
+        // The id constraint is IdentifiableMetadata::new's, so prove the Raw -> new() routing
+        // here, at its source. postcard is positional: a Raw (id, uri, urn, annotations, links)
+        // carrying a non-IDType id decodes into new(), which rejects it. Composite types inherit
+        // this on the wire because serde bubbles the nested failure up; their own re-validation
+        // (e.g. MaintainableMetadata's agency) has its own wire proof below.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            String::from("OBS_VALUE"),
+            None::<String>,
+            None::<String>,
+            Vec::<crate::Annotation>::new(),
+            Vec::<crate::Link>::new(),
+        );
+        assert!(
+            postcard::from_bytes::<IdentifiableMetadata>(&postcard::to_allocvec(&ok).unwrap())
+                .is_ok()
+        );
+        let raw = (
+            String::from("a.b"),
+            None::<String>,
+            None::<String>,
+            Vec::<crate::Annotation>::new(),
+            Vec::<crate::Link>::new(),
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<IdentifiableMetadata>(&bytes).is_err());
+    }
 
-        let bad_id = json.replace(r#""FREQ""#, r#""a.b""#);
-        assert!(serde_json::from_str::<MaintainableMetadata>(&bad_id).is_err());
-
-        let bad_agency = json.replace(r#""ESTAT""#, r#""1ORG""#);
-        assert!(serde_json::from_str::<MaintainableMetadata>(&bad_agency).is_err());
+    #[test]
+    fn maintainable_metadata_deserialize_rejects_bad_agency() {
+        // The agency tier is MaintainableMetadata::new's own invariant (NestedNCName), enforced by
+        // no nested type, so it needs its own wire proof: the custom Deserialize reads Raw
+        // (versionable, agency, is_partial_language, is_external_reference, service_url,
+        // structure_url) and routes through new(). postcard is positional, so a tuple of those field
+        // types carrying a leading-digit agency decodes at the field level but is rejected by new().
+        let versionable = VersionableMetadata::new(
+            NameableMetadata::new(identifiable("FREQ").unwrap(), names(), None),
+            None,
+            None,
+            None,
+        );
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            versionable.clone(),
+            String::from("ESTAT"),
+            None::<bool>,
+            None::<bool>,
+            None::<String>,
+            None::<String>,
+        );
+        assert!(
+            postcard::from_bytes::<MaintainableMetadata>(&postcard::to_allocvec(&ok).unwrap())
+                .is_ok()
+        );
+        let raw = (
+            versionable,
+            String::from("1ORG"),
+            None::<bool>,
+            None::<bool>,
+            None::<String>,
+            None::<String>,
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<MaintainableMetadata>(&bytes).is_err());
     }
 }

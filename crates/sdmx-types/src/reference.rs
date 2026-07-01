@@ -350,17 +350,8 @@ mod tests {
             scheme_id: "DATA_PROVIDERS".into(),
             id: "ECB".into(),
         };
-        let dataflow_json = serde_json::to_string(&dataflow).unwrap();
-        assert_eq!(serde_json::from_str::<DataflowReference>(&dataflow_json).unwrap(), dataflow);
-        let agreement_json = serde_json::to_string(&agreement).unwrap();
-        assert_eq!(
-            serde_json::from_str::<ProvisionAgreementReference>(&agreement_json).unwrap(),
-            agreement
-        );
-        let provider_json = serde_json::to_string(&provider).unwrap();
-        assert_eq!(
-            serde_json::from_str::<DataProviderReference>(&provider_json).unwrap(),
-            provider
-        );
+        crate::test_support::round_trip(&dataflow);
+        crate::test_support::round_trip(&agreement);
+        crate::test_support::round_trip(&provider);
     }
 }

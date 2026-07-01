@@ -639,11 +639,18 @@ mod tests {
 
     #[test]
     fn group_dimensions_deserialize_enforces_non_empty() {
-        assert!(serde_json::from_str::<GroupDimensions>("[]").is_err());
-        assert_eq!(
-            serde_json::from_str::<GroupDimensions>(r#"["FREQ"]"#).unwrap().as_slice().len(),
-            1
+        // GroupDimensions' Deserialize declares an inner `Raw = Vec<String>` (it does
+        // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
+        // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
+        // which rejects it, while a non-empty one round-trips.
+        let empty: Vec<String> = Vec::new();
+        assert!(
+            postcard::from_bytes::<GroupDimensions>(&postcard::to_allocvec(&empty).unwrap())
+                .is_err()
         );
+        let dimensions = GroupDimensions::new(vec!["FREQ".into()]).unwrap();
+        assert_eq!(dimensions.as_slice().len(), 1);
+        crate::test_support::round_trip(&dimensions);
     }
 
     #[test]
@@ -659,8 +666,7 @@ mod tests {
         assert_eq!(group.annotations().len(), 1);
         assert_eq!(group.links().len(), 1);
         assert_eq!(group.dimensions.as_slice().len(), 2);
-        let json = serde_json::to_string(&group).unwrap();
-        assert_eq!(serde_json::from_str::<Group>(&json).unwrap(), group);
+        crate::test_support::round_trip(&group);
     }
 
     // --- DimensionList ---
@@ -716,13 +722,38 @@ mod tests {
             DimensionList::new(None, vec![dimension("FREQ")], None, vec![], vec![], None).unwrap();
         list.push(dimension("CURRENCY"));
         assert_eq!(list.dimensions().len(), 2);
+        crate::test_support::round_trip(&list);
 
-        let json = serde_json::to_string(&list).unwrap();
-        assert_eq!(serde_json::from_str::<DimensionList>(&json).unwrap(), list);
-
-        // The custom Deserialize enforces the non-empty rule on the wire.
-        let empty = r#"{"id":null,"annotations":[],"links":[],"urn":null,"dimensions":[],"time_dimension":null}"#;
-        assert!(serde_json::from_str::<DimensionList>(empty).is_err());
+        // DimensionList's Deserialize declares
+        // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
+        //        urn: Option<String>, dimensions: Vec<Dimension>,
+        //        time_dimension: Option<TimeDimension> }`
+        // and routes through new(), which rejects an empty dimension list. postcard is positional, so
+        // a tuple of those field types carrying an empty `Vec<Dimension>` (every field valid, so Raw
+        // deserialises, but rejected by the non-empty rule in new()) proves the wire path re-runs the
+        // check.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            vec![dimension("FREQ")],
+            Option::<TimeDimension>::None,
+        );
+        assert!(
+            postcard::from_bytes::<DimensionList>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let raw = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            Vec::<Dimension>::new(),
+            Option::<TimeDimension>::None,
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<DimensionList>(&bytes).is_err());
     }
 
     #[test]
@@ -791,12 +822,34 @@ mod tests {
         .unwrap();
         list.push(AttributeListMember::Attribute(attribute("CONF_STATUS")));
         assert_eq!(list.members().len(), 2);
+        crate::test_support::round_trip(&list);
 
-        let json = serde_json::to_string(&list).unwrap();
-        assert_eq!(serde_json::from_str::<AttributeList>(&json).unwrap(), list);
-
-        let empty = r#"{"id":null,"annotations":[],"links":[],"urn":null,"members":[]}"#;
-        assert!(serde_json::from_str::<AttributeList>(empty).is_err());
+        // AttributeList's Deserialize declares
+        // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
+        //        urn: Option<String>, members: Vec<AttributeListMember> }`
+        // and routes through new(), which rejects an empty member list. postcard is positional, so a
+        // tuple of those field types carrying an empty `Vec<AttributeListMember>` decodes into new(),
+        // which rejects it on the wire.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            vec![AttributeListMember::Attribute(attribute("OBS_STATUS"))],
+        );
+        assert!(
+            postcard::from_bytes::<AttributeList>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let raw = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            Vec::<AttributeListMember>::new(),
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<AttributeList>(&bytes).is_err());
     }
 
     // --- MeasureList ---
@@ -834,12 +887,32 @@ mod tests {
             MeasureList::new(None, vec![measure("OBS_VALUE")], vec![], vec![], None).unwrap();
         list.push(measure("LOWER_BOUND"));
         assert_eq!(list.iter().count(), 2);
+        crate::test_support::round_trip(&list);
 
-        let json = serde_json::to_string(&list).unwrap();
-        assert_eq!(serde_json::from_str::<MeasureList>(&json).unwrap(), list);
-
-        let empty = r#"{"id":null,"annotations":[],"links":[],"urn":null,"measures":[]}"#;
-        assert!(serde_json::from_str::<MeasureList>(empty).is_err());
+        // MeasureList's Deserialize declares
+        // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
+        //        urn: Option<String>, measures: Vec<Measure> }`
+        // and routes through new(), which rejects an empty measure list. postcard is positional, so a
+        // tuple of those field types carrying an empty `Vec<Measure>` decodes into new(), which
+        // rejects it on the wire.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            vec![measure("OBS_VALUE")],
+        );
+        assert!(postcard::from_bytes::<MeasureList>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (
+            Option::<String>::None,
+            Vec::<Annotation>::new(),
+            Vec::<Link>::new(),
+            Option::<String>::None,
+            Vec::<Measure>::new(),
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<MeasureList>(&bytes).is_err());
     }
 
     #[test]

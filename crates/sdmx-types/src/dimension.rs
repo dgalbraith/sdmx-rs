@@ -385,13 +385,26 @@ mod tests {
         assert_eq!(derived.position(), None);
     }
 
-    fn codelist_enumeration() -> Representation {
-        Representation {
+    #[test]
+    fn dimension_deserialize_round_trips() {
+        let dimension =
+            Dimension::new(metadata(Some("FREQ")), concept("CONCEPT_FREQ"), None, Some(1)).unwrap();
+        crate::test_support::round_trip(&dimension);
+    }
+
+    #[test]
+    fn dimension_deserialize_rejects_a_value_list_enumeration() {
+        // Dimension's Deserialize declares `Raw { metadata, concept, representation, position }` and
+        // routes through new(), which forbids a ValueList enumeration on a dimension. postcard is
+        // positional, so a tuple of those field types carrying a well-formed ValueList
+        // representation (so Raw deserialises, but rejected by the codelist-only rule in new())
+        // proves the wire path re-runs the check.
+        let value_list = Representation {
             choice: RepresentationChoice::Enumeration {
-                enumeration: crate::representation::EnumerationReference::Codelist(
-                    crate::reference::CodelistReference {
+                enumeration: crate::representation::EnumerationReference::ValueList(
+                    crate::reference::ValueListReference {
                         agency: "SDMX".into(),
-                        id: "CL_FREQ".into(),
+                        id: "VL".into(),
                         version: "1.0.0".into(),
                     },
                 ),
@@ -399,33 +412,18 @@ mod tests {
             },
             min_occurs: None,
             max_occurs: None,
-        }
-    }
-
-    #[test]
-    fn dimension_deserialize_round_trips() {
-        let dimension =
-            Dimension::new(metadata(Some("FREQ")), concept("CONCEPT_FREQ"), None, Some(1)).unwrap();
-        let json = serde_json::to_string(&dimension).unwrap();
-        assert_eq!(serde_json::from_str::<Dimension>(&json).unwrap(), dimension);
-    }
-
-    #[test]
-    fn dimension_deserialize_enforces_the_position_rule() {
-        // A valid codelist-enumeration dimension, flipped on the wire to a value-list enumeration:
-        // the custom Deserialize routes through new(), so the codelist-only rule rejects it rather
-        // than letting it slip past the derive. (Both reference variants share the same fields, so
-        // the flipped JSON is structurally valid.)
-        let dimension = Dimension::new(
+        };
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
             metadata(Some("FREQ")),
             concept("FREQ"),
-            Some(codelist_enumeration()),
-            None,
-        )
-        .unwrap();
-        let json = serde_json::to_string(&dimension).unwrap();
-        let flipped = json.replace("Codelist", "ValueList");
-        assert!(serde_json::from_str::<Dimension>(&flipped).is_err());
+            Option::<Representation>::None,
+            Option::<i32>::None,
+        );
+        assert!(postcard::from_bytes::<Dimension>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (metadata(Some("FREQ")), concept("FREQ"), Some(value_list), Option::<i32>::None);
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Dimension>(&bytes).is_err());
     }
 
     #[test]
@@ -468,21 +466,24 @@ mod tests {
     fn time_dimension_deserialize_round_trips() {
         let time_dimension =
             TimeDimension::new(metadata(None), concept("TIME"), time_text_format()).unwrap();
-        let json = serde_json::to_string(&time_dimension).unwrap();
-        assert_eq!(serde_json::from_str::<TimeDimension>(&json).unwrap(), time_dimension);
+        crate::test_support::round_trip(&time_dimension);
     }
 
     #[test]
     fn time_dimension_deserialize_rejects_a_mismatched_fixed_id() {
-        // The custom Deserialize routes through new(), so a wire id that contradicts the fixed
-        // TIME_PERIOD value is rejected rather than slipping past the derive. (TIME_PERIOD appears
-        // only as the stated id, so the replacement targets it alone.)
-        let time_dimension =
-            TimeDimension::new(metadata(Some("TIME_PERIOD")), concept("TIME"), time_text_format())
-                .unwrap();
-        let json = serde_json::to_string(&time_dimension).unwrap();
-        let flipped = json.replace("TIME_PERIOD", "OBS_TIME");
-        assert!(serde_json::from_str::<TimeDimension>(&flipped).is_err());
+        // TimeDimension's Deserialize declares `Raw { metadata, concept, representation }` and routes
+        // through new(), which checks the stated id against the fixed literal "TIME_PERIOD".
+        // postcard is positional, so a tuple of those field types carrying a stated id other than
+        // TIME_PERIOD (a valid IDType, so Raw deserialises, with a valid time representation so only
+        // the fixed-id check fires) proves the wire path re-runs the check.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (metadata(None), concept("TIME"), time_text_format());
+        assert!(
+            postcard::from_bytes::<TimeDimension>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let raw = (metadata(Some("OBS_TIME")), concept("TIME"), time_text_format());
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<TimeDimension>(&bytes).is_err());
     }
 
     /// Component metadata with the URN, an annotation, and a link populated, to exercise the

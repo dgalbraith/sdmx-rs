@@ -203,19 +203,36 @@ mod tests {
             vec![],
         )
         .unwrap();
-        let json = serde_json::to_string(&meta).unwrap();
-        assert_eq!(serde_json::from_str::<ComponentMetadata>(&json).unwrap(), meta);
+        crate::test_support::round_trip(&meta);
 
-        // The serde path routes through new(), so a non-NCName id fails deserialisation.
-        let bad = json.replace(r#""FREQ""#, r#""a.b""#);
-        assert!(serde_json::from_str::<ComponentMetadata>(&bad).is_err());
+        // The serde path routes through new(): a Raw (id, uri, urn, annotations, links) carrying
+        // an invalid id decodes into new(), which rejects it.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            Some(String::from("OBS_VALUE")),
+            None::<String>,
+            None::<String>,
+            Vec::<crate::Annotation>::new(),
+            Vec::<crate::Link>::new(),
+        );
+        assert!(
+            postcard::from_bytes::<ComponentMetadata>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let bad = (
+            Some(String::from("a.b")),
+            None::<String>,
+            None::<String>,
+            Vec::<crate::Annotation>::new(),
+            Vec::<crate::Link>::new(),
+        );
+        let bytes = postcard::to_allocvec(&bad).unwrap();
+        assert!(postcard::from_bytes::<ComponentMetadata>(&bytes).is_err());
     }
 
     #[test]
     fn usage_round_trips_both_variants() {
         for usage in [Usage::Mandatory, Usage::Optional] {
-            let json = serde_json::to_string(&usage).unwrap();
-            assert_eq!(serde_json::from_str::<Usage>(&json).unwrap(), usage);
+            crate::test_support::round_trip(&usage);
         }
     }
 }

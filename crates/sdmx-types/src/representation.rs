@@ -646,14 +646,14 @@ mod tests {
     }
 
     #[test]
-    fn datatype_serialises_to_spec_token() {
-        // The wire value is the verbatim spec token, including the all-caps acronyms.
-        assert_eq!(serde_json::to_string(&DataType::URI).unwrap(), "\"URI\"");
-        assert_eq!(serde_json::to_string(&DataType::XHTML).unwrap(), "\"XHTML\"");
-        assert_eq!(
-            serde_json::to_string(&DataType::ObservationalTimePeriod).unwrap(),
-            "\"ObservationalTimePeriod\""
-        );
+    fn datatype_round_trips() {
+        // The projection is internal (D-0068); postcard encodes variants positionally, so no test
+        // pins field/variant names or the spec-token wire form (a future rename changes the
+        // disclaimed projection, not the wire) — token fidelity is the writer crates' concern. This
+        // asserts only that the round-trip is lossless, not the shape.
+        crate::test_support::round_trip(&DataType::URI);
+        crate::test_support::round_trip(&DataType::XHTML);
+        crate::test_support::round_trip(&DataType::ObservationalTimePeriod);
     }
 
     fn text_format(text_type: Option<DataType>) -> Representation {
@@ -697,6 +697,32 @@ mod tests {
             validate_basic_representation("Concept", Some(&repr)),
             Err(Error::InvalidTextTypeForComponent("Concept".into(), "KeyValues".into()))
         );
+    }
+
+    #[test]
+    fn basic_representation_rejects_non_code_enumeration_format() {
+        // An enumeration's optional format textType is restricted to the Code subset (tighter than
+        // the TextFormat arm's Basic subset), so a basic-but-not-coded type is rejected even though
+        // the enumeration reference itself is admitted at the Basic position.
+        let repr = Representation {
+            choice: RepresentationChoice::Enumeration {
+                enumeration: EnumerationReference::Codelist(CodelistReference {
+                    agency: "SDMX".into(),
+                    id: "CL_FREQ".into(),
+                    version: "1.0.0".into(),
+                }),
+                format: Some(EnumerationFormat {
+                    text_type: Some(DataType::Double), // basic, but outside the Code subset
+                    ..EnumerationFormat::default()
+                }),
+            },
+            min_occurs: None,
+            max_occurs: None,
+        };
+        assert!(matches!(
+            validate_basic_representation("Concept", Some(&repr)),
+            Err(Error::InvalidTextTypeForComponent(..))
+        ));
     }
 
     #[test]

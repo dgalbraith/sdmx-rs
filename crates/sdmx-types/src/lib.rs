@@ -72,6 +72,9 @@ mod scheme;
 mod validate;
 mod valuelist;
 
+#[cfg(test)]
+mod test_support;
+
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},

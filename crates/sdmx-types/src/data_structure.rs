@@ -188,7 +188,7 @@ impl MaintainableArtefact for DataStructureDefinition {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{string::String, vec};
 
     use super::*;
     use crate::{
@@ -427,28 +427,68 @@ mod tests {
     #[test]
     fn complete_dsd_round_trips() {
         let dsd = complete_dsd();
-        let json = serde_json::to_string(&dsd).unwrap();
-        assert_eq!(serde_json::from_str::<DataStructureDefinition>(&json).unwrap(), dsd);
+        crate::test_support::round_trip(&dsd);
     }
 
     #[test]
     fn measure_less_dsd_has_no_measure_list() {
         let mut dsd = complete_dsd();
         dsd.measure_list = None;
-        let json = serde_json::to_string(&dsd).unwrap();
-        let restored = serde_json::from_str::<DataStructureDefinition>(&json).unwrap();
+        let bytes = postcard::to_allocvec(&dsd).unwrap();
+        let restored: DataStructureDefinition = postcard::from_bytes(&bytes).unwrap();
         assert!(restored.measure_list.is_none());
         assert_eq!(restored, dsd);
     }
 
     #[test]
-    fn deserialize_enforces_a_descriptor_invariant() {
-        // The derived Deserialize delegates to DimensionList's custom impl, so an empty dimension
-        // list is rejected on the wire even though the DSD itself owns no invariant of its own.
-        let dsd = complete_dsd();
-        let mut value: serde_json::Value = serde_json::to_value(&dsd).unwrap();
-        value["dimension_list"]["dimensions"] = serde_json::json!([]);
-        let bad = serde_json::to_string(&value).unwrap();
-        assert!(serde_json::from_str::<DataStructureDefinition>(&bad).is_err());
+    fn dsd_deserialize_bubbles_the_empty_dimension_list_rejection() {
+        // Bubbling demonstration, not a composite-own proof: the non-empty-dimensions invariant is
+        // DimensionList's (its source-level proof lives in descriptor.rs). The DSD derives
+        // Deserialize over its fields in declaration order (metadata, dimension_list, groups,
+        // attribute_list, measure_list, evolving_structure), and DimensionList has a custom
+        // Deserialize routing an empty list through new(). Feeding the dimension_list position a
+        // DimensionList Raw tuple (id, annotations, links, urn, dimensions, time_dimension) with an
+        // empty `dimensions` proves the DSD's derived Deserialize propagates that nested rejection
+        // rather than swallowing it.
+        let metadata = maintainable("ECB_EXR", "ECB");
+        // A valid (non-empty) dimension list decodes — guards the shape against field-order drift.
+        let ok = (
+            metadata.clone(),
+            (
+                None::<String>,
+                Vec::<Annotation>::new(),
+                Vec::<Link>::new(),
+                None::<String>,
+                vec![dimension("FREQ")],
+                None::<crate::TimeDimension>,
+            ),
+            Vec::<Group>::new(),
+            None::<AttributeList>,
+            None::<MeasureList>,
+            None::<bool>,
+        );
+        assert!(
+            postcard::from_bytes::<DataStructureDefinition>(&postcard::to_allocvec(&ok).unwrap())
+                .is_ok()
+        );
+        let raw = (
+            metadata,
+            (
+                None::<String>,
+                Vec::<Annotation>::new(),
+                Vec::<Link>::new(),
+                None::<String>,
+                Vec::<crate::Dimension>::new(),
+                None::<crate::TimeDimension>,
+            ),
+            Vec::<Group>::new(),
+            None::<AttributeList>,
+            None::<MeasureList>,
+            None::<bool>,
+        );
+        assert!(
+            postcard::from_bytes::<DataStructureDefinition>(&postcard::to_allocvec(&raw).unwrap())
+                .is_err()
+        );
     }
 }

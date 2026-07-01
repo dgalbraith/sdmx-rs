@@ -284,10 +284,10 @@ mod tests {
 
     #[test]
     fn deserialize_round_trips_and_rejects_empty() {
-        let json = serde_json::to_string(&sample()).unwrap();
-        assert_eq!(serde_json::from_str::<LocalisedString>(&json).unwrap(), sample());
+        crate::test_support::round_trip(&sample());
         // An empty entry list is mechanically schema-invalid and rejected on the wire path.
-        assert!(serde_json::from_str::<LocalisedString>("[]").is_err());
+        let empty = postcard::to_allocvec(&Vec::<LocalisedText>::new()).unwrap();
+        assert!(postcard::from_bytes::<LocalisedString>(&empty).is_err());
     }
 
     #[test]

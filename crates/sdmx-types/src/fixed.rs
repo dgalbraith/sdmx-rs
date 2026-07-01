@@ -125,15 +125,30 @@ mod tests {
 
     #[test]
     fn deserialize_routes_through_new() {
-        assert_eq!(serde_json::from_str::<FixedInclude>("null").unwrap().stated(), None);
-        assert_eq!(serde_json::from_str::<FixedInclude>("true").unwrap().stated(), Some(true));
+        // FixedInclude is serde(transparent) over Option<bool>, so encoding the inner
+        // value and decoding as FixedInclude routes through new().
+        let omitted = postcard::to_allocvec(&None::<bool>).unwrap();
+        assert_eq!(postcard::from_bytes::<FixedInclude>(&omitted).unwrap().stated(), None);
+        let stated_true = postcard::to_allocvec(&Some(true)).unwrap();
+        assert_eq!(
+            postcard::from_bytes::<FixedInclude>(&stated_true).unwrap().stated(),
+            Some(true)
+        );
         // A stated `false` contradicts `fixed="true"` and is rejected on the wire path too.
-        assert!(serde_json::from_str::<FixedInclude>("false").is_err());
+        let stated_false = postcard::to_allocvec(&Some(false)).unwrap();
+        assert!(postcard::from_bytes::<FixedInclude>(&stated_false).is_err());
     }
 
     #[test]
     fn serialize_preserves_statedness() {
-        assert_eq!(serde_json::to_string(&FixedInclude::new(None).unwrap()).unwrap(), "null");
-        assert_eq!(serde_json::to_string(&FixedInclude::new(Some(true)).unwrap()).unwrap(), "true");
+        // Transparent projection: a FixedInclude serialises exactly as its inner Option<bool>.
+        assert_eq!(
+            postcard::to_allocvec(&FixedInclude::new(None).unwrap()).unwrap(),
+            postcard::to_allocvec(&None::<bool>).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&FixedInclude::new(Some(true)).unwrap()).unwrap(),
+            postcard::to_allocvec(&Some(true)).unwrap()
+        );
     }
 }

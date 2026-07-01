@@ -1976,7 +1976,7 @@ pub enum ConstraintModel {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{format, string::ToString, vec};
+    use alloc::{string::ToString, vec};
 
     use super::*;
     use crate::localised::LocalisedText;
@@ -1993,8 +1993,7 @@ mod tests {
             valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
             valid_to: Some(SdmxTimePeriod::new("2024".to_string()).unwrap()),
         };
-        let json = serde_json::to_string(&value).unwrap();
-        assert_eq!(serde_json::from_str::<CubeKeyValue>(&json).unwrap(), value);
+        crate::test_support::round_trip(&value);
     }
 
     #[test]
@@ -2006,8 +2005,7 @@ mod tests {
             valid_from: None,
             valid_to: None,
         };
-        let json = serde_json::to_string(&value).unwrap();
-        assert_eq!(serde_json::from_str::<SimpleComponentValue>(&json).unwrap(), value);
+        crate::test_support::round_trip(&value);
     }
 
     #[test]
@@ -2040,7 +2038,14 @@ mod tests {
 
     #[test]
     fn cube_key_values_deserialize_rejects_empty_on_the_wire() {
-        assert!(serde_json::from_str::<CubeKeyValues>("[]").is_err());
+        // Transparent over `Vec<CubeKeyValue>`; deserialize routes through `new()`, which rejects an
+        // empty list. postcard is positional, so an empty inner vector decodes to the same bytes.
+        assert!(
+            postcard::from_bytes::<CubeKeyValues>(
+                &postcard::to_allocvec(&Vec::<CubeKeyValue>::new()).unwrap()
+            )
+            .is_err()
+        );
         let value = CubeKeyValue {
             value: "A".to_string(),
             cascade: None,
@@ -2048,13 +2053,33 @@ mod tests {
             valid_to: None,
         };
         let values = CubeKeyValues::new(vec![value]).unwrap();
-        let json = serde_json::to_string(&values).unwrap();
-        assert_eq!(serde_json::from_str::<CubeKeyValues>(&json).unwrap(), values);
+        crate::test_support::round_trip(&values);
     }
 
     #[test]
     fn simple_component_values_deserialize_rejects_empty_on_the_wire() {
-        assert!(serde_json::from_str::<SimpleComponentValues>("[]").is_err());
+        // Transparent over `Vec<SimpleComponentValue>`; deserialize routes through `new()`, which
+        // rejects an empty list. postcard is positional, so an empty inner vector decodes alike.
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<SimpleComponentValues>(
+                &postcard::to_allocvec(&vec![SimpleComponentValue {
+                    value: String::from("EUR"),
+                    cascade: None,
+                    lang: None,
+                    valid_from: None,
+                    valid_to: None,
+                }])
+                .unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<SimpleComponentValues>(
+                &postcard::to_allocvec(&Vec::<SimpleComponentValue>::new()).unwrap()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2124,8 +2149,7 @@ mod tests {
             valid_from: None,
             valid_to: None,
         };
-        let json = serde_json::to_string(&range).unwrap();
-        assert_eq!(serde_json::from_str::<TimeRange>(&json).unwrap(), range);
+        crate::test_support::round_trip(&range);
     }
 
     #[test]
@@ -2135,8 +2159,7 @@ mod tests {
             valid_from: None,
             valid_to: None,
         };
-        let json = serde_json::to_string(&range).unwrap();
-        assert_eq!(serde_json::from_str::<TimeRange>(&json).unwrap(), range);
+        crate::test_support::round_trip(&range);
     }
 
     #[test]
@@ -2146,20 +2169,32 @@ mod tests {
             valid_from: Some(SdmxTimePeriod::new("2019".to_string()).unwrap()),
             valid_to: Some(SdmxTimePeriod::new("2025".to_string()).unwrap()),
         };
-        let json = serde_json::to_string(&range).unwrap();
-        assert_eq!(serde_json::from_str::<TimeRange>(&json).unwrap(), range);
+        crate::test_support::round_trip(&range);
     }
 
     #[test]
     fn time_range_validity_rejects_bad_period_on_the_wire() {
-        let range = TimeRange {
-            kind: TimeRangeKind::Before(period("2024")),
-            valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
-            valid_to: None,
-        };
-        let json = serde_json::to_string(&range).unwrap();
-        let bad = json.replace("2020", "not-a-period");
-        assert!(serde_json::from_str::<TimeRange>(&bad).is_err());
+        // Bubbling demonstration, not a composite-own proof: the period-validity invariant is
+        // `SdmxTimePeriod`'s (proven in lexical.rs). `TimeRange` derives Deserialize over
+        // `{ kind, valid_from, valid_to }`, its `valid_from` being the self-validating
+        // `SdmxTimePeriod` (which serialises transparently as its inner `String`). postcard is
+        // positional, so a tuple of the field types carrying an invalid period string in
+        // `valid_from` decodes at the field level but is rejected by `SdmxTimePeriod`'s deserialize,
+        // which `TimeRange`'s derive propagates.
+        // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
+        let ok = (
+            TimeRangeKind::Before(period("2024")),
+            Some(String::from("2024")),
+            Option::<String>::None,
+        );
+        assert!(postcard::from_bytes::<TimeRange>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (
+            TimeRangeKind::Before(period("2024")),
+            Some(String::from("not-a-period")),
+            Option::<String>::None,
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<TimeRange>(&bytes).is_err());
     }
 
     fn cube_key(id: &str, value: &str) -> CubeRegionKey {
@@ -2193,8 +2228,7 @@ mod tests {
             valid_from: Some(SdmxTimePeriod::new("2019".to_string()).unwrap()),
             valid_to: None,
         };
-        let json = serde_json::to_string(&key).unwrap();
-        assert_eq!(serde_json::from_str::<CubeRegionKey>(&json).unwrap(), key);
+        crate::test_support::round_trip(&key);
     }
 
     #[test]
@@ -2210,10 +2244,8 @@ mod tests {
         let empty = ComponentSelection::Empty;
         assert_ne!(values, empty);
         // Each round-trips to itself, so Empty is not collapsed into an empty value list.
-        let empty_json = serde_json::to_string(&empty).unwrap();
-        assert_eq!(serde_json::from_str::<ComponentSelection>(&empty_json).unwrap(), empty);
-        let values_json = serde_json::to_string(&values).unwrap();
-        assert_eq!(serde_json::from_str::<ComponentSelection>(&values_json).unwrap(), values);
+        crate::test_support::round_trip(&empty);
+        crate::test_support::round_trip(&values);
     }
 
     #[test]
@@ -2224,8 +2256,7 @@ mod tests {
             include: Some(true),
             remove_prefix: None,
         };
-        let json = serde_json::to_string(&set).unwrap();
-        assert_eq!(serde_json::from_str::<ComponentValueSet>(&json).unwrap(), set);
+        crate::test_support::round_trip(&set);
     }
 
     #[test]
@@ -2241,8 +2272,8 @@ mod tests {
             include: Some(true),
             annotations: vec![],
         };
-        let json = serde_json::to_string(&region).unwrap();
-        let restored = serde_json::from_str::<CubeRegion>(&json).unwrap();
+        let bytes = postcard::to_allocvec(&region).unwrap();
+        let restored: CubeRegion = postcard::from_bytes(&bytes).unwrap();
         assert_eq!(restored, region);
         // Wire order of the dimension selections is preserved.
         assert_eq!(restored.key_values[0].id, "FREQ");
@@ -2258,8 +2289,7 @@ mod tests {
             annotations: vec![],
         };
         assert!(region.annotations.is_empty());
-        let json = serde_json::to_string(&region).unwrap();
-        assert_eq!(serde_json::from_str::<CubeRegion>(&json).unwrap(), region);
+        crate::test_support::round_trip(&region);
     }
 
     #[test]
@@ -2286,11 +2316,12 @@ mod tests {
             include: None,
             annotations: vec![],
         };
-        let three = CubeRegions::new(vec![region(), region()]).unwrap();
-        let mut as_vec = three.as_slice().to_vec();
-        as_vec.push(region());
-        let json = serde_json::to_string(&as_vec).unwrap();
-        assert!(serde_json::from_str::<CubeRegions>(&json).is_err());
+        // `CubeRegions` is transparent over `Vec<CubeRegion>`; deserialize routes through `new()`,
+        // which caps the count at two. postcard is positional, so a three-element inner vector
+        // decodes to the same bytes and is rejected only by the `> 2` bound.
+        let three = vec![region(), region(), region()];
+        let bytes = postcard::to_allocvec(&three).unwrap();
+        assert!(postcard::from_bytes::<CubeRegions>(&bytes).is_err());
     }
 
     fn data_key_value(id: &str, value: &str) -> DataKeyValue {
@@ -2314,8 +2345,21 @@ mod tests {
         assert_eq!(SimpleKeyValues::new(vec![]).unwrap_err(), Error::EmptySimpleKeyValues);
         let ok = SimpleKeyValues::new(vec!["A".to_string()]).unwrap();
         assert_eq!(ok.as_slice().len(), 1);
-        // The wire path rejects an empty list too.
-        assert!(serde_json::from_str::<SimpleKeyValues>("[]").is_err());
+        // The wire path rejects an empty list too: transparent over `Vec<String>`, routed through
+        // `new()`, so an empty inner vector's positional bytes are rejected.
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<SimpleKeyValues>(
+                &postcard::to_allocvec(&vec![String::from("A")]).unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<SimpleKeyValues>(
+                &postcard::to_allocvec(&Vec::<String>::new()).unwrap()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2344,17 +2388,27 @@ mod tests {
             remove_prefix: None,
         };
         assert_eq!(multi.values.as_slice().len(), 3);
-        let json = serde_json::to_string(&multi).unwrap();
-        assert_eq!(serde_json::from_str::<DataKeyValue>(&json).unwrap(), multi);
+        crate::test_support::round_trip(&multi);
     }
 
     #[test]
     fn data_key_value_include_rejects_stated_false_on_the_wire() {
-        let value = data_key_value("FREQ", "A");
-        let json = serde_json::to_string(&value).unwrap();
-        // include is fixed="true"; a stated false contradicts it and is rejected.
-        let bad = json.replace("\"include\":null", "\"include\":false");
-        assert!(serde_json::from_str::<DataKeyValue>(&bad).is_err());
+        // Bubbling demonstration, not a composite-own proof: the fixed-include invariant is
+        // `FixedInclude`'s (proven in fixed.rs). `DataKeyValue` derives Deserialize over
+        // `{ id, values, include, remove_prefix }`, its `include` being the `FixedInclude` wrapper
+        // (transparent over `Option<bool>`) that rejects a stated `false`, and `values` the non-empty
+        // `SimpleKeyValues` (transparent over `Vec<String>`). postcard is positional, so a tuple of
+        // those field types with a non-empty value list (so `SimpleKeyValues` accepts) and
+        // `include = Some(false)` decodes at the field level but is rejected only by `FixedInclude`,
+        // which `DataKeyValue`'s derive propagates.
+        // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
+        let ok =
+            (String::from("FREQ"), vec![String::from("A")], None::<bool>, Option::<bool>::None);
+        assert!(postcard::from_bytes::<DataKeyValue>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw =
+            (String::from("FREQ"), vec![String::from("A")], Some(false), Option::<bool>::None);
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<DataKeyValue>(&bytes).is_err());
     }
 
     #[test]
@@ -2372,8 +2426,7 @@ mod tests {
             valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
             valid_to: None,
         };
-        let json = serde_json::to_string(&key).unwrap();
-        assert_eq!(serde_json::from_str::<DataKey>(&json).unwrap(), key);
+        crate::test_support::round_trip(&key);
     }
 
     #[test]
@@ -2403,8 +2456,7 @@ mod tests {
             .unwrap(),
             is_included: true,
         };
-        let json = serde_json::to_string(&set).unwrap();
-        assert_eq!(serde_json::from_str::<DataKeySet>(&json).unwrap(), set);
+        crate::test_support::round_trip(&set);
     }
 
     #[test]
@@ -2419,8 +2471,7 @@ mod tests {
             include: None,
             remove_prefix: None,
         };
-        let json = serde_json::to_string(&set).unwrap();
-        assert_eq!(serde_json::from_str::<DataComponentValueSet>(&json).unwrap(), set);
+        crate::test_support::round_trip(&set);
     }
 
     #[test]
@@ -2435,8 +2486,7 @@ mod tests {
             include: None,
             remove_prefix: None,
         };
-        let json = serde_json::to_string(&set).unwrap();
-        assert_eq!(serde_json::from_str::<ComponentValueSet>(&json).unwrap(), set);
+        crate::test_support::round_trip(&set);
     }
 
     #[test]
@@ -2454,11 +2504,28 @@ mod tests {
             include: None,
             remove_prefix: None,
         };
-        let json = serde_json::to_string(&set).unwrap();
-        assert_eq!(serde_json::from_str::<DataComponentValueSet>(&json).unwrap(), set);
+        crate::test_support::round_trip(&set);
         // The Values deserialize path routes through new(), so an empty list is rejected on the
-        // wire, not synthesised as Values([]).
-        assert!(serde_json::from_str::<DataComponentValues>("[]").is_err());
+        // wire, not synthesised as Values([]). Transparent over `Vec<DataComponentValue>`, so an
+        // empty inner vector's positional bytes are rejected.
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<DataComponentValues>(
+                &postcard::to_allocvec(&vec![DataComponentValue {
+                    value: String::from("EUR"),
+                    cascade: None,
+                    lang: None,
+                }])
+                .unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<DataComponentValues>(
+                &postcard::to_allocvec(&Vec::<DataComponentValue>::new()).unwrap()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2470,8 +2537,7 @@ mod tests {
             is_rest_datasource: true,
             is_web_service_datasource: true,
         };
-        let json = serde_json::to_string(&source).unwrap();
-        assert_eq!(serde_json::from_str::<QueryableDataSource>(&json).unwrap(), source);
+        crate::test_support::round_trip(&source);
     }
 
     fn dsd_ref(id: &str) -> DsdReference {
@@ -2525,10 +2591,60 @@ mod tests {
 
     #[test]
     fn attachment_ref_newtypes_reject_empty_on_the_wire() {
-        assert!(serde_json::from_str::<DataStructureRefs>("[]").is_err());
-        assert!(serde_json::from_str::<DataflowRefs>("[]").is_err());
-        assert!(serde_json::from_str::<ProvisionAgreementRefs>("[]").is_err());
-        assert!(serde_json::from_str::<SimpleDataSources>("[]").is_err());
+        // Each is transparent over a `Vec<Elem>` and routes deserialize through `new()`, which
+        // rejects an empty list. postcard is positional, so an empty inner vector decodes alike.
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<DataStructureRefs>(
+                &postcard::to_allocvec(&vec![dsd_ref("ECB_EXR1")]).unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<DataStructureRefs>(
+                &postcard::to_allocvec(&Vec::<DsdReference>::new()).unwrap()
+            )
+            .is_err()
+        );
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<DataflowRefs>(
+                &postcard::to_allocvec(&vec![dataflow_ref("EXR")]).unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<DataflowRefs>(
+                &postcard::to_allocvec(&Vec::<DataflowReference>::new()).unwrap()
+            )
+            .is_err()
+        );
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<ProvisionAgreementRefs>(
+                &postcard::to_allocvec(&vec![agreement_ref("PA_EXR")]).unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<ProvisionAgreementRefs>(
+                &postcard::to_allocvec(&Vec::<ProvisionAgreementReference>::new()).unwrap()
+            )
+            .is_err()
+        );
+        // A valid non-empty vector decodes — guards the transparent-over-Vec shape if the newtype grows.
+        assert!(
+            postcard::from_bytes::<SimpleDataSources>(
+                &postcard::to_allocvec(&vec![String::from("https://example.org/data")]).unwrap()
+            )
+            .is_ok()
+        );
+        assert!(
+            postcard::from_bytes::<SimpleDataSources>(
+                &postcard::to_allocvec(&Vec::<String>::new()).unwrap()
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -2557,11 +2673,7 @@ mod tests {
             },
         ];
         for attachment in arms {
-            let json = serde_json::to_string(&attachment).unwrap();
-            assert_eq!(
-                serde_json::from_str::<DataConstraintAttachment>(&json).unwrap(),
-                attachment
-            );
+            crate::test_support::round_trip(&attachment);
         }
     }
 
@@ -2577,11 +2689,7 @@ mod tests {
             SimpleDataSources::new(vec!["https://example.com/data".to_string()]).unwrap(),
         );
         for attachment in [provider, sources] {
-            let json = serde_json::to_string(&attachment).unwrap();
-            assert_eq!(
-                serde_json::from_str::<DataConstraintAttachment>(&json).unwrap(),
-                attachment
-            );
+            crate::test_support::round_trip(&attachment);
         }
     }
 
@@ -2593,11 +2701,7 @@ mod tests {
             AvailabilityConstraintAttachment::ProvisionAgreement(agreement_ref("PA_EXR")),
         ];
         for attachment in arms {
-            let json = serde_json::to_string(&attachment).unwrap();
-            assert_eq!(
-                serde_json::from_str::<AvailabilityConstraintAttachment>(&json).unwrap(),
-                attachment
-            );
+            crate::test_support::round_trip(&attachment);
         }
     }
 
@@ -2740,8 +2844,7 @@ mod tests {
             key_sets: vec![data_key_set()],
             regions: CubeRegions::new(vec![cube_region()]).unwrap(),
         };
-        let json = serde_json::to_string(&constraint).unwrap();
-        assert_eq!(serde_json::from_str::<DataConstraint>(&json).unwrap(), constraint);
+        crate::test_support::round_trip(&constraint);
     }
 
     #[test]
@@ -2759,28 +2862,41 @@ mod tests {
         let both = with(vec![data_key_set()], vec![cube_region(), cube_region()]);
         let neither = with(vec![], vec![]);
         for constraint in [key_set_only, region_only, both, neither] {
-            let json = serde_json::to_string(&constraint).unwrap();
-            assert_eq!(serde_json::from_str::<DataConstraint>(&json).unwrap(), constraint);
+            crate::test_support::round_trip(&constraint);
         }
     }
 
     #[test]
     fn data_constraint_deserialize_rejects_more_than_two_regions_on_the_wire() {
-        let constraint = DataConstraint {
-            metadata: constraint_metadata("CR_EXR"),
-            role: None,
-            attachment: None,
-            release_calendar: None,
-            key_sets: vec![],
-            regions: CubeRegions::new(vec![cube_region(), cube_region()]).unwrap(),
-        };
-        let json = serde_json::to_string(&constraint).unwrap();
-        // Splice a third region into the serialised regions array; the CubeRegions bound must reject
-        // it on the wire path, so DataConstraint's derived Deserialize inherits the rejection.
-        let region_json = serde_json::to_string(&cube_region()).unwrap();
-        let bad =
-            json.replacen(&format!("{region_json}]"), &format!("{region_json},{region_json}]"), 1);
-        assert!(serde_json::from_str::<DataConstraint>(&bad).is_err());
+        // Bubbling demonstration, not a composite-own proof: the at-most-two-regions invariant is
+        // `CubeRegions`'s (proven above). `DataConstraint` derives Deserialize over
+        // `{ metadata, role, attachment, release_calendar, key_sets, regions }`, its `regions` being
+        // the `CubeRegions` newtype (transparent over `Vec<CubeRegion>`) that caps the count at two.
+        // postcard is positional, so a tuple of those field types whose final `regions` position
+        // carries three regions decodes at the field level but is rejected by the `CubeRegions`
+        // bound, which `DataConstraint`'s derived Deserialize propagates.
+        // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
+        let ok = (
+            constraint_metadata("CR_EXR"),
+            Option::<ConstraintRole>::None,
+            Option::<DataConstraintAttachment>::None,
+            Option::<ReleaseCalendar>::None,
+            Vec::<DataKeySet>::new(),
+            vec![cube_region(), cube_region()],
+        );
+        assert!(
+            postcard::from_bytes::<DataConstraint>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let raw = (
+            constraint_metadata("CR_EXR"),
+            Option::<ConstraintRole>::None,
+            Option::<DataConstraintAttachment>::None,
+            Option::<ReleaseCalendar>::None,
+            Vec::<DataKeySet>::new(),
+            vec![cube_region(), cube_region(), cube_region()],
+        );
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<DataConstraint>(&bytes).is_err());
     }
 
     #[test]
@@ -2792,8 +2908,7 @@ mod tests {
             series_count: Some(42),
             obs_count: Some(-1),
         };
-        let json = serde_json::to_string(&constraint).unwrap();
-        assert_eq!(serde_json::from_str::<AvailabilityConstraint>(&json).unwrap(), constraint);
+        crate::test_support::round_trip(&constraint);
     }
 
     #[test]
@@ -2814,8 +2929,7 @@ mod tests {
             obs_count: None,
         });
         for model in [data, availability] {
-            let json = serde_json::to_string(&model).unwrap();
-            assert_eq!(serde_json::from_str::<ConstraintModel>(&json).unwrap(), model);
+            crate::test_support::round_trip(&model);
         }
     }
 

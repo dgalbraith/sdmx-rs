@@ -642,27 +642,31 @@ mod tests {
             )),
             prefix: Some("X_".into()),
         };
-        let json = serde_json::to_string(&extension).unwrap();
-        assert_eq!(serde_json::from_str::<CodelistExtension>(&json).unwrap(), extension);
+        crate::test_support::round_trip(&extension);
     }
 
     #[test]
     fn deserialize_round_trips_and_restores_items() {
         let mut codelist = Codelist::new(metadata("CL_FREQ"), None).unwrap();
         codelist.push(code("A"));
-        let json = serde_json::to_string(&codelist).unwrap();
         // The round-trip restores the items, which new() alone would not carry.
-        assert_eq!(serde_json::from_str::<Codelist>(&json).unwrap(), codelist);
+        crate::test_support::round_trip(&codelist);
     }
 
     #[test]
-    fn deserialize_enforces_scheme_id() {
-        let codelist = Codelist::new(metadata("CL_FREQ"), None).unwrap();
-        let json = serde_json::to_string(&codelist).unwrap();
-        // A bad scheme id (valid IDType, invalid NCName) is rejected on the wire, routing
-        // through new().
-        let bad = json.replace("CL_FREQ", "9FREQ");
-        assert!(serde_json::from_str::<Codelist>(&bad).is_err());
+    fn deserialize_rejects_non_ncname_scheme_id() {
+        // Codelist's Deserialize declares `Raw { scheme: ItemScheme<Code>, extensions }` and routes
+        // the metadata through new(), which applies the NCName tightening. postcard is positional,
+        // so a tuple of those field types carrying a leading-digit scheme id (valid IDType, so the
+        // ItemScheme deserialises, but rejected by new()) proves the wire path re-runs the check.
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok =
+            (ItemScheme::<Code>::new(metadata("CL_FREQ"), None), Vec::<CodelistExtension>::new());
+        assert!(postcard::from_bytes::<Codelist>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw =
+            (ItemScheme::<Code>::new(metadata("9FREQ"), None), Vec::<CodelistExtension>::new());
+        let bytes = postcard::to_allocvec(&raw).unwrap();
+        assert!(postcard::from_bytes::<Codelist>(&bytes).is_err());
     }
 
     #[test]
