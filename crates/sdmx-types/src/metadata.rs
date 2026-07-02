@@ -497,7 +497,10 @@ mod tests {
         // Accessors delegate down to the identifiable leaf and across the hierarchy.
         assert_eq!(maintainable.id(), "FREQ");
         assert_eq!(maintainable.names().first(), "Frequency");
-        assert_eq!(maintainable.version().map(SdmxVersion::as_str), Some("1.0.0"));
+        assert_eq!(
+            maintainable.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.0.0")
+        );
         assert_eq!(maintainable.agency(), "ESTAT");
     }
 
@@ -617,7 +620,10 @@ mod tests {
         for leaf in
             [&versionable as &dyn VersionableArtefact, &maintainable as &dyn VersionableArtefact]
         {
-            assert_eq!(leaf.version().map(SdmxVersion::as_str), Some("1.2.3"));
+            assert_eq!(
+                leaf.version().map(alloc::string::ToString::to_string).as_deref(),
+                Some("1.2.3")
+            );
             assert_eq!(leaf.valid_from(), Some(&valid_from));
             assert_eq!(leaf.valid_to(), None);
             assert_eq!(alloc::format!("{}", leaf.version_display()), "1.2.3");

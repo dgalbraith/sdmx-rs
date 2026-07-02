@@ -2816,7 +2816,10 @@ mod tests {
         assert_eq!(constraint.links().len(), 1);
         assert_eq!(constraint.names().first(), "Constraint");
         assert_eq!(constraint.descriptions().map(LocalisedString::first), Some("How much"));
-        assert_eq!(constraint.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(
+            constraint.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.2.3")
+        );
         assert_eq!(constraint.valid_from(), Some(&valid_from));
         assert_eq!(constraint.valid_to(), None);
         assert_eq!(constraint.agency(), "ESTAT");

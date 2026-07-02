@@ -395,7 +395,7 @@ mod tests {
         assert_eq!(dsd.links().len(), 1);
         assert_eq!(dsd.names().first(), "Exchange rates");
         assert_eq!(dsd.descriptions().map(LocalisedString::first), Some("How often"));
-        assert_eq!(dsd.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(dsd.version().map(alloc::string::ToString::to_string).as_deref(), Some("1.2.3"));
         assert!(dsd.valid_from().is_some());
         assert_eq!(dsd.valid_to(), None);
         assert_eq!(dsd.agency(), "ECB");

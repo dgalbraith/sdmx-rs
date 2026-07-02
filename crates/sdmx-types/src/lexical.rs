@@ -1,22 +1,27 @@
 //! Validated lexical newtypes for SDMX's constrained value types.
 //!
 //! [`SdmxDecimal`], [`SdmxInteger`], [`SdmxVersion`], and [`SdmxTimePeriod`] wrap the SDMX
-//! lexical types whose value space does not map losslessly onto a fixed Rust type. Each stores
-//! the canonical lexeme verbatim, validates it at construction, and never rewrites it, so values
-//! round-trip exactly.
+//! lexical types whose value space does not map losslessly onto a fixed Rust type. Each
+//! validates its grammar at construction and round-trips its text exactly:
+//! [`SdmxDecimal`], [`SdmxInteger`], and [`SdmxTimePeriod`] store the canonical lexeme verbatim
+//! and never rewrite it, while [`SdmxVersion`]'s canonical grammar lets it hold only the parsed
+//! decomposition and reconstruct the lexeme on display.
 #![cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-Lexical-newtype convention: the canonical lexical form is the lossless source of truth, `new()`
-validates the grammar on the single write path so every caller gets a well-formed value, and
-where validation naturally classifies the value the cheap discriminant is retained
-(`SdmxVersion`'s parsed components, `SdmxTimePeriod`'s kind).
+Lexical-newtype convention: `new()` validates the grammar on the single write path so every
+caller gets a well-formed value, and where validation naturally classifies the value the cheap
+discriminant is retained (`SdmxVersion`'s parsed components, `SdmxTimePeriod`'s kind). Storage
+forks on canonicity: a non-canonical grammar (several lexemes per value: `xs:decimal`,
+`xs:integer`, the time-period union) keeps the lexeme as the lossless source of truth, while a
+canonical grammar (`VersionType`) makes format-then-parse a bijection, so the decomposition alone
+is lossless and no lexeme is stored.
 
 `Ord`/`PartialOrd` for `SdmxVersion` are deliberately deferred, not resolved; see its design notes.
 
-Decisions: D-0027.
+Decisions: D-0027, D-0070.
 "#
 )]
 
@@ -61,10 +66,11 @@ use crate::error::{Error, to_de_error};
 ## Design Notes
 
 Lexical newtype with lossless `String` storage: `raw` is the canonical form and the round-trip
-source of truth (an `f64` would round; a fixed-width decimal would overflow). No useful sub-kind,
-so it is a bare newtype, in contrast to `SdmxVersion`, which retains a parsed decomposition.
+source of truth (an `f64` would round; a fixed-width decimal would overflow). The grammar is not
+canonical (`1.0` and `1.00` are distinct lexemes of equal value), so the lexeme is load-bearing,
+in contrast to `SdmxVersion` (D-0070). No useful sub-kind, so it is a bare newtype.
 
-Decisions: D-0027.
+Decisions: D-0027, D-0070.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -210,15 +216,20 @@ impl From<SdmxInteger> for String {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionType.md"))]
 ///
-/// The canonical string is stored verbatim and the parsed components are read through the
-/// accessors. `patch()` returning `None` distinguishes the legacy form from the semantic form.
+/// The parsed components are read through the accessors and the canonical string is
+/// reconstructed by [`Display`](core::fmt::Display): the grammar admits exactly one lexeme per
+/// value, so the text is derived, not stored. `patch()` returning `None` distinguishes the
+/// legacy form from the semantic form, and `minor()` returning `None` distinguishes the
+/// bare-major legacy form (`"1"`) from its two-component sibling (`"1.0"`).
 ///
-/// Equality compares the exact version string, so `"3.1"` and `"3.1.0"` are distinct. Ordering is
-/// not currently provided.
+/// Equality is structural and distinguishes exactly what the lexemes distinguish, so `"3.1"` and
+/// `"3.1.0"` are distinct. Ordering is not currently provided.
 ///
 /// ## Guarantees
 ///
-/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxVersion>() == Ok(x)`.
+/// Round-trips losslessly through its text in both directions:
+/// `x.to_string().parse::<SdmxVersion>() == Ok(x)` and
+/// `s.parse::<SdmxVersion>()?.to_string() == s`.
 ///
 /// # Examples
 ///
@@ -227,8 +238,10 @@ impl From<SdmxInteger> for String {
 ///
 /// let version: SdmxVersion = "1.0.0-rc.1".parse()?;
 /// assert_eq!(version.major(), 1);
+/// assert_eq!(version.minor(), Some(0));
 /// assert_eq!(version.extension(), Some("rc.1"));
 /// assert!(!version.is_legacy());
+/// assert_eq!(version.to_string(), "1.0.0-rc.1");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[cfg_attr(
@@ -236,31 +249,40 @@ impl From<SdmxInteger> for String {
     doc = r#"
 ## Design Notes
 
-`raw` is the lossless source of truth; the parsed decomposition is retained alongside it.
+Raw-free by canonicity: every numeric component is `0|[1-9]\d*` (no leading zeros, no sign) and
+the extension grammar admits one spelling per value, so format-then-parse is a bijection and a
+stored lexeme would be a redundant second source of truth. This is the fork from
+`SdmxDecimal`/`SdmxInteger`, whose grammars are not canonical (`1.0` vs `1.00`) and whose raw is
+therefore load-bearing. Dropping the raw requires the decomposition to be statedness-preserving:
+`minor` is `Option<u32>` so the bare-major legacy form does not collapse into `major.0`.
 `major`/`minor`/`patch` are `u32` because the validated grammar is digits-only (no sign), so
 unsigned loses nothing.
 
+`PartialEq`/`Eq`/`Hash` derive structurally; by the bijection this is the same partition as
+comparing lexemes. `AsRef<str>` is deliberately absent: there is no stored lexeme to borrow, and
+rendering goes through `Display`.
+
 Ordering is deliberately deferred, not resolved. SemVer §11 precedence is the intended basis, but
 the legacy/semantic equivalence (for example `3.1` vs `3.1.0`) is undecided and premature to lock.
-The likely shape is an explicit precedence-comparison convenience (a method or wrapper) rather than
-an `Ord` impl on the type, so raw-`Eq` and SemVer ordering can coexist without an `Ord`/`Eq`
-contract: distinct under equality, equal under precedence.
+The likely shape is an explicit precedence-comparison convenience (a method or wrapper) rather
+than an `Ord` impl on the type, so structural `Eq` and SemVer ordering can coexist without an
+`Ord`/`Eq` contract: distinct under equality, equal under precedence.
 
-Decisions: D-0027, D-0060.
+Decisions: D-0027, D-0060, D-0070.
 "#
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SdmxVersion {
-    raw: String,
     major: u32,
-    minor: u32,
+    minor: Option<u32>,
     patch: Option<u32>,
     extension: Option<String>,
 }
 
 impl SdmxVersion {
-    /// Validates `raw` against the `VersionType` union grammar and retains the parsed
-    /// decomposition. On success `raw` is stored verbatim.
+    /// Validates `raw` against the `VersionType` union grammar and keeps the parsed
+    /// decomposition; the lexeme is reconstructed on demand by
+    /// [`Display`](core::fmt::Display).
     ///
     /// # Errors
     ///
@@ -271,21 +293,15 @@ impl SdmxVersion {
         parse_sdmx_version(raw)
     }
 
-    /// The canonical version string, exactly as supplied.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.raw
-    }
-
     /// The major component.
     #[must_use]
     pub const fn major(&self) -> u32 {
         self.major
     }
 
-    /// The minor component. A bare-major legacy version (for example `"1"`) reports `0`.
+    /// The minor component, or `None` for the bare-major legacy form (for example `"1"`).
     #[must_use]
-    pub const fn minor(&self) -> u32 {
+    pub const fn minor(&self) -> Option<u32> {
         self.minor
     }
 
@@ -308,27 +324,21 @@ impl SdmxVersion {
     }
 }
 
+/// Reconstructs the canonical lexeme: the grammar admits exactly one spelling per value, so
+/// the rendered text is the same string the value was parsed from.
 impl core::fmt::Display for SdmxVersion {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&self.raw)
-    }
-}
-
-/// Equality compares the canonical version strings, so a prerelease and its release
-/// (`"1.0.0-rc"` vs `"1.0.0"`) are correctly unequal.
-impl PartialEq for SdmxVersion {
-    fn eq(&self, other: &Self) -> bool {
-        self.raw == other.raw
-    }
-}
-
-impl Eq for SdmxVersion {}
-
-/// Hashing matches [`PartialEq`]: the canonical version string is hashed, so equal versions hash
-/// equally. Hashing the parsed numeric parts instead could disagree with the raw-string equality.
-impl core::hash::Hash for SdmxVersion {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        core::hash::Hash::hash(&self.raw, state);
+        write!(f, "{}", self.major)?;
+        if let Some(minor) = self.minor {
+            write!(f, ".{minor}")?;
+        }
+        if let Some(patch) = self.patch {
+            write!(f, ".{patch}")?;
+        }
+        if let Some(extension) = &self.extension {
+            write!(f, "-{extension}")?;
+        }
+        Ok(())
     }
 }
 
@@ -601,18 +611,13 @@ impl AsRef<str> for SdmxInteger {
     }
 }
 
-// `SdmxVersion` already implements `Display` (above); only `FromStr` and `AsRef` are added here.
+// `SdmxVersion` already implements `Display` (above); only `FromStr` is added here. `AsRef<str>`
+// is deliberately absent: the lexeme is reconstructed, not stored, so there is nothing to borrow.
 impl core::str::FromStr for SdmxVersion {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new(s.to_string())
-    }
-}
-
-impl AsRef<str> for SdmxVersion {
-    fn as_ref(&self) -> &str {
-        &self.raw
     }
 }
 
@@ -668,7 +673,7 @@ impl<'de> serde::Deserialize<'de> for SdmxInteger {
 
 impl serde::Serialize for SdmxVersion {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.raw)
+        serializer.collect_str(self)
     }
 }
 
@@ -769,24 +774,24 @@ fn parse_sdmx_version(raw: String) -> Result<SdmxVersion, Error> {
                 return Err(Error::InvalidVersion(raw));
             }
             match (parse_u32(maj), parse_u32(min), parse_u32(pat)) {
-                (Some(maj), Some(min), Some(pat)) => (maj, min, Some(pat)),
+                (Some(maj), Some(min), Some(pat)) => (maj, Some(min), Some(pat)),
                 _ => return Err(Error::InvalidVersion(raw)),
             }
         }
         // Legacy: one or two numeric components, no extension permitted.
         ([maj], None) => match parse_u32(maj) {
-            Some(maj) => (maj, 0, None),
+            Some(maj) => (maj, None, None),
             None => return Err(Error::InvalidVersion(raw)),
         },
         ([maj, min], None) => match (parse_u32(maj), parse_u32(min)) {
-            (Some(maj), Some(min)) => (maj, min, None),
+            (Some(maj), Some(min)) => (maj, Some(min), None),
             _ => return Err(Error::InvalidVersion(raw)),
         },
         _ => return Err(Error::InvalidVersion(raw)),
     };
 
     let extension = extension.map(ToString::to_string);
-    Ok(SdmxVersion { raw, major, minor, patch, extension })
+    Ok(SdmxVersion { major, minor, patch, extension })
 }
 
 /// Validates and classifies a `StandardTimePeriodType` value, returning its kind or `None`
@@ -976,14 +981,14 @@ mod tests {
         let semantic = SdmxVersion::new("1.2.3".into()).unwrap();
         assert_eq!(
             (semantic.major(), semantic.minor(), semantic.patch(), semantic.is_legacy()),
-            (1, 2, Some(3), false)
+            (1, Some(2), Some(3), false)
         );
         let prerelease = SdmxVersion::new("1.0.0-rc.1".into()).unwrap();
         assert_eq!(prerelease.extension(), Some("rc.1"));
         let legacy = SdmxVersion::new("1.3".into()).unwrap();
-        assert_eq!((legacy.major(), legacy.minor(), legacy.patch()), (1, 3, None));
+        assert_eq!((legacy.major(), legacy.minor(), legacy.patch()), (1, Some(3), None));
         let bare = SdmxVersion::new("1".into()).unwrap();
-        assert_eq!((bare.major(), bare.minor(), bare.is_legacy()), (1, 0, true));
+        assert_eq!((bare.major(), bare.minor(), bare.is_legacy()), (1, None, true));
     }
 
     #[test]
@@ -1007,12 +1012,14 @@ mod tests {
     }
 
     #[test]
-    fn version_equality_is_on_raw() {
-        // Trailing-zero-equivalent versions are deliberately unequal (lossless-distinct).
+    fn version_equality_preserves_statedness() {
+        // The structural fields distinguish exactly what the lexemes distinguish, so
+        // trailing-zero-equivalent versions are deliberately unequal (lossless-distinct).
         assert_ne!(
             SdmxVersion::new("1.0".into()).unwrap(),
             SdmxVersion::new("1.0.0".into()).unwrap()
         );
+        assert_ne!(SdmxVersion::new("1".into()).unwrap(), SdmxVersion::new("1.0".into()).unwrap());
         assert_eq!(
             SdmxVersion::new("2.1.0".into()).unwrap(),
             SdmxVersion::new("2.1.0".into()).unwrap()
@@ -1021,8 +1028,9 @@ mod tests {
 
     #[test]
     fn version_hash_agrees_with_eq() {
-        // The hand-written Hash hashes the raw string, so equal-by-Eq versions hash identically
-        // (the Hash/Eq contract). Distinct raws need not, and are not asserted here.
+        // Hash derives over the same structural fields as Eq, so equal versions hash
+        // identically (the Hash/Eq contract). Distinct versions need not, and are not
+        // asserted here.
         fn hash_bytes(version: &SdmxVersion) -> alloc::vec::Vec<u8> {
             #[derive(Default)]
             struct ByteCollector(alloc::vec::Vec<u8>);
@@ -1046,10 +1054,18 @@ mod tests {
     }
 
     #[test]
-    fn version_display_round_trips_raw() {
+    fn version_display_reconstructs_the_lexeme() {
         use alloc::string::ToString;
+        // Every accepted lexeme renders back to itself: the canonical grammar makes
+        // format-then-parse a bijection, which is what licenses the raw-free storage.
+        for lexeme in
+            ["1", "1.0", "1.0.0", "0.0.0", "3.0.0-beta.2", "1.0.0-rc.1", "2.5.1-alpha-1.7"]
+        {
+            let v = SdmxVersion::new(lexeme.into()).unwrap();
+            assert_eq!(v.to_string(), lexeme);
+            assert_eq!(v, v.to_string().parse().unwrap());
+        }
         let v = SdmxVersion::new("3.0.0-beta.2".into()).unwrap();
-        assert_eq!(v.to_string(), "3.0.0-beta.2");
         assert_eq!(VersionDisplay(Some(&v)).to_string(), "3.0.0-beta.2");
         assert_eq!(VersionDisplay(None).to_string(), "<unversioned>");
     }
@@ -1206,9 +1222,10 @@ mod tests {
     fn lexical_newtypes_round_trip_display_parse_asref() {
         use alloc::string::ToString;
 
-        // The Display / FromStr / AsRef impls are uniform across the lexeme newtypes: every valid
-        // lexeme renders verbatim, parses back to an equal value, and exposes itself as a borrowed
-        // `&str`. (`FromStr` clones into the owned `new(String)` write path.)
+        // The Display / FromStr impls are uniform across the lexeme newtypes: every valid
+        // lexeme renders verbatim and parses back to an equal value. (`FromStr` clones into the
+        // owned `new(String)` write path.) The lexeme-storing types also expose the borrowed
+        // `&str` via `AsRef`; `SdmxVersion` reconstructs its lexeme instead, so it has none.
         for raw in ["0", "-1.5", "+42", "3.14159", ".5", "5.", "-0.0"] {
             let v = SdmxDecimal::new(raw.into()).unwrap();
             assert_eq!(v.to_string(), raw);
@@ -1224,7 +1241,6 @@ mod tests {
         for raw in ["1.2.3", "1.0.0-rc.1", "1.3", "1"] {
             let v = SdmxVersion::new(raw.into()).unwrap();
             assert_eq!(v.to_string(), raw);
-            assert_eq!(AsRef::<str>::as_ref(&v), raw);
             assert_eq!(v.to_string().parse::<SdmxVersion>(), Ok(v.clone()));
         }
         for raw in ["2024", "2024-05", "2024-Q4", "2024-05-01T09:30:00", "2024-05-01T09:30:00Z"] {

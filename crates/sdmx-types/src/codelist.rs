@@ -576,7 +576,10 @@ mod tests {
         assert_eq!(codelist.links().len(), 1);
         assert_eq!(codelist.names().first(), "Frequency");
         assert_eq!(codelist.descriptions().map(LocalisedString::first), Some("How often"));
-        assert_eq!(codelist.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(
+            codelist.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.2.3")
+        );
         assert_eq!(codelist.valid_from(), Some(&valid_from));
         assert_eq!(codelist.valid_to(), None);
         assert_eq!(codelist.agency(), "ESTAT");
