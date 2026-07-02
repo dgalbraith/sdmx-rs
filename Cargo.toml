@@ -86,7 +86,7 @@ serde = { version = "1.0.228", default-features = false, features = [
 serde_json = { version = "1.0.149", default-features = false, features = [
   "alloc",
 ] }
-quick-xml = { version = "0.40.1", default-features = false, features = [
+quick-xml = { version = "0.41.0", default-features = false, features = [
   "serialize",
 ] }
 
