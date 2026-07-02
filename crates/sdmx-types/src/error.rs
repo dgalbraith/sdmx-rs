@@ -276,8 +276,7 @@ pub enum Error {
     EmptyDimensionConstraint,
 
     /// A component's representation states a `textType` outside the subset its position allows.
-    /// The first field names the component kind (for example `"Concept"`), the second the
-    /// offending `textType`. This is a mechanical XSD restriction: each position
+    /// This is a mechanical XSD restriction: each position
     /// restricts the base `DataType` enumeration to a tier-specific subset. Produced by the
     /// position-rule validators: the Basic-position validator (the core-representation check shared
     /// by [`Concept::new`](crate::Concept::new), [`Attribute::new`](crate::Attribute::new), and
@@ -285,9 +284,14 @@ pub enum Error {
     /// ([`Dimension::new`](crate::Dimension::new) and
     /// [`TimeDimension::new`](crate::TimeDimension::new)).
     #[error(
-        "Invalid representation for {0}: textType '{1}' is outside this position's allowed subset."
+        "Invalid representation for {component}: textType '{text_type}' is outside this position's allowed subset."
     )]
-    InvalidTextTypeForComponent(String, String),
+    InvalidTextTypeForComponent {
+        /// The component kind whose position sets the subset (for example `Concept`).
+        component: String,
+        /// The offending `textType`.
+        text_type: String,
+    },
 
     /// A dimension's representation uses a `ValueList` enumeration, which the dimension position
     /// prohibits: a dimension admits a codelist enumeration only. The field names
@@ -308,22 +312,34 @@ pub enum Error {
     /// A component's representation sets a facet its position prohibits: a dimension may not set
     /// `isMultiLingual` or a representation-level `minOccurs`/`maxOccurs`, and a time dimension may
     /// set only `textType`, `startTime`, and `endTime` and prohibits a representation-level
-    /// `minOccurs`/`maxOccurs`. The first field names the component kind, the second
-    /// the prohibited facet. Produced by [`Dimension::new`](crate::Dimension::new) and
+    /// `minOccurs`/`maxOccurs`. Produced by [`Dimension::new`](crate::Dimension::new) and
     /// [`TimeDimension::new`](crate::TimeDimension::new).
-    #[error("Invalid representation for {0}: facet '{1}' is prohibited at this position.")]
-    ProhibitedRepresentationFacet(String, String),
+    #[error(
+        "Invalid representation for {component}: facet '{facet}' is prohibited at this position."
+    )]
+    ProhibitedRepresentationFacet {
+        /// The component kind whose position prohibits the facet (for example `Dimension`).
+        component: String,
+        /// The prohibited facet (for example `isMultiLingual`).
+        facet: String,
+    },
 
     /// A stated value contradicts an XSD `fixed` value, which an XSD validator would
-    /// itself reject. The first field names the attribute or site, the second the
-    /// offending stated value. Produced by [`FixedInclude::new`](crate::FixedInclude::new),
+    /// itself reject. Produced by [`FixedInclude::new`](crate::FixedInclude::new),
     /// [`AgencyScheme::new`](crate::AgencyScheme::new) (the `fixed="AGENCIES"` scheme id),
     /// [`TimeDimension::new`](crate::TimeDimension::new) (the fixed `TIME_PERIOD` id), and the
     /// fixed-id descriptors [`DimensionList::new`](crate::DimensionList::new),
     /// [`AttributeList::new`](crate::AttributeList::new), and
     /// [`MeasureList::new`](crate::MeasureList::new).
-    #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
-    FixedAttributeMismatch(String, String),
+    #[error(
+        "Invalid fixed attribute {attribute}: stated value '{value}' differs from the schema-fixed value."
+    )]
+    FixedAttributeMismatch {
+        /// The fixed attribute or site (for example `id`, `include`).
+        attribute: String,
+        /// The offending stated value.
+        value: String,
+    },
 }
 
 /// Maps a validation [`Error`] onto a deserializer's own error type, preserving the message.

@@ -495,12 +495,18 @@ pub fn validate_basic_representation(
 /// token, which is identical to the wire enumeration value (the variants reproduce the spec
 /// tokens verbatim).
 fn invalid_text_type(component: &str, text_type: DataType) -> Error {
-    Error::InvalidTextTypeForComponent(String::from(component), format!("{text_type:?}"))
+    Error::InvalidTextTypeForComponent {
+        component: String::from(component),
+        text_type: format!("{text_type:?}"),
+    }
 }
 
 /// Builds an [`Error::ProhibitedRepresentationFacet`] naming the component kind and the facet.
 fn prohibited_facet(component: &str, facet: &str) -> Error {
-    Error::ProhibitedRepresentationFacet(String::from(component), String::from(facet))
+    Error::ProhibitedRepresentationFacet {
+        component: String::from(component),
+        facet: String::from(facet),
+    }
 }
 
 /// Validates a representation against the Dimension position rules. A dimension
@@ -695,7 +701,10 @@ mod tests {
         let repr = text_format(Some(DataType::KeyValues));
         assert_eq!(
             validate_basic_representation("Concept", Some(&repr)),
-            Err(Error::InvalidTextTypeForComponent("Concept".into(), "KeyValues".into()))
+            Err(Error::InvalidTextTypeForComponent {
+                component: "Concept".into(),
+                text_type: "KeyValues".into()
+            })
         );
     }
 
@@ -721,7 +730,7 @@ mod tests {
         };
         assert!(matches!(
             validate_basic_representation("Concept", Some(&repr)),
-            Err(Error::InvalidTextTypeForComponent(..))
+            Err(Error::InvalidTextTypeForComponent { .. })
         ));
     }
 
@@ -757,7 +766,10 @@ mod tests {
         };
         assert_eq!(
             validate_basic_representation("Concept", Some(&repr)),
-            Err(Error::InvalidTextTypeForComponent("Concept".into(), "XHTML".into()))
+            Err(Error::InvalidTextTypeForComponent {
+                component: "Concept".into(),
+                text_type: "XHTML".into()
+            })
         );
     }
 
@@ -879,7 +891,10 @@ mod tests {
         };
         assert_eq!(
             validate_dimension_representation(Some(&repr)),
-            Err(Error::InvalidTextTypeForComponent("Dimension".into(), "DateTime".into()))
+            Err(Error::InvalidTextTypeForComponent {
+                component: "Dimension".into(),
+                text_type: "DateTime".into()
+            })
         );
     }
 
@@ -888,7 +903,10 @@ mod tests {
         // XHTML is admitted at the Basic position but not at a dimension's Simple position.
         assert_eq!(
             validate_dimension_representation(Some(&text_format(Some(DataType::XHTML)))),
-            Err(Error::InvalidTextTypeForComponent("Dimension".into(), "XHTML".into()))
+            Err(Error::InvalidTextTypeForComponent {
+                component: "Dimension".into(),
+                text_type: "XHTML".into()
+            })
         );
     }
 
@@ -901,7 +919,10 @@ mod tests {
         }
         assert_eq!(
             validate_dimension_representation(Some(&multi_lingual)),
-            Err(Error::ProhibitedRepresentationFacet("Dimension".into(), "isMultiLingual".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "Dimension".into(),
+                facet: "isMultiLingual".into()
+            })
         );
 
         // A representation-level minOccurs or maxOccurs is prohibited regardless of the choice arm.
@@ -909,13 +930,19 @@ mod tests {
         min_bounded.min_occurs = Some(1);
         assert_eq!(
             validate_dimension_representation(Some(&min_bounded)),
-            Err(Error::ProhibitedRepresentationFacet("Dimension".into(), "minOccurs".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "Dimension".into(),
+                facet: "minOccurs".into()
+            })
         );
         let mut bounded = codelist_enumeration();
         bounded.max_occurs = Some(MaxOccurs::Unbounded);
         assert_eq!(
             validate_dimension_representation(Some(&bounded)),
-            Err(Error::ProhibitedRepresentationFacet("Dimension".into(), "maxOccurs".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "Dimension".into(),
+                facet: "maxOccurs".into()
+            })
         );
     }
 
@@ -948,13 +975,19 @@ mod tests {
         min_bounded.min_occurs = Some(1);
         assert_eq!(
             validate_time_representation(&min_bounded),
-            Err(Error::ProhibitedRepresentationFacet("TimeDimension".into(), "minOccurs".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "TimeDimension".into(),
+                facet: "minOccurs".into()
+            })
         );
         let mut max_bounded = text_format(Some(DataType::ObservationalTimePeriod));
         max_bounded.max_occurs = Some(MaxOccurs::Unbounded);
         assert_eq!(
             validate_time_representation(&max_bounded),
-            Err(Error::ProhibitedRepresentationFacet("TimeDimension".into(), "maxOccurs".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "TimeDimension".into(),
+                facet: "maxOccurs".into()
+            })
         );
     }
 
@@ -970,7 +1003,10 @@ mod tests {
     fn time_representation_rejects_non_time_text_type() {
         assert_eq!(
             validate_time_representation(&text_format(Some(DataType::String))),
-            Err(Error::InvalidTextTypeForComponent("TimeDimension".into(), "String".into()))
+            Err(Error::InvalidTextTypeForComponent {
+                component: "TimeDimension".into(),
+                text_type: "String".into()
+            })
         );
     }
 
@@ -982,7 +1018,10 @@ mod tests {
         }
         assert_eq!(
             validate_time_representation(&repr),
-            Err(Error::ProhibitedRepresentationFacet("TimeDimension".into(), "pattern".into()))
+            Err(Error::ProhibitedRepresentationFacet {
+                component: "TimeDimension".into(),
+                facet: "pattern".into()
+            })
         );
     }
 }

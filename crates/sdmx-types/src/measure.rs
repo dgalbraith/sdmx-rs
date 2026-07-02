@@ -217,7 +217,10 @@ mod tests {
                 None,
             )
             .unwrap_err(),
-            Error::InvalidTextTypeForComponent("Measure".into(), "KeyValues".into())
+            Error::InvalidTextTypeForComponent {
+                component: "Measure".into(),
+                text_type: "KeyValues".into()
+            }
         );
         // A Basic textType (and a measure can be coded/typed, D-0028) is accepted.
         assert!(

@@ -386,7 +386,10 @@ mod tests {
         assert_eq!(
             Concept::new(nameable("FREQ"), None, Some(text_format(DataType::KeyValues)))
                 .unwrap_err(),
-            Error::InvalidTextTypeForComponent("Concept".into(), "KeyValues".into())
+            Error::InvalidTextTypeForComponent {
+                component: "Concept".into(),
+                text_type: "KeyValues".into()
+            }
         );
     }
 

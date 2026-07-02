@@ -452,7 +452,7 @@ mod tests {
         assert_eq!(
             TimeDimension::new(metadata(Some("OBS_TIME")), concept("TIME"), time_text_format())
                 .unwrap_err(),
-            Error::FixedAttributeMismatch("id".into(), "OBS_TIME".into())
+            Error::FixedAttributeMismatch { attribute: "id".into(), value: "OBS_TIME".into() }
         );
     }
 
@@ -465,7 +465,10 @@ mod tests {
         }
         assert_eq!(
             TimeDimension::new(metadata(None), concept("TIME"), bad).unwrap_err(),
-            Error::InvalidTextTypeForComponent("TimeDimension".into(), "String".into())
+            Error::InvalidTextTypeForComponent {
+                component: "TimeDimension".into(),
+                text_type: "String".into()
+            }
         );
     }
 

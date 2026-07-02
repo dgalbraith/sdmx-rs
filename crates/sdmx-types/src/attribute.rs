@@ -716,7 +716,10 @@ mod tests {
                 None,
             )
             .unwrap_err(),
-            Error::InvalidTextTypeForComponent("Attribute".into(), "KeyValues".into())
+            Error::InvalidTextTypeForComponent {
+                component: "Attribute".into(),
+                text_type: "KeyValues".into()
+            }
         );
     }
 

@@ -89,9 +89,10 @@ pub fn validate_ncname(id: &str) -> Result<(), Error> {
 /// Returns [`Error::FixedAttributeMismatch`] if `stated` is `Some(v)` with `v != expected`.
 pub fn validate_fixed(attribute: &str, stated: Option<&str>, expected: &str) -> Result<(), Error> {
     match stated {
-        Some(value) if value != expected => {
-            Err(Error::FixedAttributeMismatch(attribute.to_string(), value.to_string()))
-        }
+        Some(value) if value != expected => Err(Error::FixedAttributeMismatch {
+            attribute: attribute.to_string(),
+            value: value.to_string(),
+        }),
         _ => Ok(()),
     }
 }
@@ -154,7 +155,7 @@ mod tests {
         // A stated value differing from the fixed one is a mechanical mismatch.
         assert_eq!(
             validate_fixed("id", Some("OTHER"), "AGENCIES"),
-            Err(Error::FixedAttributeMismatch("id".into(), "OTHER".into()))
+            Err(Error::FixedAttributeMismatch { attribute: "id".into(), value: "OTHER".into() })
         );
     }
 

@@ -73,7 +73,10 @@ impl FixedInclude {
     /// that contradicts the schema-fixed `true`.
     pub fn new(stated: Option<bool>) -> Result<Self, Error> {
         if stated == Some(false) {
-            return Err(Error::FixedAttributeMismatch("include".into(), "false".into()));
+            return Err(Error::FixedAttributeMismatch {
+                attribute: "include".into(),
+                value: "false".into(),
+            });
         }
         Ok(Self(stated))
     }
@@ -113,7 +116,10 @@ mod tests {
     fn rejects_stated_false() {
         assert_eq!(
             FixedInclude::new(Some(false)),
-            Err(Error::FixedAttributeMismatch("include".into(), "false".into()))
+            Err(Error::FixedAttributeMismatch {
+                attribute: "include".into(),
+                value: "false".into()
+            })
         );
     }
 
