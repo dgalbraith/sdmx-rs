@@ -104,8 +104,9 @@ pub use crate::{
     error::Error,
     fixed::FixedInclude,
     lexical::{
-        Granularity, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxTimePeriodKind, SdmxVersion,
-        VersionDisplay, VersionRef, WildcardPosition,
+        Granularity, ObservationalTimePeriod, SdmxDecimal, SdmxInteger, SdmxTimePeriod,
+        SdmxTimePeriodKind, SdmxTimeRange, SdmxVersion, VersionDisplay, VersionRef,
+        WildcardPosition,
     },
     localised::{LocalisedString, LocalisedText},
     measure::Measure,

@@ -152,8 +152,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0069](#d-0069) | Architecture                | Reference, version, and time-period grammars are model surface gating the 0.1.0 publish; the wire mapping stays with the parser/writer                                         |
 | [D-0070](#d-0070) | Lexical types               | SdmxVersion raw-free: canonical grammar, statedness-preserving decomposition; amends [D-0027](#d-0027)/[D-0060](#d-0060)/[D-0065](#d-0065)                                     |
 | [D-0071](#d-0071) | Lexical types               | VersionRef models the version reference grammar (WildcardVersionType); one + wildcard enforced across editions                                                                 |
+| [D-0072](#d-0072) | Lexical types               | ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme                                                                    |
 
-<!-- Next ID: D-0072 -->
+<!-- Next ID: D-0073 -->
 
 ## Entries
 
@@ -1641,5 +1642,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: Enforcing one wildcard deviates from [D-0046](#d-0046)'s carry-the-superset rule deliberately: the 3.0 double-wildcard match is regex slack, contradicted by the same type's documentation in both editions and by 3.1's tightened patterns of the identical documented contract, so carrying it would manufacture a value space no edition documents. Both enums are exhaustive rather than `#[non_exhaustive]` ([D-0021](#d-0021)): the union is grammar-closed.
 
 **Consequences**: (1) The reference structs adopt `VersionRef` in the URN-contract pass, which also settles which reference contexts admit `*` versus only `+` ([D-0069](#d-0069)). (2) Wildcard resolution to a concrete version and the `VersionQueryType` query grammar stay out, per [D-0069](#d-0069). (3) The declaration/reference split is structural: `SdmxVersion` cannot hold a wildcard, and `VersionRef` is the only wildcard carrier. (4) Round-trip tests assert both directions and fold into the property-based-testing roadmap item.
+
+---
+
+### D-0072 — ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme
+
+| **Area**     | Lexical types |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | time-period, time-range, observational, union, lexical-grammar, constraints, spec-alignment |
+| **Spec ref** | [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L482-L488) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L492-L498) (`ObservationalTimePeriodType`); [3.0 L600-L672](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L600-L672) + [3.1 L610-L682](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L610-L682) (`TimeRangeType` and its restriction chain) |
+| **Related**  | [D-0027](#d-0027), [D-0064](#d-0064), [D-0069](#d-0069), [D-0070](#d-0070) |
+
+**Observation**: `TimePeriodRange.period` is typed `ObservationalTimePeriodType`, the union `StandardTimePeriodType ∪ TimeRangeType`. A time range is `start/duration` (a full `xs:date` or `xs:dateTime` with optional timezone, then an `xs:duration`) validated by a six-level restriction chain (base shape, month-day validity, leap years, time bounds, timezone bounds, duration shape). The model held `period` as a raw `String`: `SdmxTimePeriod` covers only the Standard member and would reject schema-valid time-range lexemes, and no type carried the range grammar.
+
+**Decision**: Two additions. `SdmxTimeRange` is a lossless lexical newtype for `TimeRangeType` (raw stored: date and duration lexemes are not canonical, the [D-0070](#d-0070) fork; `Sdmx` prefix because bare `TimeRange` collides with the constraint selection type, [D-0027](#d-0027) naming rule), exposing `start()`/`duration()` slices. `ObservationalTimePeriod` is the exhaustive union `{ Standard(SdmxTimePeriod), Range(SdmxTimeRange) }`; the member grammars are disjoint (only a range contains `/`), so classification is unambiguous. `TimePeriodRange.period` adopts the union. `Error` gains `InvalidTimeRange` and `InvalidObservationalTimePeriod`.
+
+**Rationale**: A union of the member newtypes rather than a widened `SdmxTimePeriod`: the Standard-only positions ([D-0064](#d-0064)'s `valid_from`/`valid_to` and the §5.8 validity pairs) must keep rejecting time-range lexemes, so the widening has to be a new type. The range's date half is validated by the shared Gregorian/date-time classifier, the same strictness the crate already applies to `xs:date`/`xs:dateTime` (the chain's month-length and leap-year patterns are not separately re-implemented); the duration is validated to the chain's ordered-component grammar.
+
+**Consequences**: (1) `TimePeriodRange.period` tightens from `String` to `ObservationalTimePeriod`; its derived `Deserialize` now validates the union on the wire path. (2) The lexical-typing work [D-0064](#d-0064) recorded as deferred for `.period` is delivered; its body stands unchanged. (3) Round-trip tests fold into the property-based-testing roadmap item.
 
 ---

@@ -103,6 +103,20 @@ pub enum Error {
     #[error("Invalid SDMX time period: {0}. Must match StandardTimePeriodType.")]
     InvalidTimePeriod(String),
 
+    /// A value failed the SDMX `TimeRangeType` grammar: a full `xs:date` or `xs:dateTime`
+    /// start, `/`, then a non-empty ordered `xs:duration`. Produced by
+    /// [`SdmxTimeRange::new`](crate::SdmxTimeRange::new).
+    #[error("Invalid SDMX time range: {0}. Must match TimeRangeType (start/duration).")]
+    InvalidTimeRange(String),
+
+    /// A value failed the SDMX `ObservationalTimePeriodType` union grammar: neither a
+    /// standard time period nor a time range. Produced by
+    /// [`ObservationalTimePeriod::new`](crate::ObservationalTimePeriod::new).
+    #[error(
+        "Invalid SDMX observational time period: {0}. Must match ObservationalTimePeriodType (a standard time period or a time range)."
+    )]
+    InvalidObservationalTimePeriod(String),
+
     /// A localised string was constructed with an empty entry list. The parent
     /// elements (`Name`, `Description`) require at least one entry, so an empty list
     /// is mechanically schema-invalid. Produced by

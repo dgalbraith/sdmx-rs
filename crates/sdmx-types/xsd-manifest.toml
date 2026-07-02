@@ -78,6 +78,19 @@ rust = ["VersionRef"]
 # Time periods: StandardTimePeriodType (the union) is cited by both SdmxTimePeriod
 # and the SdmxTimePeriodKind classifier, the shared-symbol / multi-rust case. Its
 # members carry the actual grammar and are cited by the Kind enum.
+# ObservationalTimePeriodType widens Standard with TimeRangeType (SdmxTimeRange).
+[[fragment]]
+symbol = "ObservationalTimePeriodType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ObservationalTimePeriod"]
+
+[[fragment]]
+symbol = "TimeRangeType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxTimeRange"]
+
 [[fragment]]
 symbol = "StandardTimePeriodType"
 file = "schemas/SDMXCommon.xsd"

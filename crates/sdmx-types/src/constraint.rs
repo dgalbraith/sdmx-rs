@@ -39,8 +39,8 @@ following the D-0034 rationale.
 `validFrom`/`validTo` the earlier enum-only model dropped (D-0064 corrected D-0038's three-level
 validity reading). Those attributes are `StandardTimePeriodType`, so they take `SdmxTimePeriod`
 (D-0027), distinct from the endpoint content on `TimePeriodRange.period`, which is the
-`ObservationalTimePeriodType` superset and stays a raw `String` (the lexical-typing alignment is the
-scheduled Phase-2 URN-contract work). All the leaves are invariant-free pub-field carriers with
+`ObservationalTimePeriodType` superset carried by the `ObservationalTimePeriod` union type
+(D-0072). All the leaves are invariant-free pub-field carriers with
 derived `Deserialize` (ADR-0021); the newtypes and `SdmxTimePeriod` carry their own validating
 paths.
 
@@ -58,7 +58,7 @@ use crate::{
     codelist::Cascade,
     error::{Error, to_de_error},
     fixed::FixedInclude,
-    lexical::{SdmxTimePeriod, SdmxVersion},
+    lexical::{ObservationalTimePeriod, SdmxTimePeriod, SdmxVersion},
     localised::LocalisedString,
     metadata::MaintainableMetadata,
     reference::{
@@ -307,21 +307,22 @@ impl<'de> serde::Deserialize<'de> for SimpleComponentValues {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/TimePeriodRangeType.md"))]
 ///
 /// The endpoint is the type of the `<BeforePeriod>`, `<AfterPeriod>`, `<StartPeriod>`, and
-/// `<EndPeriod>` elements of a [`TimeRange`]. The `period` content admits time-range lexemes (a
-/// start-and-duration form) as well as standard periods, so it is held verbatim as a string rather
-/// than a validated time period. The `inclusive` flag defaults to `true` when absent.
+/// `<EndPeriod>` elements of a [`TimeRange`]. The `period` content is the
+/// `ObservationalTimePeriodType` union, so it admits time-range lexemes (a start-and-duration
+/// form) as well as standard periods. The `inclusive` flag defaults to `true` when absent.
 ///
 /// # Examples
 ///
 /// ```
 /// use sdmx_types::TimePeriodRange;
 ///
-/// let stated = TimePeriodRange { period: "2024".to_string(), inclusive: Some(false) };
+/// let stated = TimePeriodRange { period: "2024".parse()?, inclusive: Some(false) };
 /// assert!(!stated.effective_is_inclusive());
 ///
 /// // Absent flag resolves to the schema default of true.
-/// let absent = TimePeriodRange { period: "2024".to_string(), inclusive: None };
+/// let absent = TimePeriodRange { period: "2024".parse()?, inclusive: None };
 /// assert!(absent.effective_is_inclusive());
+/// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[cfg_attr(
     design_docs,
@@ -330,18 +331,18 @@ impl<'de> serde::Deserialize<'de> for SimpleComponentValues {
 
 Invariant-free pub-field carrier with derived `Deserialize`. `period` is the
 `ObservationalTimePeriodType` union (`StandardTimePeriodType ∪ TimeRangeType`, report-5 V-7), a
-strict superset of `SdmxTimePeriod`, so it stays a raw `String`: adopting `SdmxTimePeriod` here would
-reject schema-valid time-range lexemes. The lexical-typing alignment is the scheduled Phase-2
-reference-types/URN-contract work (ROADMAP scope item 4). `isInclusive` has schema `default="true"`,
-so statedness is stored (D-0052) and `effective_is_inclusive()` is the resolved view.
+strict superset of `SdmxTimePeriod`, carried by the `ObservationalTimePeriod` union type
+(D-0072): a Standard-only newtype here would reject schema-valid time-range lexemes.
+`isInclusive` has schema `default="true"`, so statedness is stored (D-0052) and
+`effective_is_inclusive()` is the resolved view.
 
-Decisions: D-0031, D-0052.
+Decisions: D-0031, D-0052, D-0072.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct TimePeriodRange {
-    /// The period content, held verbatim (it may be a standard period or a time-range lexeme).
-    pub period: String,
+    /// The period content: a standard period or a time-range lexeme.
+    pub period: ObservationalTimePeriod,
     /// Whether the period falls inside the range; `None` ⟺ absent (schema default `true`).
     pub inclusive: Option<bool>,
 }
@@ -413,11 +414,12 @@ pub enum TimeRangeKind {
 /// ```
 /// use sdmx_types::{TimePeriodRange, TimeRange, TimeRangeKind};
 ///
-/// let start = TimePeriodRange { period: "2020".to_string(), inclusive: None };
-/// let end = TimePeriodRange { period: "2024".to_string(), inclusive: Some(false) };
+/// let start = TimePeriodRange { period: "2020".parse()?, inclusive: None };
+/// let end = TimePeriodRange { period: "2024".parse()?, inclusive: Some(false) };
 /// let range =
 ///     TimeRange { kind: TimeRangeKind::Between { start, end }, valid_from: None, valid_to: None };
 /// assert!(matches!(range.kind, TimeRangeKind::Between { .. }));
+/// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[cfg_attr(
     design_docs,
@@ -1982,7 +1984,7 @@ mod tests {
     use crate::localised::LocalisedText;
 
     fn period(p: &str) -> TimePeriodRange {
-        TimePeriodRange { period: p.to_string(), inclusive: None }
+        TimePeriodRange { period: p.parse().unwrap(), inclusive: None }
     }
 
     #[test]
@@ -2086,11 +2088,11 @@ mod tests {
     fn time_period_range_effective_is_inclusive_applies_default() {
         assert!(period("2024").effective_is_inclusive());
         assert!(
-            TimePeriodRange { period: "2024".to_string(), inclusive: Some(true) }
+            TimePeriodRange { period: "2024".parse().unwrap(), inclusive: Some(true) }
                 .effective_is_inclusive()
         );
         assert!(
-            !TimePeriodRange { period: "2024".to_string(), inclusive: Some(false) }
+            !TimePeriodRange { period: "2024".parse().unwrap(), inclusive: Some(false) }
                 .effective_is_inclusive()
         );
     }

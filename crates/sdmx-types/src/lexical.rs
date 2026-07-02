@@ -724,6 +724,174 @@ pub enum Granularity {
 }
 
 // ---------------------------------------------------------------------------
+// TimeRangeType and ObservationalTimePeriodType
+// ---------------------------------------------------------------------------
+
+/// An SDMX `TimeRangeType`: a start date or date-time plus a duration, as `start/duration`.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `TimeRangeType`
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/TimeRangeType.md"))]
+///
+/// The start is a full `xs:date` or `xs:dateTime` (an optional timezone is permitted on
+/// either); the duration is an `xs:duration` with its components in order and at least one
+/// present. The canonical string is stored verbatim, and the two halves are exposed through
+/// [`start()`](Self::start) and [`duration()`](Self::duration).
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxTimeRange>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::SdmxTimeRange;
+///
+/// let range: SdmxTimeRange = "2010-01-01/P2M".parse()?;
+/// assert_eq!(range.start(), "2010-01-01");
+/// assert_eq!(range.duration(), "P2M");
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Lexical newtype with lossless `String` storage: date and duration lexemes are not canonical
+(timezone spellings, fractional seconds), so the raw is load-bearing (the D-0070 fork). The `/`
+separator occurs exactly once (neither half's grammar admits one), so the accessors are cheap
+slices. The start half is validated with the shared Gregorian/date-time classifier, the same
+strictness the crate applies to `xs:date`/`xs:dateTime` everywhere (the XSD chain's month-length
+and leap-year patterns are not re-implemented); the duration is the chain's ordered-component
+grammar. The name carries the `Sdmx` prefix because bare `TimeRange` collides with the constraint
+selection type (D-0027 naming rule).
+
+Decisions: D-0027, D-0072.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SdmxTimeRange {
+    raw: String,
+}
+
+impl SdmxTimeRange {
+    /// Validates `raw` against the `TimeRangeType` grammar and stores it verbatim.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidTimeRange`] if `raw` is not `start/duration` with a full
+    /// `xs:date` or `xs:dateTime` start and a non-empty, ordered `xs:duration`.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        if is_time_range(&raw) { Ok(Self { raw }) } else { Err(Error::InvalidTimeRange(raw)) }
+    }
+
+    /// The canonical time-range string, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.raw
+    }
+
+    /// The start half: a full `xs:date` or `xs:dateTime`, with any stated timezone.
+    #[must_use]
+    pub fn start(&self) -> &str {
+        self.raw.split_once('/').map_or(self.raw.as_str(), |(start, _)| start)
+    }
+
+    /// The duration half: an `xs:duration` such as `P2M` or `PT30M`.
+    #[must_use]
+    pub fn duration(&self) -> &str {
+        self.raw.split_once('/').map_or("", |(_, duration)| duration)
+    }
+}
+
+/// An SDMX `ObservationalTimePeriodType`: a standard time period or a time range.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `ObservationalTimePeriodType` (the union of `StandardTimePeriodType` and `TimeRangeType`)
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ObservationalTimePeriodType.md"))]
+///
+/// The widest time-period vocabulary in SDMX: every [`SdmxTimePeriod`] lexeme plus the
+/// [`SdmxTimeRange`] start-and-duration form. The two member grammars are disjoint (only a
+/// time range contains `/`), so classification is unambiguous.
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text:
+/// `x.to_string().parse::<ObservationalTimePeriod>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::ObservationalTimePeriod;
+///
+/// let standard: ObservationalTimePeriod = "2024-Q4".parse()?;
+/// assert!(matches!(standard, ObservationalTimePeriod::Standard(_)));
+///
+/// let range: ObservationalTimePeriod = "2010-01-01/P2M".parse()?;
+/// assert!(matches!(range, ObservationalTimePeriod::Range(_)));
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A union of the member newtypes rather than a widened `SdmxTimePeriod`: `StandardTimePeriodType`
+positions (`TimeRange.valid_from`/`valid_to`, the constraint validity pairs) must keep rejecting
+time-range lexemes, so the union is its own type and `SdmxTimePeriod` stays exactly the standard
+grammar. Exhaustive: the union is grammar-closed. Both members store their lexeme, so the union
+exposes `as_str()`/`AsRef<str>` like the other lexeme-storing newtypes.
+
+Decisions: D-0064, D-0072.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ObservationalTimePeriod {
+    /// A standard time period: a Gregorian period, an `xs:dateTime`, or a reporting period.
+    Standard(SdmxTimePeriod),
+    /// A time range: a start date or date-time plus a duration.
+    Range(SdmxTimeRange),
+}
+
+impl ObservationalTimePeriod {
+    /// Validates `raw` against the `ObservationalTimePeriodType` union and classifies it
+    /// into the matching member.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidObservationalTimePeriod`] if `raw` is neither a standard
+    /// time period nor a time range.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        let parsed = if raw.contains('/') {
+            SdmxTimeRange::new(raw).map(Self::Range)
+        } else {
+            SdmxTimePeriod::new(raw).map(Self::Standard)
+        };
+        parsed.map_err(|e| match e {
+            Error::InvalidTimeRange(raw) | Error::InvalidTimePeriod(raw) => {
+                Error::InvalidObservationalTimePeriod(raw)
+            }
+            other => other,
+        })
+    }
+
+    /// The canonical lexeme, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Standard(period) => period.as_str(),
+            Self::Range(range) => range.as_str(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Standard trait impls (Display / FromStr / AsRef): uniform across the lexeme newtypes.
 // `new(String)` stays the owned, no-clone entry; `from_str(&str)` is the borrowed `.parse()`
 // path that clones into ownership.
@@ -808,6 +976,46 @@ impl AsRef<str> for SdmxTimePeriod {
     }
 }
 
+impl core::fmt::Display for SdmxTimeRange {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.raw)
+    }
+}
+
+impl core::str::FromStr for SdmxTimeRange {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for SdmxTimeRange {
+    fn as_ref(&self) -> &str {
+        &self.raw
+    }
+}
+
+impl core::fmt::Display for ObservationalTimePeriod {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl core::str::FromStr for ObservationalTimePeriod {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for ObservationalTimePeriod {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Serde (custom: every lexical newtype routes through its validated constructor)
 // ---------------------------------------------------------------------------
@@ -871,6 +1079,32 @@ impl serde::Serialize for SdmxTimePeriod {
 }
 
 impl<'de> serde::Deserialize<'de> for SdmxTimePeriod {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for SdmxTimeRange {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.raw)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SdmxTimeRange {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for ObservationalTimePeriod {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ObservationalTimePeriod {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -1162,6 +1396,77 @@ fn num_in(s: &str, width: usize, lo: u32, hi: u32) -> bool {
         && s.parse::<u32>().is_ok_and(|v| (lo..=hi).contains(&v))
 }
 
+/// `TimeRangeType`: `start/duration` where the start is a full `xs:date` or `xs:dateTime`
+/// (optional timezone) and the duration is a non-empty, ordered `xs:duration`.
+fn is_time_range(s: &str) -> bool {
+    let Some((start, duration)) = s.split_once('/') else {
+        return false;
+    };
+    matches!(
+        classify_time_period(start),
+        Some(SdmxTimePeriodKind::GregorianDay | SdmxTimePeriodKind::DateTime)
+    ) && is_time_range_duration(duration)
+}
+
+/// The `TimeRangeType` duration grammar: `P` then ordered optional `nY nM nD`, then an
+/// optional `T` with ordered optional `nH nM n[.n]S`; at least one component overall and at
+/// least one after any `T` (per the chain's `.+/P.+` and `T.+` requirements).
+fn is_time_range_duration(d: &str) -> bool {
+    let Some(body) = d.strip_prefix('P') else {
+        return false;
+    };
+    if body.is_empty() {
+        return false;
+    }
+    let (date, time) = match body.split_once('T') {
+        Some((date, time)) => (date, Some(time)),
+        None => (body, None),
+    };
+    if !date.is_empty() && !scan_duration_components(date, &['Y', 'M', 'D'], None) {
+        return false;
+    }
+    time.map_or(!date.is_empty(), |time| {
+        !time.is_empty() && scan_duration_components(time, &['H', 'M', 'S'], Some('S'))
+    })
+}
+
+/// A run of `<digits><unit>` components drawn from `units` in order, each unit at most once;
+/// a fractional part (`.digits`) is admitted only immediately before `fraction_unit`.
+fn scan_duration_components(part: &str, units: &[char], fraction_unit: Option<char>) -> bool {
+    let mut rest = part;
+    let mut next_units = units;
+    while !rest.is_empty() {
+        let digits_end = rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len());
+        if digits_end == 0 {
+            return false;
+        }
+        let mut after = &rest[digits_end..];
+        let has_fraction = if let Some(fraction) = after.strip_prefix('.') {
+            let fraction_end =
+                fraction.find(|c: char| !c.is_ascii_digit()).unwrap_or(fraction.len());
+            if fraction_end == 0 {
+                return false;
+            }
+            after = &fraction[fraction_end..];
+            true
+        } else {
+            false
+        };
+        let Some(unit) = after.chars().next() else {
+            return false;
+        };
+        let Some(position) = next_units.iter().position(|&u| u == unit) else {
+            return false;
+        };
+        if has_fraction && Some(unit) != fraction_unit {
+            return false;
+        }
+        next_units = &next_units[position + 1..];
+        rest = &after[1..];
+    }
+    true
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -1346,6 +1651,65 @@ mod tests {
     }
 
     #[test]
+    fn time_range_accepts_date_and_datetime_starts() {
+        for lexeme in [
+            "2010-01-01/P2M",
+            "2010-01-01Z/P2M",
+            "2010-01-01T09:30:00/PT30M",
+            "2010-01-01T09:30:00+05:30/P1Y2M3DT4H5M6.5S",
+            "2024-02-29/P1D",
+        ] {
+            assert!(SdmxTimeRange::new(lexeme.into()).is_ok(), "{lexeme:?} should be accepted");
+        }
+        let range = SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap();
+        assert_eq!((range.start(), range.duration()), ("2010-01-01", "P2M"));
+    }
+
+    #[test]
+    fn time_range_rejects_malformed() {
+        for bad in [
+            "",
+            "2010-01-01", // no duration half
+            "P2M",        // no start half
+            "/P2M",
+            "2010-01-01/",
+            "2010/P2M",          // start must be a full date, not a year
+            "2010-01/P2M",       // nor a year-month
+            "2024-Q4/P2M",       // nor a reporting period
+            "2010-01-01/2M",     // duration must open with P
+            "2010-01-01/P",      // empty duration
+            "2010-01-01/PT",     // empty time part
+            "2010-01-01/P2M1Y",  // components out of order
+            "2010-01-01/PT2H1H", // repeated unit
+            "2010-01-01/P2X",    // unknown unit
+            "2010-01-01/PT0.5M", // fraction only on seconds
+            "2010-01-01/PT0.S",  // fraction needs digits
+            "2010-01-01/P2M/P1D",
+        ] {
+            assert!(SdmxTimeRange::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn observational_classifies_both_members() {
+        use alloc::string::ToString;
+        let standard = ObservationalTimePeriod::new("2024-Q4".into()).unwrap();
+        assert!(
+            matches!(&standard, ObservationalTimePeriod::Standard(p) if p.kind() == SdmxTimePeriodKind::ReportingQuarter)
+        );
+        let range = ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap();
+        assert!(matches!(&range, ObservationalTimePeriod::Range(_)));
+        for value in [standard, range] {
+            assert_eq!(value.to_string(), value.as_str());
+            assert_eq!(value, value.as_str().parse().unwrap());
+        }
+        assert!(matches!(
+            ObservationalTimePeriod::new("banana".into()),
+            Err(Error::InvalidObservationalTimePeriod(_))
+        ));
+    }
+
+    #[test]
     fn time_period_basic_kinds() {
         let cases = [
             ("2024", SdmxTimePeriodKind::GregorianYear),
@@ -1488,6 +1852,17 @@ mod tests {
         assert!(
             postcard::from_bytes::<SdmxTimePeriod>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
+
+        crate::test_support::round_trip(&SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap());
+        crate::test_support::round_trip(
+            &ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap(),
+        );
+        crate::test_support::round_trip(&ObservationalTimePeriod::new("2024-Q4".into()).unwrap());
+        let bad = String::from("2010-01-01/P");
+        assert!(
+            postcard::from_bytes::<ObservationalTimePeriod>(&postcard::to_allocvec(&bad).unwrap())
+                .is_err()
+        );
     }
 
     #[test]
@@ -1530,6 +1905,18 @@ mod tests {
             assert_eq!(v.to_string(), raw);
             assert_eq!(AsRef::<str>::as_ref(&v), raw);
             assert_eq!(v.to_string().parse::<SdmxTimePeriod>(), Ok(v.clone()));
+        }
+        for raw in ["2010-01-01/P2M", "2010-01-01T09:30:00Z/PT30M"] {
+            let v = SdmxTimeRange::new(raw.into()).unwrap();
+            assert_eq!(v.to_string(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&v), raw);
+            assert_eq!(v.to_string().parse::<SdmxTimeRange>(), Ok(v.clone()));
+        }
+        for raw in ["2024-Q4", "2010-01-01/P2M"] {
+            let v = ObservationalTimePeriod::new(raw.into()).unwrap();
+            assert_eq!(v.to_string(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&v), raw);
+            assert_eq!(v.to_string().parse::<ObservationalTimePeriod>(), Ok(v.clone()));
         }
     }
 
