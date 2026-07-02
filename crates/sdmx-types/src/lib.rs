@@ -105,7 +105,7 @@ pub use crate::{
     fixed::FixedInclude,
     lexical::{
         Granularity, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxTimePeriodKind, SdmxVersion,
-        VersionDisplay,
+        VersionDisplay, VersionRef, WildcardPosition,
     },
     localised::{LocalisedString, LocalisedText},
     measure::Measure,

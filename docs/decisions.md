@@ -151,8 +151,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0068](#d-0068) | Serialisation               | Internal serde projection never converges to the wire; round-trip verified through a non-wire format, serde_json dropped; resolves [D-0063](#d-0063)'s deferral                |
 | [D-0069](#d-0069) | Architecture                | Reference, version, and time-period grammars are model surface gating the 0.1.0 publish; the wire mapping stays with the parser/writer                                         |
 | [D-0070](#d-0070) | Lexical types               | SdmxVersion raw-free: canonical grammar, statedness-preserving decomposition; amends [D-0027](#d-0027)/[D-0060](#d-0060)/[D-0065](#d-0065)                                     |
+| [D-0071](#d-0071) | Lexical types               | VersionRef models the version reference grammar (WildcardVersionType); one + wildcard enforced across editions                                                                 |
 
-<!-- Next ID: D-0071 -->
+<!-- Next ID: D-0072 -->
 
 ## Entries
 
@@ -1621,5 +1622,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A redundant store is a second source of truth that can only agree or drift, and it cost three hand-written impls (`PartialEq`/`Eq`/`Hash`) plus their contract apparatus, all replaced by derives. The masked statedness was the sharper defect: the raw made `1` and `1.0` compare unequal while the accessors reported them identical (`minor()` returned `0` for both); making `minor` optional puts the distinction where consumers actually read it.
 
 **Consequences**: (1) Amends [D-0027](#d-0027): the `SdmxVersion` raw clause; `SdmxDecimal`/`SdmxInteger` stand. (2) Amends [D-0060](#d-0060): equality is structural rather than raw-based, the same partition; the ordering deferral stands. (3) Amends [D-0065](#d-0065): the `SdmxVersion` hand-written-`Hash` carve-out retires; the uniform derive baseline holds without exception. (4) Public API: `minor()` returns `Option<u32>`; `as_str()`/`AsRef<str>` are gone, rendering goes through `Display`. (5) Both round-trip directions (`x.to_string().parse() == Ok(x)` and `parse(s).to_string() == s`) are asserted in unit tests and fold into the property-based-testing roadmap item. (6) Design 0010 §5.1 reconciliation rides the series close-out.
+
+---
+
+### D-0071 — VersionRef models the version reference grammar; one + wildcard enforced across editions
+
+| **Area**     | Lexical types |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | version-ref, wildcard, reference-types, lexical-grammar, canonical, spec-alignment |
+| **Spec ref** | [SDMXCommonReferences.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommonReferences.xsd#L1512-L1548) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1514-L1550) (`VersionReferenceType`, `SemanticVersionReferenceType`, `WildcardVersionType`, `WildcardType`) |
+| **Related**  | [D-0002](#d-0002), [D-0021](#d-0021), [D-0046](#d-0046), [D-0060](#d-0060), [D-0069](#d-0069), [D-0070](#d-0070) |
+
+**Observation**: A reference versions its target through a wider grammar than a declaration: `VersionReferenceType` adds `SemanticVersionReferenceType`'s single-`+` forms ("2+.3.1 means the currently latest available version >= 2.3.1", per the schema documentation), and `WildcardVersionType` adds the bare `*`. The `+` forms require the full semantic triple and exclude the prerelease extension ("2.3+.1-draft is not permissible", both editions). The editions diverge mechanically: 3.1's three patterns each admit `+` on exactly one component, while 3.0's third pattern also matches a double wildcard (`1+.2.3+`) that the same type's own documentation forbids.
+
+**Decision**: A new exhaustive enum `VersionRef { Exact(SdmxVersion), Latest { major, minor, patch, at: WildcardPosition }, Any }` models `WildcardVersionType`, raw-free with a reconstructing `Display` (the [D-0070](#d-0070) canonicity fork). Exactly one wildcard is enforced across both editions, and the full-triple and no-extension requirements are structural: `Latest` carries three mandatory `u32` components and no extension slot, so the illegal combinations are unrepresentable. `Error` gains `InvalidVersionReference`; serde serialises through `Display`, keeping the single-canonical-string projection shape.
+
+**Rationale**: Enforcing one wildcard deviates from [D-0046](#d-0046)'s carry-the-superset rule deliberately: the 3.0 double-wildcard match is regex slack, contradicted by the same type's documentation in both editions and by 3.1's tightened patterns of the identical documented contract, so carrying it would manufacture a value space no edition documents. Both enums are exhaustive rather than `#[non_exhaustive]` ([D-0021](#d-0021)): the union is grammar-closed.
+
+**Consequences**: (1) The reference structs adopt `VersionRef` in the URN-contract pass, which also settles which reference contexts admit `*` versus only `+` ([D-0069](#d-0069)). (2) Wildcard resolution to a concrete version and the `VersionQueryType` query grammar stay out, per [D-0069](#d-0069). (3) The declaration/reference split is structural: `SdmxVersion` cannot hold a wildcard, and `VersionRef` is the only wildcard carrier. (4) Round-trip tests assert both directions and fold into the property-based-testing roadmap item.
 
 ---

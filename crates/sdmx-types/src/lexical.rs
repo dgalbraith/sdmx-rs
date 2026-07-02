@@ -5,7 +5,9 @@
 //! validates its grammar at construction and round-trips its text exactly:
 //! [`SdmxDecimal`], [`SdmxInteger`], and [`SdmxTimePeriod`] store the canonical lexeme verbatim
 //! and never rewrite it, while [`SdmxVersion`]'s canonical grammar lets it hold only the parsed
-//! decomposition and reconstruct the lexeme on display.
+//! decomposition and reconstruct the lexeme on display. [`VersionRef`] extends the family with
+//! the version *reference* grammar (`WildcardVersionType`: `+` and `*` wildcards), raw-free on
+//! the same grounds.
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -382,6 +384,162 @@ impl core::fmt::Display for VersionDisplay<'_> {
 }
 
 // ---------------------------------------------------------------------------
+// WildcardVersionType (version references)
+// ---------------------------------------------------------------------------
+
+/// The component of a semantic version triple that a [`VersionRef::Latest`] reference
+/// wildcards with `+`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum WildcardPosition {
+    /// `+` on the major component: `2+.3.1`.
+    Major,
+    /// `+` on the minor component: `2.3+.1`.
+    Minor,
+    /// `+` on the patch component: `2.3.1+`.
+    Patch,
+}
+
+/// An SDMX `WildcardVersionType`: the version grammar of a *reference*.
+///
+/// A reference admits what a declared [`SdmxVersion`] admits plus the wildcard forms:
+/// `+` on exactly one component of a full semantic triple ("latest available"), or the
+/// bare `*`.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommonReferences.xsd`
+/// - **Type**: `WildcardVersionType` (the union of `VersionReferenceType` and `WildcardType`; `SemanticVersionReferenceType` carries the `+` patterns)
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/WildcardVersionType.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionReferenceType.md"))]
+#[cfg_attr(
+    design_docs,
+    doc = include_str!("../docs/xsd-fragments/SemanticVersionReferenceType.3.0.md")
+)]
+#[cfg_attr(
+    design_docs,
+    doc = include_str!("../docs/xsd-fragments/SemanticVersionReferenceType.3.1.md")
+)]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/WildcardType.md"))]
+///
+/// `2+.3.1` reads "the latest available version at least `2.3.1`" (per the schema
+/// documentation, even if not backwards compatible). A `+` wildcard requires the full
+/// `major.minor.patch` triple and cannot be combined with a prerelease extension
+/// (`2.3+.1-draft` is rejected). Resolving a wildcard to a concrete version requires a
+/// registry catalogue and is outside this type.
+///
+/// Like [`SdmxVersion`], the grammar admits one lexeme per value, so the text is
+/// reconstructed by [`Display`](core::fmt::Display), not stored.
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text in both directions:
+/// `x.to_string().parse::<VersionRef>() == Ok(x)` and
+/// `s.parse::<VersionRef>()?.to_string() == s`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{SdmxVersion, VersionRef, WildcardPosition};
+///
+/// let latest: VersionRef = "2+.3.1".parse()?;
+/// assert_eq!(
+///     latest,
+///     VersionRef::Latest { major: 2, minor: 3, patch: 1, at: WildcardPosition::Major }
+/// );
+/// assert_eq!(latest.to_string(), "2+.3.1");
+///
+/// let exact: VersionRef = "1.0".parse()?;
+/// assert_eq!(exact, VersionRef::Exact("1.0".parse::<SdmxVersion>()?));
+///
+/// assert_eq!("*".parse::<VersionRef>()?, VersionRef::Any);
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The spec separates the declaration version grammar (`VersionType`, exact, on
+`VersionableType`) from the reference grammars: `VersionReferenceType` adds the
+single-`+` semantic forms and `WildcardVersionType` adds the bare `*`. `VersionRef`
+models the widest reference union; `SdmxVersion` stays the declaration type. Which
+reference contexts admit `*` versus only `+` is settled by the URN-contract pass, not
+here.
+
+Exactly one `+` is enforced across both editions. 3.1's three patterns each admit one
+position; 3.0's third pattern is mechanically looser (it also matches `1+.2.3+`), but
+the same type's documentation in both editions states that only one part may be
+wildcarded, so the model follows the documented contract rather than carrying the 3.0
+regex slack as a superset member. The full-triple and no-extension requirements are
+mechanical in both editions' patterns, and the enum makes them unrepresentable:
+`Latest` has three mandatory `u32` components and no extension slot.
+
+Raw-free on the same canonicity grounds as `SdmxVersion` (one lexeme per value; see
+the D-0070 fork). Both enums are exhaustive: the union is grammar-closed. `1.*` and
+`1.0.*` are `VersionQueryType` (registry-query grammar, a different message family)
+and are deliberately rejected here.
+
+Decisions: D-0069, D-0070, D-0071.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum VersionRef {
+    /// A reference to exactly this version: `VersionReferenceType`'s legacy and
+    /// semantic member grammars, identical to a declared [`SdmxVersion`].
+    Exact(SdmxVersion),
+    /// A "latest available" reference: a full semantic triple with `+` on the
+    /// component named by `at`. `{ major: 2, minor: 3, patch: 1, at: Major }` renders
+    /// as `2+.3.1`.
+    Latest {
+        /// The major component (the stated lower bound when `at` is [`WildcardPosition::Major`]).
+        major: u32,
+        /// The minor component.
+        minor: u32,
+        /// The patch component.
+        patch: u32,
+        /// Which component carries the `+`.
+        at: WildcardPosition,
+    },
+    /// The bare `*` (`WildcardType`): any version of the referenced artefact.
+    Any,
+}
+
+impl VersionRef {
+    /// Validates `raw` against the `WildcardVersionType` union grammar; the lexeme is
+    /// reconstructed on demand by [`Display`](core::fmt::Display).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidVersionReference`] if `raw` is neither a valid exact
+    /// version, a full semantic triple with `+` on exactly one component (and no
+    /// extension), nor the bare `*`.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        parse_version_ref(raw)
+    }
+}
+
+/// Reconstructs the canonical lexeme, as for [`SdmxVersion`].
+impl core::fmt::Display for VersionRef {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Exact(version) => write!(f, "{version}"),
+            Self::Latest { major, minor, patch, at } => {
+                let wild = |p| if *at == p { "+" } else { "" };
+                write!(
+                    f,
+                    "{major}{}.{minor}{}.{patch}{}",
+                    wild(WildcardPosition::Major),
+                    wild(WildcardPosition::Minor),
+                    wild(WildcardPosition::Patch)
+                )
+            }
+            Self::Any => f.write_str("*"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // StandardTimePeriodType
 // ---------------------------------------------------------------------------
 
@@ -611,9 +769,18 @@ impl AsRef<str> for SdmxInteger {
     }
 }
 
-// `SdmxVersion` already implements `Display` (above); only `FromStr` is added here. `AsRef<str>`
-// is deliberately absent: the lexeme is reconstructed, not stored, so there is nothing to borrow.
+// `SdmxVersion` and `VersionRef` already implement `Display` (above); only `FromStr` is added
+// here. `AsRef<str>` is deliberately absent on both: the lexeme is reconstructed, not stored,
+// so there is nothing to borrow.
 impl core::str::FromStr for SdmxVersion {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl core::str::FromStr for VersionRef {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -678,6 +845,19 @@ impl serde::Serialize for SdmxVersion {
 }
 
 impl<'de> serde::Deserialize<'de> for SdmxVersion {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for VersionRef {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for VersionRef {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -792,6 +972,48 @@ fn parse_sdmx_version(raw: String) -> Result<SdmxVersion, Error> {
 
     let extension = extension.map(ToString::to_string);
     Ok(SdmxVersion { major, minor, patch, extension })
+}
+
+/// Parses and validates the `WildcardVersionType` union.
+fn parse_version_ref(raw: String) -> Result<VersionRef, Error> {
+    if raw == "*" {
+        return Ok(VersionRef::Any);
+    }
+    if !raw.contains('+') {
+        // No wildcard: exactly the declaration grammar.
+        return match parse_sdmx_version(raw) {
+            Ok(version) => Ok(VersionRef::Exact(version)),
+            Err(Error::InvalidVersion(s)) => Err(Error::InvalidVersionReference(s)),
+            Err(other) => Err(other),
+        };
+    }
+
+    // Wildcarded: a full semantic triple with `+` on exactly one component. The
+    // extension is mutually exclusive with wildcarding, so no `-` can appear.
+    if raw.contains('-') {
+        return Err(Error::InvalidVersionReference(raw));
+    }
+    let split = |c: &str| -> Option<(u32, bool)> {
+        let (digits, wild) = c.strip_suffix('+').map_or((c, false), |digits| (digits, true));
+        if is_numeric_component(digits) { Some((digits.parse().ok()?, wild)) } else { None }
+    };
+    let components: Vec<&str> = raw.split('.').collect();
+    let &[maj, min, pat] = components.as_slice() else {
+        return Err(Error::InvalidVersionReference(raw));
+    };
+    let (Some((major, major_wild)), Some((minor, minor_wild)), Some((patch, patch_wild))) =
+        (split(maj), split(min), split(pat))
+    else {
+        return Err(Error::InvalidVersionReference(raw));
+    };
+    let at = match (major_wild, minor_wild, patch_wild) {
+        (true, false, false) => WildcardPosition::Major,
+        (false, true, false) => WildcardPosition::Minor,
+        (false, false, true) => WildcardPosition::Patch,
+        // Zero or several `+`: outside the documented one-wildcard contract.
+        _ => return Err(Error::InvalidVersionReference(raw)),
+    };
+    Ok(VersionRef::Latest { major, minor, patch, at })
 }
 
 /// Validates and classifies a `StandardTimePeriodType` value, returning its kind or `None`
@@ -1071,6 +1293,59 @@ mod tests {
     }
 
     #[test]
+    fn version_ref_parses_each_arm() {
+        // Exact covers the whole declaration grammar (legacy and semantic, extension included).
+        for exact in ["1", "1.0", "1.2.3", "1.0.0-rc.1"] {
+            let parsed = VersionRef::new(exact.into()).unwrap();
+            assert_eq!(parsed, VersionRef::Exact(exact.parse().unwrap()), "{exact}");
+        }
+        // Latest wildcards exactly one component of a full triple.
+        for (lexeme, at) in [
+            ("2+.3.1", WildcardPosition::Major),
+            ("2.3+.1", WildcardPosition::Minor),
+            ("2.3.1+", WildcardPosition::Patch),
+        ] {
+            assert_eq!(
+                VersionRef::new(lexeme.into()).unwrap(),
+                VersionRef::Latest { major: 2, minor: 3, patch: 1, at },
+                "{lexeme}"
+            );
+        }
+        assert_eq!(VersionRef::new("*".into()).unwrap(), VersionRef::Any);
+    }
+
+    #[test]
+    fn version_ref_rejects_malformed() {
+        for bad in [
+            "",
+            "**",
+            "1.*",              // VersionQueryType registry-query grammar, not a reference
+            "1.0.*",            // likewise
+            "2.3+.1-draft",     // wildcard and extension are mutually exclusive
+            "1+.2+.3",          // more than one wildcard
+            "1+.2.3+",          // 3.0's regex admits this; the documented contract does not
+            "1+",               // wildcard requires the full triple
+            "1.2+",             // likewise
+            "1.2.3.4+",         // too many components
+            "+1.2.3",           // leading wildcard is not the grammar
+            "01+.2.3",          // leading zero
+            "99999999999+.0.0", // component overflows u32
+        ] {
+            assert!(VersionRef::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn version_ref_display_reconstructs_the_lexeme() {
+        use alloc::string::ToString;
+        for lexeme in ["1", "1.0", "1.2.3", "1.0.0-rc.1", "2+.3.1", "2.3+.1", "2.3.1+", "*"] {
+            let parsed = VersionRef::new(lexeme.into()).unwrap();
+            assert_eq!(parsed.to_string(), lexeme);
+            assert_eq!(parsed, parsed.to_string().parse().unwrap());
+        }
+    }
+
+    #[test]
     fn time_period_basic_kinds() {
         let cases = [
             ("2024", SdmxTimePeriodKind::GregorianYear),
@@ -1198,6 +1473,13 @@ mod tests {
         assert!(
             postcard::from_bytes::<SdmxVersion>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
+
+        let reference = VersionRef::new("2+.3.1".into()).unwrap();
+        assert!(matches!(reference, VersionRef::Latest { at: WildcardPosition::Major, .. }));
+        crate::test_support::round_trip(&reference);
+        crate::test_support::round_trip(&VersionRef::Any);
+        let bad = String::from("1.*");
+        assert!(postcard::from_bytes::<VersionRef>(&postcard::to_allocvec(&bad).unwrap()).is_err());
 
         let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
         assert_eq!(period.kind(), SdmxTimePeriodKind::ReportingQuarter);

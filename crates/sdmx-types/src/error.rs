@@ -88,6 +88,15 @@ pub enum Error {
     )]
     InvalidVersion(String),
 
+    /// A value failed the SDMX `WildcardVersionType` reference grammar: an exact
+    /// `VersionType` version, a full semantic triple with `+` on exactly one
+    /// component (no extension), or the bare `*`. Produced by
+    /// [`VersionRef::new`](crate::VersionRef::new).
+    #[error(
+        "Invalid SDMX version reference: {0}. Must match WildcardVersionType (an exact version, a triple with one + wildcard, or *)."
+    )]
+    InvalidVersionReference(String),
+
     /// A value failed the SDMX `StandardTimePeriodType` grammar (a Gregorian period,
     /// `xs:dateTime`, or a reporting period). Produced by
     /// [`SdmxTimePeriod::new`](crate::SdmxTimePeriod::new).
