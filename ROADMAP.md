@@ -67,8 +67,8 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 - [x] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
 - [x] **Dataflow**: The primary REST query target, referencing a DSD
 - [x] **Constraints**: Version-split data constraints for SDMX 3.0 and 3.1 via a unified `ConstraintModel`.
-- [ ] **Lexical grammar completion**: Version and time-period types completed to the full spec grammars, including wildcard version references.
-- [ ] **Reference URN contract**: Reference types own their URN parse/render contract and adopt typed version references.
+- [x] **Lexical grammar completion**: Version and time-period types completed to the full spec grammars, including wildcard version references.
+- [x] **Reference URN contract**: Reference types own their URN parse/render contract and adopt typed version references.
 - [ ] **Property-based testing**: `proptest` for construction invariants, lossless serde round-trips, and format/parse round-trips over the canonical lexical grammars.
 - [ ] **WASM Test Execution**: `wasm-pack test --node` wired into `just verify` and a CI job.
 - [ ] **Framework publication to crates.io**: Publish `0.1.0` full project scaffolding and data types to crates.io once the spec-exact model above is complete
