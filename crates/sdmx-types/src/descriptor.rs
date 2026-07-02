@@ -715,7 +715,7 @@ mod tests {
                 None
             )
             .unwrap_err(),
-            Error::FixedAttributeMismatch("id".into(), "Wrong".into())
+            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
         );
         // An empty dimension list is rejected.
         assert_eq!(
@@ -810,7 +810,7 @@ mod tests {
 
         assert_eq!(
             AttributeList::new(Some("Wrong".into()), vec![], vec![], vec![], None).unwrap_err(),
-            Error::FixedAttributeMismatch("id".into(), "Wrong".into())
+            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
         );
         assert_eq!(
             AttributeList::new(None, vec![], vec![], vec![], None).unwrap_err(),
@@ -881,7 +881,7 @@ mod tests {
 
         assert_eq!(
             MeasureList::new(Some("Wrong".into()), vec![], vec![], vec![], None).unwrap_err(),
-            Error::FixedAttributeMismatch("id".into(), "Wrong".into())
+            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
         );
         assert_eq!(
             MeasureList::new(None, vec![], vec![], vec![], None).unwrap_err(),

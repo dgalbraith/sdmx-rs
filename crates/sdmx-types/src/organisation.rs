@@ -447,7 +447,7 @@ mod tests {
         assert!(AgencyScheme::new(scheme_metadata("AGENCIES"), None).is_ok());
         assert_eq!(
             AgencyScheme::new(scheme_metadata("OTHER"), None).unwrap_err(),
-            Error::FixedAttributeMismatch("id".into(), "OTHER".into())
+            Error::FixedAttributeMismatch { attribute: "id".into(), value: "OTHER".into() }
         );
     }
 
