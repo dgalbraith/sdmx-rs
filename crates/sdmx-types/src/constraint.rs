@@ -1934,7 +1934,7 @@ pub struct AvailabilityConstraint {
 ///     attachment: AvailabilityConstraintAttachment::DataStructure(DsdReference {
 ///         agency: "SDMX".to_string(),
 ///         id: "ECB_EXR1".to_string(),
-///         version: "1.0.0".to_string(),
+///         version: "1.0.0".parse().unwrap(),
 ///     }),
 ///     region: CubeRegion {
 ///         key_values: vec![],
@@ -2546,7 +2546,7 @@ mod tests {
         DsdReference {
             agency: "SDMX".to_string(),
             id: id.to_string(),
-            version: "1.0.0".to_string(),
+            version: "1.0.0".parse().unwrap(),
         }
     }
 
@@ -2554,7 +2554,7 @@ mod tests {
         DataflowReference {
             agency: "ECB".to_string(),
             id: id.to_string(),
-            version: "1.0.0".to_string(),
+            version: "1.0.0".parse().unwrap(),
         }
     }
 
@@ -2562,7 +2562,7 @@ mod tests {
         ProvisionAgreementReference {
             agency: "ECB".to_string(),
             id: id.to_string(),
-            version: "1.0.0".to_string(),
+            version: "1.0.0".parse().unwrap(),
         }
     }
 
@@ -2685,6 +2685,7 @@ mod tests {
         let provider = DataConstraintAttachment::DataProvider(DataProviderReference {
             agency: "SDMX".to_string(),
             scheme_id: "DATA_PROVIDERS".to_string(),
+            version: "1.0.0".parse().unwrap(),
             id: "ECB".to_string(),
         });
         let sources = DataConstraintAttachment::SimpleDataSource(
@@ -2839,6 +2840,7 @@ mod tests {
             attachment: Some(DataConstraintAttachment::DataProvider(DataProviderReference {
                 agency: "SDMX".to_string(),
                 scheme_id: "DATA_PROVIDERS".to_string(),
+                version: "1.0.0".parse().unwrap(),
                 id: "ECB".to_string(),
             })),
             release_calendar: Some(ReleaseCalendar {
@@ -3067,7 +3069,7 @@ mod tests {
         let par = vec![ProvisionAgreementReference {
             agency: "A".to_string(),
             id: "P".to_string(),
-            version: "1.0".to_string(),
+            version: "1.0".parse().unwrap(),
         }];
         assert_eq!(ProvisionAgreementRefs::new(par.clone()).unwrap().into_inner(), par);
         assert_eq!(Vec::from(ProvisionAgreementRefs::new(par.clone()).unwrap()), par);

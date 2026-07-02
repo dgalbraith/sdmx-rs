@@ -61,7 +61,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 **Rationale**: Why this option over the alternatives. Omit if the decision is self-evident from the observation.
 
 **Consequences**: Downstream implications, open questions, or deferred follow-ups. Omit if none.
-~~~
+~~~S
 
 > **Amended entries retain their full body.** When a later entry changes an earlier one, the earlier entry keeps its body verbatim (the audit trail) and records the relationship in two places: a blockquote at the top of the body, and a decoration on its Entry Index title. Use one of four relationship verbs:
 >
@@ -84,10 +84,10 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0001](#d-0001) | Annotation                  | Annotation text is fully optional                                                                                                                                              |
 | [D-0002](#d-0002) | Reference types             | Reference types kept distinct                                                                                                                                                  |
 | [D-0003](#d-0003) | Codelist                    | Hierarchical codes use flat mapping                                                                                                                                            |
-| [D-0004](#d-0004) | Identifiers                 | Identifier validation at construction → promoted to ADR-0021                                                                                                                 |
-| [D-0005](#d-0005) | Encapsulation               | Invariant-bearing types use private fields and custom Deserialize → promoted to ADR-0021                                                                                     |
+| [D-0004](#d-0004) | Identifiers                 | Identifier validation at construction → promoted to ADR-0021                                                                                                                   |
+| [D-0005](#d-0005) | Encapsulation               | Invariant-bearing types use private fields and custom Deserialize → promoted to ADR-0021                                                                                       |
 | [D-0006](#d-0006) | Collections                 | ~~BTreeMap used throughout~~ (superseded by [D-0051](#d-0051))                                                                                                                 |
-| [D-0007](#d-0007) | String ownership            | Owned String for all text fields → promoted to ADR-0022                                                                                                                      |
+| [D-0007](#d-0007) | String ownership            | Owned String for all text fields → promoted to ADR-0022                                                                                                                        |
 | [D-0008](#d-0008) | DateTime typing             | chrono::DateTime for date-time fields                                                                                                                                          |
 | [D-0009](#d-0009) | Maintainable artefacts      | isFinal removed                                                                                                                                                                |
 | [D-0010](#d-0010) | Maintainable artefacts      | isPartialLanguage added                                                                                                                                                        |
@@ -97,7 +97,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0014](#d-0014) | Identifiable artefacts      | uri added to IdentifiableMetadata (corrected by [D-0035](#d-0035))                                                                                                             |
 | [D-0015](#d-0015) | Data structure              | MeasureList is optional (corrected by [D-0025](#d-0025))                                                                                                                       |
 | [D-0016](#d-0016) | Localisation                | LocalisedString rejects blank keys and empty values (amended by [D-0031](#d-0031))                                                                                             |
-| [D-0017](#d-0017) | Encapsulation               | Field visibility rule → promoted to ADR-0021                                                                                                                                 |
+| [D-0017](#d-0017) | Encapsulation               | Field visibility rule → promoted to ADR-0021                                                                                                                                   |
 | [D-0018](#d-0018) | Conventions                 | bool vs enum chosen by call-site visibility                                                                                                                                    |
 | [D-0019](#d-0019) | Data structure              | AttributeRelationship data variants wrap validating newtypes                                                                                                                   |
 | [D-0020](#d-0020) | Identifiers                 | Identifiers validated at declaration, not at reference                                                                                                                         |
@@ -107,27 +107,27 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0024](#d-0024) | Versionable artefacts       | version is optional (`Option<Version>`); un-versioned is distinct (amended by [D-0027](#d-0027))                                                                               |
 | [D-0025](#d-0025) | Data structure              | DSD has multiple measures (3.x), not a single PrimaryMeasure (2.1) (amended by [D-0049](#d-0049))                                                                              |
 | [D-0026](#d-0026) | Constraints                 | CubeRegion modelled to full spec structure (dim/component, cascade, time range) (corrected by [D-0038](#d-0038))                                                               |
-| [D-0027](#d-0027) | Lexical types               | Validated lexical newtypes (SdmxDecimal/Integer/Version/TimePeriod); lossless raw + retained discriminant (amended by [D-0070](#d-0070))                                       |
+| [D-0027](#d-0027) | Lexical types               | Validated lexical newtypes (SdmxDecimal/Integer/Version/TimePeriod); lossless raw + retained discriminant (amended by [D-0070](#d-0070), [D-0073](#d-0073))                    |
 | [D-0028](#d-0028) | Data structure              | Component Representation subsystem (Enumeration/TextFormat, DataType, facets)                                                                                                  |
 | [D-0029](#d-0029) | Data structure              | TimeDimension modelled as a separate Option slot on the DSD                                                                                                                    |
 | [D-0030](#d-0030) | Maintainable artefacts      | External-reference modelled as an Infoset Store + derived view (amended by [D-0031](#d-0031), [D-0052](#d-0052))                                                               |
-| [D-0031](#d-0031) | Architecture (foundational) | Two-layer model: Infoset Store + derived views; never collapse the store → promoted to ADR-0023                                                                              |
+| [D-0031](#d-0031) | Architecture (foundational) | Two-layer model: Infoset Store + derived views; never collapse the store → promoted to ADR-0023                                                                                |
 | [D-0032](#d-0032) | Item schemes                | ItemScheme.isPartial modelled on ItemScheme (not MaintainableMetadata); distinct from isPartialLanguage                                                                        |
 | [D-0033](#d-0033) | Annotation                  | Annotations modelled on every AnnotableType descendant (universal extension point); via IdentifiableMetadata if identifiable, else bare field                                  |
 | [D-0034](#d-0034) | Constraints                 | ConstraintAttachment split into two per-constraint enums                                                                                                                       |
 | [D-0035](#d-0035) | Identifiable artefacts      | Link modelled on IdentifiableMetadata (reverses [D-0014](#d-0014)'s omission); typed multi-valued association, not transport-layer                                             |
-| [D-0036](#d-0036) | Constraints                 | ReportingConstraint cube regions capped at 2 (CubeRegions newtype) — mechanical maxOccurs; include/exclude pairing left to a lint                                            |
+| [D-0036](#d-0036) | Constraints                 | ReportingConstraint cube regions capped at 2 (CubeRegions newtype) — mechanical maxOccurs; include/exclude pairing left to a lint                                              |
 | [D-0037](#d-0037) | Constraints                 | DataConstraint carries the 3.0 role (Option of ConstraintRole) as a superset member; ReportingConstraint renamed DataConstraint                                                |
 | [D-0038](#d-0038) | Constraints                 | Member selections modelled to full MemberSelectionType (CubeRegionKey/ComponentValueSet); non-empty Values enforced; corrects [D-0026](#d-0026)                                |
 | [D-0039](#d-0039) | Constraints                 | DataKeySet subtree modelled on DataConstraint; 3.1 multi-value keys carried as superset; fixed=true include attributes not stored                                              |
 | [D-0040](#d-0040) | Constraints                 | CubeValue split into spec-exact CubeKeyValue/SimpleComponentValue carrying per-value cascade/lang/validity; CubeValues newtype split                                           |
 | [D-0041](#d-0041) | Constraints                 | DataConstraint.attachment is Option (ConstraintAttachment minOccurs=0, both versions); availability attachment stays mandatory                                                 |
 | [D-0042](#d-0042) | Constraints                 | ReleaseCalendar (3.0-only) carried on DataConstraint as a superset member; three required xs:string fields, unvalidated                                                        |
-| [D-0043](#d-0043) | Constraints                 | series_count/obs_count stored as Option of i32 (xs:int, verbatim); rule stated — integer types mirror the XSD value space                                                    |
+| [D-0043](#d-0043) | Constraints                 | series_count/obs_count stored as Option of i32 (xs:int, verbatim); rule stated — integer types mirror the XSD value space                                                      |
 | [D-0044](#d-0044) | Constraints                 | 3.0-only data-source attachment members modelled (SimpleDataSource arm; QueryableDataSource companions); amends [D-0034](#d-0034)'s 3.1-only count                             |
 | [D-0045](#d-0045) | Data structure              | 3.1-only DimensionConstraint (Dataflow) and evolvingStructure (DSD) carried as superset members                                                                                |
-| [D-0046](#d-0046) | Architecture                | 3.0↔3.1 divergences resolved by carrying the superset; disposition table is the reconciliation baseline                                                                      |
-| [D-0047](#d-0047) | Codelist                    | ValueList modelled as a maintainable artefact (not an item scheme); fourth id tier (plain xs:string); items a Vec — duplicates are wire-valid                                |
+| [D-0046](#d-0046) | Architecture                | 3.0↔3.1 divergences resolved by carrying the superset; disposition table is the reconciliation baseline                                                                        |
+| [D-0047](#d-0047) | Codelist                    | ValueList modelled as a maintainable artefact (not an item scheme); fourth id tier (plain xs:string); items a Vec — duplicates are wire-valid                                  |
 | [D-0048](#d-0048) | Data structure              | Representation completed: EnumerationReference widened, pattern/isMultiLingual/occurs drawn, per-position rules constructor-enforced                                           |
 | [D-0049](#d-0049) | Data structure              | DSD container redrawn: identifiable descriptors (DimensionList/Group/AttributeList/MeasureList); DSD itself becomes a derived carrier                                          |
 | [D-0050](#d-0050) | Data structure              | MetadataAttributeUsage and MeasureRelationship modelled on the attribute list                                                                                                  |
@@ -153,8 +153,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0070](#d-0070) | Lexical types               | SdmxVersion raw-free: canonical grammar, statedness-preserving decomposition; amends [D-0027](#d-0027)/[D-0060](#d-0060)/[D-0065](#d-0065)                                     |
 | [D-0071](#d-0071) | Lexical types               | VersionRef models the version reference grammar (WildcardVersionType); one + wildcard enforced across editions                                                                 |
 | [D-0072](#d-0072) | Lexical types               | ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme                                                                    |
+| [D-0073](#d-0073) | Reference types             | Reference types own their class URN (Display/FromStr); versions typed VersionRef; + admitted everywhere, * nowhere                                                             |
 
-<!-- Next ID: D-0073 -->
+<!-- Next ID: D-0074 -->
 
 ## Entries
 
@@ -676,13 +677,15 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 
 | **Area**     | Lexical types |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (SdmxVersion raw clause amended by [D-0070](#d-0070)) |
+| **Status**   | Active (SdmxVersion raw clause amended by [D-0070](#d-0070); reference-version follow-up resolved by [D-0073](#d-0073)) |
 | **Keywords** | newtype, validation, lossless, no_std, decimal, integer, version, time-period, naming |
 | **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L499-L504) (`StandardTimePeriodType`, `ObservationalTimePeriodType`); [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1608-L1613) (`VersionType`); W3C XSD (`xs:decimal`, `xs:integer`); [semver.org §11](https://semver.org/#spec-item-11) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.1.1 |
 | **Related**  | [D-0004](#d-0004), [D-0016](#d-0016), [D-0024](#d-0024), [D-0028](#d-0028) |
 
 > **Amended 2026-07-02 by [D-0070](#d-0070)**: the `SdmxVersion` clause below is revised. `VersionType`'s grammar is canonical (one lexeme per value), so the stored raw was a redundant copy of the decomposition and is dropped: `SdmxVersion` is now the statedness-preserving `{ major, minor: Option<u32>, patch, extension }` with structural equality and a reconstructing `Display`. The lossless-raw rule below narrows to non-canonical grammars; `SdmxDecimal`/`SdmxInteger` stand unchanged. Original body retained for provenance.
+>
+> **Amended 2026-07-02 by [D-0073](#d-0073)**: consequence (3)'s follow-up question, whether the reference structs adopt `SdmxVersion`, is resolved with a different answer than it framed: they adopt `VersionRef`, the reference grammar, because a declaration version cannot carry the `+` wildcard forms every reference class admits.
 
 **Observation**: Several SDMX fields are constrained lexical types — `xs:decimal`, `xs:integer`, `VersionType`, `StandardTimePeriodType` — whose value space does not map losslessly onto any fixed Rust type (`xs:decimal`/`xs:integer` are unbounded; version/time are structured grammars). The earlier "store the string, defer grammar to the parser" stance (D-0024 Tier-A; D-0016 for BCP-47) sits in tension with D-0004/D-0019 (construction enforces invariants for *all* callers, not just the parser) and make-illegal-states-unrepresentable.
 
@@ -1661,5 +1664,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A union of the member newtypes rather than a widened `SdmxTimePeriod`: the Standard-only positions ([D-0064](#d-0064)'s `valid_from`/`valid_to` and the §5.8 validity pairs) must keep rejecting time-range lexemes, so the widening has to be a new type. The range's date half is validated by the shared Gregorian/date-time classifier, the same strictness the crate already applies to `xs:date`/`xs:dateTime` (the chain's month-length and leap-year patterns are not separately re-implemented); the duration is validated to the chain's ordered-component grammar.
 
 **Consequences**: (1) `TimePeriodRange.period` tightens from `String` to `ObservationalTimePeriod`; its derived `Deserialize` now validates the union on the wire path. (2) The lexical-typing work [D-0064](#d-0064) recorded as deferred for `.period` is delivered; its body stands unchanged. (3) Round-trip tests fold into the property-based-testing roadmap item.
+
+---
+
+### D-0073 — Reference types own their class URN contract; versions typed VersionRef
+
+| **Area**     | Reference types |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | reference-types, urn, display, fromstr, version-ref, wildcard, item-in-scheme, spec-alignment |
+| **Spec ref** | [SDMXCommonReferences.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommonReferences.xsd#L14-L204) (URN macro part chain) and the per-class reference simpleTypes throughout; [SDMXMetadataGeneric.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXMetadataGeneric.xsd#L47) + [SDMXStructureProvisionAgreement.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureProvisionAgreement.xsd#L85) (the only `WildcardUrnType` consumers); [SDMX 3.0 Section 5, Registry Specification](https://sdmx.org/wp-content/uploads/SDMX_3-0-0_SECTION_5_FINAL-1_0.pdf) (URN macro grammar) |
+| **Related**  | [D-0002](#d-0002), [D-0020](#d-0020), [D-0034](#d-0034), [D-0068](#d-0068), [D-0069](#d-0069), [D-0071](#d-0071) |
+
+**Observation**: On the wire, every structural reference is URN text of a per-class simpleType, and all seven modelled classes descend from the URN *reference* chain (`UrnReferenceVersionPart`): the version part admits the `+` wildcard forms, and its character class (`[0-9A-Za-z\-\.\+]`) excludes the bare `*`. The `WildcardUrnType` family that admits `*` (and wildcard agency/id parts) is consumed only by metadata Target elements, which are not modelled. The URN mandates the version part on every class, including item-in-scheme (`agency:scheme_id(version).item`), whose scheme version the model had dropped, so the item references could not render a legal URN; agencies and item tails may be dot-nested.
+
+**Decision**: Each reference struct owns its URN contract: `Display` renders the full class URN (`urn:sdmx:org.sdmx.infomodel.<package>.<Class>=...`) and `FromStr` parses exactly that class into the decomposed fields, with `Error::InvalidReferenceUrn { urn, class }` naming the expected class. All seven `version` fields are typed `VersionRef` ([D-0071](#d-0071)), and `ConceptReference`/`DataProviderReference` gain the mandated scheme version. `VersionRef::Any` is grammar-unparseable in every reference URN and rejected by `FromStr`; it remains carrier-representable like any other unvalidated field, catalogued as a Layer-2 lint. Item tails are held verbatim (nested paths are wire-legal). The serde impls stay field-wise derived: the internal projection is not the wire ([D-0068](#d-0068)).
+
+**Rationale**: The parse path is where the grammar belongs: the Phase-2 parsers split wire references through `FromStr` ([D-0069](#d-0069)), while construction stays invariant-free because identifiers are validated at declaration, not reference ([D-0020](#d-0020)); rendering a wire-conformant URN from hand-built fields is the writer's obligation, like every other carrier field. The version is `VersionRef` rather than `SdmxVersion` because the chain says so: every reference class admits the `+` forms a declaration version cannot carry.
+
+**Consequences**: (1) Resolves [D-0027](#d-0027) consequence (3): the references adopt `VersionRef`, not `SdmxVersion` (amended in place). (2) Extends [D-0002](#d-0002) without amendment: each distinct type now also owns its class URN; [D-0069](#d-0069)'s anticipated D-0002 amendment resolves as this extension. (3) Public API: the five triple `version` fields change type, and the two item-in-scheme structs gain a `version` field. (4) Two Layer-2 lints are catalogued in 0010 §5.11: a reference whose fields cannot render a wire-conformant URN (`VersionRef::Any` included) fails the writer's conformance check; and a dot-nested item tail on a flat item class (`Concept`, `DataProvider`), which the XSD patterns mechanically admit but the Registry Specification's URN prose forbids, is held verbatim and flagged. (5) The `*`-admitting contexts (metadata targets) take their own modelling when they arrive, not this shape. (6) Round-trip tests fold into the property-based-testing roadmap item.
 
 ---

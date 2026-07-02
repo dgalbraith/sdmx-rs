@@ -189,6 +189,7 @@ impl IdentifiableArtefact for Group {
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_FREQ".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "FREQ".to_string(),
 /// };
 /// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
@@ -315,6 +316,7 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "OBS_STATUS".to_string(),
 /// };
 /// let attribute =
@@ -448,6 +450,7 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "OBS_VALUE".to_string(),
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
@@ -549,7 +552,12 @@ mod tests {
     };
 
     fn concept(id: &str) -> ConceptReference {
-        ConceptReference { agency: "SDMX".into(), scheme_id: "CS".into(), id: id.into() }
+        ConceptReference {
+            agency: "SDMX".into(),
+            scheme_id: "CS".into(),
+            version: "1.0.0".parse().unwrap(),
+            id: id.into(),
+        }
     }
 
     fn component_metadata(id: &str) -> ComponentMetadata {

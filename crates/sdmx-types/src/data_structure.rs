@@ -63,6 +63,7 @@ use crate::{
 ///     ConceptReference {
 ///         agency: "SDMX".to_string(),
 ///         scheme_id: "CS".to_string(),
+///         version: "1.0.0".parse().unwrap(),
 ///         id: "FREQ".to_string(),
 ///     },
 ///     None,
@@ -204,7 +205,12 @@ mod tests {
     };
 
     fn concept(id: &str) -> ConceptReference {
-        ConceptReference { agency: "SDMX".into(), scheme_id: "CS".into(), id: id.into() }
+        ConceptReference {
+            agency: "SDMX".into(),
+            scheme_id: "CS".into(),
+            version: "1.0.0".parse().unwrap(),
+            id: id.into(),
+        }
     }
 
     fn component_metadata(id: &str) -> ComponentMetadata {

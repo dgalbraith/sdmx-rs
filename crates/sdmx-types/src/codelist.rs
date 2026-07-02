@@ -634,7 +634,7 @@ mod tests {
             codelist: CodelistReference {
                 agency: "SDMX".into(),
                 id: "CL_BASE".into(),
-                version: "1.0.0".into(),
+                version: "1.0.0".parse().unwrap(),
             },
             selection: Some(CodeSelection::Inclusive(
                 MemberValues::new(vec![MemberValue {

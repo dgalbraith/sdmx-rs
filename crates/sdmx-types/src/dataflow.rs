@@ -153,7 +153,7 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 ///     dsd: Some(DsdReference {
 ///         agency: "ECB".to_string(),
 ///         id: "ECB_EXR".to_string(),
-///         version: "1.0.0".to_string(),
+///         version: "1.0.0".parse().unwrap(),
 ///     }),
 ///     dimension_constraint: None,
 /// };
@@ -264,7 +264,11 @@ mod tests {
     }
 
     fn dsd_reference() -> DsdReference {
-        DsdReference { agency: "ECB".into(), id: "ECB_EXR".into(), version: "1.0.0".into() }
+        DsdReference {
+            agency: "ECB".into(),
+            id: "ECB_EXR".into(),
+            version: "1.0.0".parse().unwrap(),
+        }
     }
 
     #[test]

@@ -65,6 +65,7 @@ use crate::{
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_FREQ".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "FREQ".to_string(),
 /// };
 /// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
@@ -198,6 +199,7 @@ impl<'de> serde::Deserialize<'de> for Dimension {
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_TIME".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "TIME_PERIOD".to_string(),
 /// };
 /// // `TextFormat` derives `Default`, so only the facets that matter need naming.
@@ -303,7 +305,12 @@ mod tests {
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
-        ConceptReference { agency: "SDMX".into(), scheme_id: "CS_FREQ".into(), id: id.into() }
+        ConceptReference {
+            agency: "SDMX".into(),
+            scheme_id: "CS_FREQ".into(),
+            version: "1.0.0".parse().unwrap(),
+            id: id.into(),
+        }
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {
@@ -357,7 +364,7 @@ mod tests {
                     crate::reference::ValueListReference {
                         agency: "SDMX".into(),
                         id: "VL".into(),
-                        version: "1.0.0".into(),
+                        version: "1.0.0".parse().unwrap(),
                     },
                 ),
                 format: None,
@@ -405,7 +412,7 @@ mod tests {
                     crate::reference::ValueListReference {
                         agency: "SDMX".into(),
                         id: "VL".into(),
-                        version: "1.0.0".into(),
+                        version: "1.0.0".parse().unwrap(),
                     },
                 ),
                 format: None,

@@ -117,6 +117,19 @@ pub enum Error {
     )]
     InvalidObservationalTimePeriod(String),
 
+    /// A string failed a reference type's URN grammar: the full
+    /// `urn:sdmx:org.sdmx.infomodel.<package>.<Class>=` form for the named class, with a
+    /// valid agency, id, reference version (`+` wildcards admitted, `*` not), and, for the
+    /// item-in-scheme shapes, an item tail. Produced by the reference types'
+    /// [`FromStr`](core::str::FromStr) impls.
+    #[error("Invalid SDMX reference URN for {class}: {urn}")]
+    InvalidReferenceUrn {
+        /// The rejected input.
+        urn: String,
+        /// The URN class the parse expected (for example `codelist.Codelist`).
+        class: &'static str,
+    },
+
     /// A localised string was constructed with an empty entry list. The parent
     /// elements (`Name`, `Description`) require at least one entry, so an empty list
     /// is mechanically schema-invalid. Produced by

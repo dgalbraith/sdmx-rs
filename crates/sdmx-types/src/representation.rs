@@ -709,7 +709,7 @@ mod tests {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
                     agency: "SDMX".into(),
                     id: "CL_FREQ".into(),
-                    version: "1.0.0".into(),
+                    version: "1.0.0".parse().unwrap(),
                 }),
                 format: Some(EnumerationFormat {
                     text_type: Some(DataType::Double), // basic, but outside the Code subset
@@ -730,7 +730,7 @@ mod tests {
         let codelist = CodelistReference {
             agency: "SDMX".into(),
             id: "CL_FREQ".into(),
-            version: "1.0.0".into(),
+            version: "1.0.0".parse().unwrap(),
         };
         let format = EnumerationFormat {
             text_type: Some(DataType::XHTML), // XHTML is not in the Code subset
@@ -809,7 +809,7 @@ mod tests {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
                     agency: "SDMX".into(),
                     id: "CL_FREQ".into(),
-                    version: "1.0.0".into(),
+                    version: "1.0.0".parse().unwrap(),
                 }),
                 format: None,
             },
@@ -834,7 +834,7 @@ mod tests {
                 enumeration: EnumerationReference::ValueList(ValueListReference {
                     agency: "SDMX".into(),
                     id: "VL_CURRENCY".into(),
-                    version: "1.0.0".into(),
+                    version: "1.0.0".parse().unwrap(),
                 }),
                 format: None,
             },
@@ -856,7 +856,7 @@ mod tests {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
                     agency: "SDMX".into(),
                     id: "CL_FREQ".into(),
-                    version: "1.0.0".into(),
+                    version: "1.0.0".parse().unwrap(),
                 }),
                 format: Some(EnumerationFormat {
                     text_type: Some(DataType::DateTime),
