@@ -51,6 +51,7 @@ use crate::{
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "OBS_VALUE".to_string(),
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
@@ -157,7 +158,12 @@ mod tests {
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
-        ConceptReference { agency: "SDMX".into(), scheme_id: "CS".into(), id: id.into() }
+        ConceptReference {
+            agency: "SDMX".into(),
+            scheme_id: "CS".into(),
+            version: "1.0.0".parse().unwrap(),
+            id: id.into(),
+        }
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {

@@ -301,7 +301,10 @@ mod tests {
         assert_eq!(value_list.links().len(), 1);
         assert_eq!(value_list.names().first(), "Currencies");
         assert_eq!(value_list.descriptions().map(LocalisedString::first), Some("ISO codes"));
-        assert_eq!(value_list.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(
+            value_list.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.2.3")
+        );
         assert_eq!(value_list.valid_from(), Some(&valid_from));
         assert_eq!(value_list.valid_to(), None);
         assert_eq!(value_list.agency(), "SDMX");

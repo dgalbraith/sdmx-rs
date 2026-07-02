@@ -1,22 +1,29 @@
 //! Validated lexical newtypes for SDMX's constrained value types.
 //!
 //! [`SdmxDecimal`], [`SdmxInteger`], [`SdmxVersion`], and [`SdmxTimePeriod`] wrap the SDMX
-//! lexical types whose value space does not map losslessly onto a fixed Rust type. Each stores
-//! the canonical lexeme verbatim, validates it at construction, and never rewrites it, so values
-//! round-trip exactly.
+//! lexical types whose value space does not map losslessly onto a fixed Rust type. Each
+//! validates its grammar at construction and round-trips its text exactly:
+//! [`SdmxDecimal`], [`SdmxInteger`], and [`SdmxTimePeriod`] store the canonical lexeme verbatim
+//! and never rewrite it, while [`SdmxVersion`]'s canonical grammar lets it hold only the parsed
+//! decomposition and reconstruct the lexeme on display. [`VersionRef`] extends the family with
+//! the version *reference* grammar (`WildcardVersionType`: `+` and `*` wildcards), raw-free on
+//! the same grounds.
 #![cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-Lexical-newtype convention: the canonical lexical form is the lossless source of truth, `new()`
-validates the grammar on the single write path so every caller gets a well-formed value, and
-where validation naturally classifies the value the cheap discriminant is retained
-(`SdmxVersion`'s parsed components, `SdmxTimePeriod`'s kind).
+Lexical-newtype convention: `new()` validates the grammar on the single write path so every
+caller gets a well-formed value, and where validation naturally classifies the value the cheap
+discriminant is retained (`SdmxVersion`'s parsed components, `SdmxTimePeriod`'s kind). Storage
+forks on canonicity: a non-canonical grammar (several lexemes per value: `xs:decimal`,
+`xs:integer`, the time-period union) keeps the lexeme as the lossless source of truth, while a
+canonical grammar (`VersionType`) makes format-then-parse a bijection, so the decomposition alone
+is lossless and no lexeme is stored.
 
 `Ord`/`PartialOrd` for `SdmxVersion` are deliberately deferred, not resolved; see its design notes.
 
-Decisions: D-0027.
+Decisions: D-0027, D-0070.
 "#
 )]
 
@@ -61,10 +68,11 @@ use crate::error::{Error, to_de_error};
 ## Design Notes
 
 Lexical newtype with lossless `String` storage: `raw` is the canonical form and the round-trip
-source of truth (an `f64` would round; a fixed-width decimal would overflow). No useful sub-kind,
-so it is a bare newtype, in contrast to `SdmxVersion`, which retains a parsed decomposition.
+source of truth (an `f64` would round; a fixed-width decimal would overflow). The grammar is not
+canonical (`1.0` and `1.00` are distinct lexemes of equal value), so the lexeme is load-bearing,
+in contrast to `SdmxVersion` (D-0070). No useful sub-kind, so it is a bare newtype.
 
-Decisions: D-0027.
+Decisions: D-0027, D-0070.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -210,15 +218,20 @@ impl From<SdmxInteger> for String {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionType.md"))]
 ///
-/// The canonical string is stored verbatim and the parsed components are read through the
-/// accessors. `patch()` returning `None` distinguishes the legacy form from the semantic form.
+/// The parsed components are read through the accessors and the canonical string is
+/// reconstructed by [`Display`](core::fmt::Display): the grammar admits exactly one lexeme per
+/// value, so the text is derived, not stored. `patch()` returning `None` distinguishes the
+/// legacy form from the semantic form, and `minor()` returning `None` distinguishes the
+/// bare-major legacy form (`"1"`) from its two-component sibling (`"1.0"`).
 ///
-/// Equality compares the exact version string, so `"3.1"` and `"3.1.0"` are distinct. Ordering is
-/// not currently provided.
+/// Equality is structural and distinguishes exactly what the lexemes distinguish, so `"3.1"` and
+/// `"3.1.0"` are distinct. Ordering is not currently provided.
 ///
 /// ## Guarantees
 ///
-/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxVersion>() == Ok(x)`.
+/// Round-trips losslessly through its text in both directions:
+/// `x.to_string().parse::<SdmxVersion>() == Ok(x)` and
+/// `s.parse::<SdmxVersion>()?.to_string() == s`.
 ///
 /// # Examples
 ///
@@ -227,8 +240,10 @@ impl From<SdmxInteger> for String {
 ///
 /// let version: SdmxVersion = "1.0.0-rc.1".parse()?;
 /// assert_eq!(version.major(), 1);
+/// assert_eq!(version.minor(), Some(0));
 /// assert_eq!(version.extension(), Some("rc.1"));
 /// assert!(!version.is_legacy());
+/// assert_eq!(version.to_string(), "1.0.0-rc.1");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[cfg_attr(
@@ -236,31 +251,40 @@ impl From<SdmxInteger> for String {
     doc = r#"
 ## Design Notes
 
-`raw` is the lossless source of truth; the parsed decomposition is retained alongside it.
+Raw-free by canonicity: every numeric component is `0|[1-9]\d*` (no leading zeros, no sign) and
+the extension grammar admits one spelling per value, so format-then-parse is a bijection and a
+stored lexeme would be a redundant second source of truth. This is the fork from
+`SdmxDecimal`/`SdmxInteger`, whose grammars are not canonical (`1.0` vs `1.00`) and whose raw is
+therefore load-bearing. Dropping the raw requires the decomposition to be statedness-preserving:
+`minor` is `Option<u32>` so the bare-major legacy form does not collapse into `major.0`.
 `major`/`minor`/`patch` are `u32` because the validated grammar is digits-only (no sign), so
 unsigned loses nothing.
 
+`PartialEq`/`Eq`/`Hash` derive structurally; by the bijection this is the same partition as
+comparing lexemes. `AsRef<str>` is deliberately absent: there is no stored lexeme to borrow, and
+rendering goes through `Display`.
+
 Ordering is deliberately deferred, not resolved. SemVer §11 precedence is the intended basis, but
 the legacy/semantic equivalence (for example `3.1` vs `3.1.0`) is undecided and premature to lock.
-The likely shape is an explicit precedence-comparison convenience (a method or wrapper) rather than
-an `Ord` impl on the type, so raw-`Eq` and SemVer ordering can coexist without an `Ord`/`Eq`
-contract: distinct under equality, equal under precedence.
+The likely shape is an explicit precedence-comparison convenience (a method or wrapper) rather
+than an `Ord` impl on the type, so structural `Eq` and SemVer ordering can coexist without an
+`Ord`/`Eq` contract: distinct under equality, equal under precedence.
 
-Decisions: D-0027, D-0060.
+Decisions: D-0027, D-0060, D-0070.
 "#
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SdmxVersion {
-    raw: String,
     major: u32,
-    minor: u32,
+    minor: Option<u32>,
     patch: Option<u32>,
     extension: Option<String>,
 }
 
 impl SdmxVersion {
-    /// Validates `raw` against the `VersionType` union grammar and retains the parsed
-    /// decomposition. On success `raw` is stored verbatim.
+    /// Validates `raw` against the `VersionType` union grammar and keeps the parsed
+    /// decomposition; the lexeme is reconstructed on demand by
+    /// [`Display`](core::fmt::Display).
     ///
     /// # Errors
     ///
@@ -271,21 +295,15 @@ impl SdmxVersion {
         parse_sdmx_version(raw)
     }
 
-    /// The canonical version string, exactly as supplied.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.raw
-    }
-
     /// The major component.
     #[must_use]
     pub const fn major(&self) -> u32 {
         self.major
     }
 
-    /// The minor component. A bare-major legacy version (for example `"1"`) reports `0`.
+    /// The minor component, or `None` for the bare-major legacy form (for example `"1"`).
     #[must_use]
-    pub const fn minor(&self) -> u32 {
+    pub const fn minor(&self) -> Option<u32> {
         self.minor
     }
 
@@ -308,27 +326,21 @@ impl SdmxVersion {
     }
 }
 
+/// Reconstructs the canonical lexeme: the grammar admits exactly one spelling per value, so
+/// the rendered text is the same string the value was parsed from.
 impl core::fmt::Display for SdmxVersion {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&self.raw)
-    }
-}
-
-/// Equality compares the canonical version strings, so a prerelease and its release
-/// (`"1.0.0-rc"` vs `"1.0.0"`) are correctly unequal.
-impl PartialEq for SdmxVersion {
-    fn eq(&self, other: &Self) -> bool {
-        self.raw == other.raw
-    }
-}
-
-impl Eq for SdmxVersion {}
-
-/// Hashing matches [`PartialEq`]: the canonical version string is hashed, so equal versions hash
-/// equally. Hashing the parsed numeric parts instead could disagree with the raw-string equality.
-impl core::hash::Hash for SdmxVersion {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        core::hash::Hash::hash(&self.raw, state);
+        write!(f, "{}", self.major)?;
+        if let Some(minor) = self.minor {
+            write!(f, ".{minor}")?;
+        }
+        if let Some(patch) = self.patch {
+            write!(f, ".{patch}")?;
+        }
+        if let Some(extension) = &self.extension {
+            write!(f, "-{extension}")?;
+        }
+        Ok(())
     }
 }
 
@@ -367,6 +379,162 @@ impl core::fmt::Display for VersionDisplay<'_> {
         match self.0 {
             Some(v) => write!(f, "{v}"),
             None => f.write_str("<unversioned>"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// WildcardVersionType (version references)
+// ---------------------------------------------------------------------------
+
+/// The component of a semantic version triple that a [`VersionRef::Latest`] reference
+/// wildcards with `+`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum WildcardPosition {
+    /// `+` on the major component: `2+.3.1`.
+    Major,
+    /// `+` on the minor component: `2.3+.1`.
+    Minor,
+    /// `+` on the patch component: `2.3.1+`.
+    Patch,
+}
+
+/// An SDMX `WildcardVersionType`: the version grammar of a *reference*.
+///
+/// A reference admits what a declared [`SdmxVersion`] admits plus the wildcard forms:
+/// `+` on exactly one component of a full semantic triple ("latest available"), or the
+/// bare `*`.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommonReferences.xsd`
+/// - **Type**: `WildcardVersionType` (the union of `VersionReferenceType` and `WildcardType`; `SemanticVersionReferenceType` carries the `+` patterns)
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/WildcardVersionType.md"))]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionReferenceType.md"))]
+#[cfg_attr(
+    design_docs,
+    doc = include_str!("../docs/xsd-fragments/SemanticVersionReferenceType.3.0.md")
+)]
+#[cfg_attr(
+    design_docs,
+    doc = include_str!("../docs/xsd-fragments/SemanticVersionReferenceType.3.1.md")
+)]
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/WildcardType.md"))]
+///
+/// `2+.3.1` reads "the latest available version at least `2.3.1`" (per the schema
+/// documentation, even if not backwards compatible). A `+` wildcard requires the full
+/// `major.minor.patch` triple and cannot be combined with a prerelease extension
+/// (`2.3+.1-draft` is rejected). Resolving a wildcard to a concrete version requires a
+/// registry catalogue and is outside this type.
+///
+/// Like [`SdmxVersion`], the grammar admits one lexeme per value, so the text is
+/// reconstructed by [`Display`](core::fmt::Display), not stored.
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text in both directions:
+/// `x.to_string().parse::<VersionRef>() == Ok(x)` and
+/// `s.parse::<VersionRef>()?.to_string() == s`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{SdmxVersion, VersionRef, WildcardPosition};
+///
+/// let latest: VersionRef = "2+.3.1".parse()?;
+/// assert_eq!(
+///     latest,
+///     VersionRef::Latest { major: 2, minor: 3, patch: 1, at: WildcardPosition::Major }
+/// );
+/// assert_eq!(latest.to_string(), "2+.3.1");
+///
+/// let exact: VersionRef = "1.0".parse()?;
+/// assert_eq!(exact, VersionRef::Exact("1.0".parse::<SdmxVersion>()?));
+///
+/// assert_eq!("*".parse::<VersionRef>()?, VersionRef::Any);
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The spec separates the declaration version grammar (`VersionType`, exact, on
+`VersionableType`) from the reference grammars: `VersionReferenceType` adds the
+single-`+` semantic forms and `WildcardVersionType` adds the bare `*`. `VersionRef`
+models the widest reference union; `SdmxVersion` stays the declaration type. Which
+reference contexts admit `*` versus only `+` is settled by the URN-contract pass, not
+here.
+
+Exactly one `+` is enforced across both editions. 3.1's three patterns each admit one
+position; 3.0's third pattern is mechanically looser (it also matches `1+.2.3+`), but
+the same type's documentation in both editions states that only one part may be
+wildcarded, so the model follows the documented contract rather than carrying the 3.0
+regex slack as a superset member. The full-triple and no-extension requirements are
+mechanical in both editions' patterns, and the enum makes them unrepresentable:
+`Latest` has three mandatory `u32` components and no extension slot.
+
+Raw-free on the same canonicity grounds as `SdmxVersion` (one lexeme per value; see
+the D-0070 fork). Both enums are exhaustive: the union is grammar-closed. `1.*` and
+`1.0.*` are `VersionQueryType` (registry-query grammar, a different message family)
+and are deliberately rejected here.
+
+Decisions: D-0069, D-0070, D-0071.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum VersionRef {
+    /// A reference to exactly this version: `VersionReferenceType`'s legacy and
+    /// semantic member grammars, identical to a declared [`SdmxVersion`].
+    Exact(SdmxVersion),
+    /// A "latest available" reference: a full semantic triple with `+` on the
+    /// component named by `at`. `{ major: 2, minor: 3, patch: 1, at: Major }` renders
+    /// as `2+.3.1`.
+    Latest {
+        /// The major component (the stated lower bound when `at` is [`WildcardPosition::Major`]).
+        major: u32,
+        /// The minor component.
+        minor: u32,
+        /// The patch component.
+        patch: u32,
+        /// Which component carries the `+`.
+        at: WildcardPosition,
+    },
+    /// The bare `*` (`WildcardType`): any version of the referenced artefact.
+    Any,
+}
+
+impl VersionRef {
+    /// Validates `raw` against the `WildcardVersionType` union grammar; the lexeme is
+    /// reconstructed on demand by [`Display`](core::fmt::Display).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidVersionReference`] if `raw` is neither a valid exact
+    /// version, a full semantic triple with `+` on exactly one component (and no
+    /// extension), nor the bare `*`.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        parse_version_ref(raw)
+    }
+}
+
+/// Reconstructs the canonical lexeme, as for [`SdmxVersion`].
+impl core::fmt::Display for VersionRef {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Exact(version) => write!(f, "{version}"),
+            Self::Latest { major, minor, patch, at } => {
+                let wild = |p| if *at == p { "+" } else { "" };
+                write!(
+                    f,
+                    "{major}{}.{minor}{}.{patch}{}",
+                    wild(WildcardPosition::Major),
+                    wild(WildcardPosition::Minor),
+                    wild(WildcardPosition::Patch)
+                )
+            }
+            Self::Any => f.write_str("*"),
         }
     }
 }
@@ -556,6 +724,174 @@ pub enum Granularity {
 }
 
 // ---------------------------------------------------------------------------
+// TimeRangeType and ObservationalTimePeriodType
+// ---------------------------------------------------------------------------
+
+/// An SDMX `TimeRangeType`: a start date or date-time plus a duration, as `start/duration`.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `TimeRangeType`
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/TimeRangeType.md"))]
+///
+/// The start is a full `xs:date` or `xs:dateTime` (an optional timezone is permitted on
+/// either); the duration is an `xs:duration` with its components in order and at least one
+/// present. The canonical string is stored verbatim, and the two halves are exposed through
+/// [`start()`](Self::start) and [`duration()`](Self::duration).
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxTimeRange>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::SdmxTimeRange;
+///
+/// let range: SdmxTimeRange = "2010-01-01/P2M".parse()?;
+/// assert_eq!(range.start(), "2010-01-01");
+/// assert_eq!(range.duration(), "P2M");
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Lexical newtype with lossless `String` storage: date and duration lexemes are not canonical
+(timezone spellings, fractional seconds), so the raw is load-bearing (the D-0070 fork). The `/`
+separator occurs exactly once (neither half's grammar admits one), so the accessors are cheap
+slices. The start half is validated with the shared Gregorian/date-time classifier, the same
+strictness the crate applies to `xs:date`/`xs:dateTime` everywhere (the XSD chain's month-length
+and leap-year patterns are not re-implemented); the duration is the chain's ordered-component
+grammar. The name carries the `Sdmx` prefix because bare `TimeRange` collides with the constraint
+selection type (D-0027 naming rule).
+
+Decisions: D-0027, D-0072.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SdmxTimeRange {
+    raw: String,
+}
+
+impl SdmxTimeRange {
+    /// Validates `raw` against the `TimeRangeType` grammar and stores it verbatim.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidTimeRange`] if `raw` is not `start/duration` with a full
+    /// `xs:date` or `xs:dateTime` start and a non-empty, ordered `xs:duration`.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        if is_time_range(&raw) { Ok(Self { raw }) } else { Err(Error::InvalidTimeRange(raw)) }
+    }
+
+    /// The canonical time-range string, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.raw
+    }
+
+    /// The start half: a full `xs:date` or `xs:dateTime`, with any stated timezone.
+    #[must_use]
+    pub fn start(&self) -> &str {
+        self.raw.split_once('/').map_or(self.raw.as_str(), |(start, _)| start)
+    }
+
+    /// The duration half: an `xs:duration` such as `P2M` or `PT30M`.
+    #[must_use]
+    pub fn duration(&self) -> &str {
+        self.raw.split_once('/').map_or("", |(_, duration)| duration)
+    }
+}
+
+/// An SDMX `ObservationalTimePeriodType`: a standard time period or a time range.
+///
+/// ## Specification
+/// - **Schema**: `SDMXCommon.xsd`
+/// - **Type**: `ObservationalTimePeriodType` (the union of `StandardTimePeriodType` and `TimeRangeType`)
+/// - **Element**: N/A (Simple Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ObservationalTimePeriodType.md"))]
+///
+/// The widest time-period vocabulary in SDMX: every [`SdmxTimePeriod`] lexeme plus the
+/// [`SdmxTimeRange`] start-and-duration form. The two member grammars are disjoint (only a
+/// time range contains `/`), so classification is unambiguous.
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text:
+/// `x.to_string().parse::<ObservationalTimePeriod>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::ObservationalTimePeriod;
+///
+/// let standard: ObservationalTimePeriod = "2024-Q4".parse()?;
+/// assert!(matches!(standard, ObservationalTimePeriod::Standard(_)));
+///
+/// let range: ObservationalTimePeriod = "2010-01-01/P2M".parse()?;
+/// assert!(matches!(range, ObservationalTimePeriod::Range(_)));
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A union of the member newtypes rather than a widened `SdmxTimePeriod`: `StandardTimePeriodType`
+positions (`TimeRange.valid_from`/`valid_to`, the constraint validity pairs) must keep rejecting
+time-range lexemes, so the union is its own type and `SdmxTimePeriod` stays exactly the standard
+grammar. Exhaustive: the union is grammar-closed. Both members store their lexeme, so the union
+exposes `as_str()`/`AsRef<str>` like the other lexeme-storing newtypes.
+
+Decisions: D-0064, D-0072.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ObservationalTimePeriod {
+    /// A standard time period: a Gregorian period, an `xs:dateTime`, or a reporting period.
+    Standard(SdmxTimePeriod),
+    /// A time range: a start date or date-time plus a duration.
+    Range(SdmxTimeRange),
+}
+
+impl ObservationalTimePeriod {
+    /// Validates `raw` against the `ObservationalTimePeriodType` union and classifies it
+    /// into the matching member.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidObservationalTimePeriod`] if `raw` is neither a standard
+    /// time period nor a time range.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        let parsed = if raw.contains('/') {
+            SdmxTimeRange::new(raw).map(Self::Range)
+        } else {
+            SdmxTimePeriod::new(raw).map(Self::Standard)
+        };
+        parsed.map_err(|e| match e {
+            Error::InvalidTimeRange(raw) | Error::InvalidTimePeriod(raw) => {
+                Error::InvalidObservationalTimePeriod(raw)
+            }
+            other => other,
+        })
+    }
+
+    /// The canonical lexeme, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Standard(period) => period.as_str(),
+            Self::Range(range) => range.as_str(),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Standard trait impls (Display / FromStr / AsRef): uniform across the lexeme newtypes.
 // `new(String)` stays the owned, no-clone entry; `from_str(&str)` is the borrowed `.parse()`
 // path that clones into ownership.
@@ -601,7 +937,9 @@ impl AsRef<str> for SdmxInteger {
     }
 }
 
-// `SdmxVersion` already implements `Display` (above); only `FromStr` and `AsRef` are added here.
+// `SdmxVersion` and `VersionRef` already implement `Display` (above); only `FromStr` is added
+// here. `AsRef<str>` is deliberately absent on both: the lexeme is reconstructed, not stored,
+// so there is nothing to borrow.
 impl core::str::FromStr for SdmxVersion {
     type Err = Error;
 
@@ -610,9 +948,11 @@ impl core::str::FromStr for SdmxVersion {
     }
 }
 
-impl AsRef<str> for SdmxVersion {
-    fn as_ref(&self) -> &str {
-        &self.raw
+impl core::str::FromStr for VersionRef {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
     }
 }
 
@@ -633,6 +973,46 @@ impl core::str::FromStr for SdmxTimePeriod {
 impl AsRef<str> for SdmxTimePeriod {
     fn as_ref(&self) -> &str {
         &self.raw
+    }
+}
+
+impl core::fmt::Display for SdmxTimeRange {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.raw)
+    }
+}
+
+impl core::str::FromStr for SdmxTimeRange {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for SdmxTimeRange {
+    fn as_ref(&self) -> &str {
+        &self.raw
+    }
+}
+
+impl core::fmt::Display for ObservationalTimePeriod {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl core::str::FromStr for ObservationalTimePeriod {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for ObservationalTimePeriod {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -668,11 +1048,24 @@ impl<'de> serde::Deserialize<'de> for SdmxInteger {
 
 impl serde::Serialize for SdmxVersion {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(&self.raw)
+        serializer.collect_str(self)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for SdmxVersion {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for VersionRef {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for VersionRef {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -686,6 +1079,32 @@ impl serde::Serialize for SdmxTimePeriod {
 }
 
 impl<'de> serde::Deserialize<'de> for SdmxTimePeriod {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for SdmxTimeRange {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.raw)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SdmxTimeRange {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for ObservationalTimePeriod {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ObservationalTimePeriod {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -769,24 +1188,66 @@ fn parse_sdmx_version(raw: String) -> Result<SdmxVersion, Error> {
                 return Err(Error::InvalidVersion(raw));
             }
             match (parse_u32(maj), parse_u32(min), parse_u32(pat)) {
-                (Some(maj), Some(min), Some(pat)) => (maj, min, Some(pat)),
+                (Some(maj), Some(min), Some(pat)) => (maj, Some(min), Some(pat)),
                 _ => return Err(Error::InvalidVersion(raw)),
             }
         }
         // Legacy: one or two numeric components, no extension permitted.
         ([maj], None) => match parse_u32(maj) {
-            Some(maj) => (maj, 0, None),
+            Some(maj) => (maj, None, None),
             None => return Err(Error::InvalidVersion(raw)),
         },
         ([maj, min], None) => match (parse_u32(maj), parse_u32(min)) {
-            (Some(maj), Some(min)) => (maj, min, None),
+            (Some(maj), Some(min)) => (maj, Some(min), None),
             _ => return Err(Error::InvalidVersion(raw)),
         },
         _ => return Err(Error::InvalidVersion(raw)),
     };
 
     let extension = extension.map(ToString::to_string);
-    Ok(SdmxVersion { raw, major, minor, patch, extension })
+    Ok(SdmxVersion { major, minor, patch, extension })
+}
+
+/// Parses and validates the `WildcardVersionType` union.
+fn parse_version_ref(raw: String) -> Result<VersionRef, Error> {
+    if raw == "*" {
+        return Ok(VersionRef::Any);
+    }
+    if !raw.contains('+') {
+        // No wildcard: exactly the declaration grammar.
+        return match parse_sdmx_version(raw) {
+            Ok(version) => Ok(VersionRef::Exact(version)),
+            Err(Error::InvalidVersion(s)) => Err(Error::InvalidVersionReference(s)),
+            Err(other) => Err(other),
+        };
+    }
+
+    // Wildcarded: a full semantic triple with `+` on exactly one component. The
+    // extension is mutually exclusive with wildcarding, so no `-` can appear.
+    if raw.contains('-') {
+        return Err(Error::InvalidVersionReference(raw));
+    }
+    let split = |c: &str| -> Option<(u32, bool)> {
+        let (digits, wild) = c.strip_suffix('+').map_or((c, false), |digits| (digits, true));
+        if is_numeric_component(digits) { Some((digits.parse().ok()?, wild)) } else { None }
+    };
+    let components: Vec<&str> = raw.split('.').collect();
+    let &[maj, min, pat] = components.as_slice() else {
+        return Err(Error::InvalidVersionReference(raw));
+    };
+    let (Some((major, major_wild)), Some((minor, minor_wild)), Some((patch, patch_wild))) =
+        (split(maj), split(min), split(pat))
+    else {
+        return Err(Error::InvalidVersionReference(raw));
+    };
+    let at = match (major_wild, minor_wild, patch_wild) {
+        (true, false, false) => WildcardPosition::Major,
+        (false, true, false) => WildcardPosition::Minor,
+        (false, false, true) => WildcardPosition::Patch,
+        // Zero or several `+`: outside the documented one-wildcard contract.
+        _ => return Err(Error::InvalidVersionReference(raw)),
+    };
+    Ok(VersionRef::Latest { major, minor, patch, at })
 }
 
 /// Validates and classifies a `StandardTimePeriodType` value, returning its kind or `None`
@@ -935,6 +1396,77 @@ fn num_in(s: &str, width: usize, lo: u32, hi: u32) -> bool {
         && s.parse::<u32>().is_ok_and(|v| (lo..=hi).contains(&v))
 }
 
+/// `TimeRangeType`: `start/duration` where the start is a full `xs:date` or `xs:dateTime`
+/// (optional timezone) and the duration is a non-empty, ordered `xs:duration`.
+fn is_time_range(s: &str) -> bool {
+    let Some((start, duration)) = s.split_once('/') else {
+        return false;
+    };
+    matches!(
+        classify_time_period(start),
+        Some(SdmxTimePeriodKind::GregorianDay | SdmxTimePeriodKind::DateTime)
+    ) && is_time_range_duration(duration)
+}
+
+/// The `TimeRangeType` duration grammar: `P` then ordered optional `nY nM nD`, then an
+/// optional `T` with ordered optional `nH nM n[.n]S`; at least one component overall and at
+/// least one after any `T` (per the chain's `.+/P.+` and `T.+` requirements).
+fn is_time_range_duration(d: &str) -> bool {
+    let Some(body) = d.strip_prefix('P') else {
+        return false;
+    };
+    if body.is_empty() {
+        return false;
+    }
+    let (date, time) = match body.split_once('T') {
+        Some((date, time)) => (date, Some(time)),
+        None => (body, None),
+    };
+    if !date.is_empty() && !scan_duration_components(date, &['Y', 'M', 'D'], None) {
+        return false;
+    }
+    time.map_or(!date.is_empty(), |time| {
+        !time.is_empty() && scan_duration_components(time, &['H', 'M', 'S'], Some('S'))
+    })
+}
+
+/// A run of `<digits><unit>` components drawn from `units` in order, each unit at most once;
+/// a fractional part (`.digits`) is admitted only immediately before `fraction_unit`.
+fn scan_duration_components(part: &str, units: &[char], fraction_unit: Option<char>) -> bool {
+    let mut rest = part;
+    let mut next_units = units;
+    while !rest.is_empty() {
+        let digits_end = rest.find(|c: char| !c.is_ascii_digit()).unwrap_or(rest.len());
+        if digits_end == 0 {
+            return false;
+        }
+        let mut after = &rest[digits_end..];
+        let has_fraction = if let Some(fraction) = after.strip_prefix('.') {
+            let fraction_end =
+                fraction.find(|c: char| !c.is_ascii_digit()).unwrap_or(fraction.len());
+            if fraction_end == 0 {
+                return false;
+            }
+            after = &fraction[fraction_end..];
+            true
+        } else {
+            false
+        };
+        let Some(unit) = after.chars().next() else {
+            return false;
+        };
+        let Some(position) = next_units.iter().position(|&u| u == unit) else {
+            return false;
+        };
+        if has_fraction && Some(unit) != fraction_unit {
+            return false;
+        }
+        next_units = &next_units[position + 1..];
+        rest = &after[1..];
+    }
+    true
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
@@ -976,14 +1508,14 @@ mod tests {
         let semantic = SdmxVersion::new("1.2.3".into()).unwrap();
         assert_eq!(
             (semantic.major(), semantic.minor(), semantic.patch(), semantic.is_legacy()),
-            (1, 2, Some(3), false)
+            (1, Some(2), Some(3), false)
         );
         let prerelease = SdmxVersion::new("1.0.0-rc.1".into()).unwrap();
         assert_eq!(prerelease.extension(), Some("rc.1"));
         let legacy = SdmxVersion::new("1.3".into()).unwrap();
-        assert_eq!((legacy.major(), legacy.minor(), legacy.patch()), (1, 3, None));
+        assert_eq!((legacy.major(), legacy.minor(), legacy.patch()), (1, Some(3), None));
         let bare = SdmxVersion::new("1".into()).unwrap();
-        assert_eq!((bare.major(), bare.minor(), bare.is_legacy()), (1, 0, true));
+        assert_eq!((bare.major(), bare.minor(), bare.is_legacy()), (1, None, true));
     }
 
     #[test]
@@ -1007,12 +1539,14 @@ mod tests {
     }
 
     #[test]
-    fn version_equality_is_on_raw() {
-        // Trailing-zero-equivalent versions are deliberately unequal (lossless-distinct).
+    fn version_equality_preserves_statedness() {
+        // The structural fields distinguish exactly what the lexemes distinguish, so
+        // trailing-zero-equivalent versions are deliberately unequal (lossless-distinct).
         assert_ne!(
             SdmxVersion::new("1.0".into()).unwrap(),
             SdmxVersion::new("1.0.0".into()).unwrap()
         );
+        assert_ne!(SdmxVersion::new("1".into()).unwrap(), SdmxVersion::new("1.0".into()).unwrap());
         assert_eq!(
             SdmxVersion::new("2.1.0".into()).unwrap(),
             SdmxVersion::new("2.1.0".into()).unwrap()
@@ -1021,8 +1555,9 @@ mod tests {
 
     #[test]
     fn version_hash_agrees_with_eq() {
-        // The hand-written Hash hashes the raw string, so equal-by-Eq versions hash identically
-        // (the Hash/Eq contract). Distinct raws need not, and are not asserted here.
+        // Hash derives over the same structural fields as Eq, so equal versions hash
+        // identically (the Hash/Eq contract). Distinct versions need not, and are not
+        // asserted here.
         fn hash_bytes(version: &SdmxVersion) -> alloc::vec::Vec<u8> {
             #[derive(Default)]
             struct ByteCollector(alloc::vec::Vec<u8>);
@@ -1046,12 +1581,132 @@ mod tests {
     }
 
     #[test]
-    fn version_display_round_trips_raw() {
+    fn version_display_reconstructs_the_lexeme() {
         use alloc::string::ToString;
+        // Every accepted lexeme renders back to itself: the canonical grammar makes
+        // format-then-parse a bijection, which is what licenses the raw-free storage.
+        for lexeme in
+            ["1", "1.0", "1.0.0", "0.0.0", "3.0.0-beta.2", "1.0.0-rc.1", "2.5.1-alpha-1.7"]
+        {
+            let v = SdmxVersion::new(lexeme.into()).unwrap();
+            assert_eq!(v.to_string(), lexeme);
+            assert_eq!(v, v.to_string().parse().unwrap());
+        }
         let v = SdmxVersion::new("3.0.0-beta.2".into()).unwrap();
-        assert_eq!(v.to_string(), "3.0.0-beta.2");
         assert_eq!(VersionDisplay(Some(&v)).to_string(), "3.0.0-beta.2");
         assert_eq!(VersionDisplay(None).to_string(), "<unversioned>");
+    }
+
+    #[test]
+    fn version_ref_parses_each_arm() {
+        // Exact covers the whole declaration grammar (legacy and semantic, extension included).
+        for exact in ["1", "1.0", "1.2.3", "1.0.0-rc.1"] {
+            let parsed = VersionRef::new(exact.into()).unwrap();
+            assert_eq!(parsed, VersionRef::Exact(exact.parse().unwrap()), "{exact}");
+        }
+        // Latest wildcards exactly one component of a full triple.
+        for (lexeme, at) in [
+            ("2+.3.1", WildcardPosition::Major),
+            ("2.3+.1", WildcardPosition::Minor),
+            ("2.3.1+", WildcardPosition::Patch),
+        ] {
+            assert_eq!(
+                VersionRef::new(lexeme.into()).unwrap(),
+                VersionRef::Latest { major: 2, minor: 3, patch: 1, at },
+                "{lexeme}"
+            );
+        }
+        assert_eq!(VersionRef::new("*".into()).unwrap(), VersionRef::Any);
+    }
+
+    #[test]
+    fn version_ref_rejects_malformed() {
+        for bad in [
+            "",
+            "**",
+            "1.*",              // VersionQueryType registry-query grammar, not a reference
+            "1.0.*",            // likewise
+            "2.3+.1-draft",     // wildcard and extension are mutually exclusive
+            "1+.2+.3",          // more than one wildcard
+            "1+.2.3+",          // 3.0's regex admits this; the documented contract does not
+            "1+",               // wildcard requires the full triple
+            "1.2+",             // likewise
+            "1.2.3.4+",         // too many components
+            "+1.2.3",           // leading wildcard is not the grammar
+            "01+.2.3",          // leading zero
+            "99999999999+.0.0", // component overflows u32
+        ] {
+            assert!(VersionRef::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn version_ref_display_reconstructs_the_lexeme() {
+        use alloc::string::ToString;
+        for lexeme in ["1", "1.0", "1.2.3", "1.0.0-rc.1", "2+.3.1", "2.3+.1", "2.3.1+", "*"] {
+            let parsed = VersionRef::new(lexeme.into()).unwrap();
+            assert_eq!(parsed.to_string(), lexeme);
+            assert_eq!(parsed, parsed.to_string().parse().unwrap());
+        }
+    }
+
+    #[test]
+    fn time_range_accepts_date_and_datetime_starts() {
+        for lexeme in [
+            "2010-01-01/P2M",
+            "2010-01-01Z/P2M",
+            "2010-01-01T09:30:00/PT30M",
+            "2010-01-01T09:30:00+05:30/P1Y2M3DT4H5M6.5S",
+            "2024-02-29/P1D",
+        ] {
+            assert!(SdmxTimeRange::new(lexeme.into()).is_ok(), "{lexeme:?} should be accepted");
+        }
+        let range = SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap();
+        assert_eq!((range.start(), range.duration()), ("2010-01-01", "P2M"));
+    }
+
+    #[test]
+    fn time_range_rejects_malformed() {
+        for bad in [
+            "",
+            "2010-01-01", // no duration half
+            "P2M",        // no start half
+            "/P2M",
+            "2010-01-01/",
+            "2010/P2M",          // start must be a full date, not a year
+            "2010-01/P2M",       // nor a year-month
+            "2024-Q4/P2M",       // nor a reporting period
+            "2010-01-01/2M",     // duration must open with P
+            "2010-01-01/P",      // empty duration
+            "2010-01-01/PT",     // empty time part
+            "2010-01-01/P2M1Y",  // components out of order
+            "2010-01-01/PT2H1H", // repeated unit
+            "2010-01-01/P2X",    // unknown unit
+            "2010-01-01/PT0.5M", // fraction only on seconds
+            "2010-01-01/PT0.S",  // fraction needs digits
+            "2010-01-01/P2M/P1D",
+        ] {
+            assert!(SdmxTimeRange::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn observational_classifies_both_members() {
+        use alloc::string::ToString;
+        let standard = ObservationalTimePeriod::new("2024-Q4".into()).unwrap();
+        assert!(
+            matches!(&standard, ObservationalTimePeriod::Standard(p) if p.kind() == SdmxTimePeriodKind::ReportingQuarter)
+        );
+        let range = ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap();
+        assert!(matches!(&range, ObservationalTimePeriod::Range(_)));
+        for value in [standard, range] {
+            assert_eq!(value.to_string(), value.as_str());
+            assert_eq!(value, value.as_str().parse().unwrap());
+        }
+        assert!(matches!(
+            ObservationalTimePeriod::new("banana".into()),
+            Err(Error::InvalidObservationalTimePeriod(_))
+        ));
     }
 
     #[test]
@@ -1183,12 +1838,30 @@ mod tests {
             postcard::from_bytes::<SdmxVersion>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
 
+        let reference = VersionRef::new("2+.3.1".into()).unwrap();
+        assert!(matches!(reference, VersionRef::Latest { at: WildcardPosition::Major, .. }));
+        crate::test_support::round_trip(&reference);
+        crate::test_support::round_trip(&VersionRef::Any);
+        let bad = String::from("1.*");
+        assert!(postcard::from_bytes::<VersionRef>(&postcard::to_allocvec(&bad).unwrap()).is_err());
+
         let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
         assert_eq!(period.kind(), SdmxTimePeriodKind::ReportingQuarter);
         crate::test_support::round_trip(&period);
         let bad = String::from("2024-Q5");
         assert!(
             postcard::from_bytes::<SdmxTimePeriod>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
+
+        crate::test_support::round_trip(&SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap());
+        crate::test_support::round_trip(
+            &ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap(),
+        );
+        crate::test_support::round_trip(&ObservationalTimePeriod::new("2024-Q4".into()).unwrap());
+        let bad = String::from("2010-01-01/P");
+        assert!(
+            postcard::from_bytes::<ObservationalTimePeriod>(&postcard::to_allocvec(&bad).unwrap())
+                .is_err()
         );
     }
 
@@ -1206,9 +1879,10 @@ mod tests {
     fn lexical_newtypes_round_trip_display_parse_asref() {
         use alloc::string::ToString;
 
-        // The Display / FromStr / AsRef impls are uniform across the lexeme newtypes: every valid
-        // lexeme renders verbatim, parses back to an equal value, and exposes itself as a borrowed
-        // `&str`. (`FromStr` clones into the owned `new(String)` write path.)
+        // The Display / FromStr impls are uniform across the lexeme newtypes: every valid
+        // lexeme renders verbatim and parses back to an equal value. (`FromStr` clones into the
+        // owned `new(String)` write path.) The lexeme-storing types also expose the borrowed
+        // `&str` via `AsRef`; `SdmxVersion` reconstructs its lexeme instead, so it has none.
         for raw in ["0", "-1.5", "+42", "3.14159", ".5", "5.", "-0.0"] {
             let v = SdmxDecimal::new(raw.into()).unwrap();
             assert_eq!(v.to_string(), raw);
@@ -1224,7 +1898,6 @@ mod tests {
         for raw in ["1.2.3", "1.0.0-rc.1", "1.3", "1"] {
             let v = SdmxVersion::new(raw.into()).unwrap();
             assert_eq!(v.to_string(), raw);
-            assert_eq!(AsRef::<str>::as_ref(&v), raw);
             assert_eq!(v.to_string().parse::<SdmxVersion>(), Ok(v.clone()));
         }
         for raw in ["2024", "2024-05", "2024-Q4", "2024-05-01T09:30:00", "2024-05-01T09:30:00Z"] {
@@ -1232,6 +1905,18 @@ mod tests {
             assert_eq!(v.to_string(), raw);
             assert_eq!(AsRef::<str>::as_ref(&v), raw);
             assert_eq!(v.to_string().parse::<SdmxTimePeriod>(), Ok(v.clone()));
+        }
+        for raw in ["2010-01-01/P2M", "2010-01-01T09:30:00Z/PT30M"] {
+            let v = SdmxTimeRange::new(raw.into()).unwrap();
+            assert_eq!(v.to_string(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&v), raw);
+            assert_eq!(v.to_string().parse::<SdmxTimeRange>(), Ok(v.clone()));
+        }
+        for raw in ["2024-Q4", "2010-01-01/P2M"] {
+            let v = ObservationalTimePeriod::new(raw.into()).unwrap();
+            assert_eq!(v.to_string(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&v), raw);
+            assert_eq!(v.to_string().parse::<ObservationalTimePeriod>(), Ok(v.clone()));
         }
     }
 

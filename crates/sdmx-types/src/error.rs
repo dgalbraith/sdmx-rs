@@ -88,11 +88,47 @@ pub enum Error {
     )]
     InvalidVersion(String),
 
+    /// A value failed the SDMX `WildcardVersionType` reference grammar: an exact
+    /// `VersionType` version, a full semantic triple with `+` on exactly one
+    /// component (no extension), or the bare `*`. Produced by
+    /// [`VersionRef::new`](crate::VersionRef::new).
+    #[error(
+        "Invalid SDMX version reference: {0}. Must match WildcardVersionType (an exact version, a triple with one + wildcard, or *)."
+    )]
+    InvalidVersionReference(String),
+
     /// A value failed the SDMX `StandardTimePeriodType` grammar (a Gregorian period,
     /// `xs:dateTime`, or a reporting period). Produced by
     /// [`SdmxTimePeriod::new`](crate::SdmxTimePeriod::new).
     #[error("Invalid SDMX time period: {0}. Must match StandardTimePeriodType.")]
     InvalidTimePeriod(String),
+
+    /// A value failed the SDMX `TimeRangeType` grammar: a full `xs:date` or `xs:dateTime`
+    /// start, `/`, then a non-empty ordered `xs:duration`. Produced by
+    /// [`SdmxTimeRange::new`](crate::SdmxTimeRange::new).
+    #[error("Invalid SDMX time range: {0}. Must match TimeRangeType (start/duration).")]
+    InvalidTimeRange(String),
+
+    /// A value failed the SDMX `ObservationalTimePeriodType` union grammar: neither a
+    /// standard time period nor a time range. Produced by
+    /// [`ObservationalTimePeriod::new`](crate::ObservationalTimePeriod::new).
+    #[error(
+        "Invalid SDMX observational time period: {0}. Must match ObservationalTimePeriodType (a standard time period or a time range)."
+    )]
+    InvalidObservationalTimePeriod(String),
+
+    /// A string failed a reference type's URN grammar: the full
+    /// `urn:sdmx:org.sdmx.infomodel.<package>.<Class>=` form for the named class, with a
+    /// valid agency, id, reference version (`+` wildcards admitted, `*` not), and, for the
+    /// item-in-scheme shapes, an item tail. Produced by the reference types'
+    /// [`FromStr`](core::str::FromStr) impls.
+    #[error("Invalid SDMX reference URN for {class}: {urn}")]
+    InvalidReferenceUrn {
+        /// The rejected input.
+        urn: String,
+        /// The URN class the parse expected (for example `codelist.Codelist`).
+        class: &'static str,
+    },
 
     /// A localised string was constructed with an empty entry list. The parent
     /// elements (`Name`, `Description`) require at least one entry, so an empty list

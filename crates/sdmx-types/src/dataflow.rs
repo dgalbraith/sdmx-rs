@@ -153,7 +153,7 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 ///     dsd: Some(DsdReference {
 ///         agency: "ECB".to_string(),
 ///         id: "ECB_EXR".to_string(),
-///         version: "1.0.0".to_string(),
+///         version: "1.0.0".parse().unwrap(),
 ///     }),
 ///     dimension_constraint: None,
 /// };
@@ -264,7 +264,11 @@ mod tests {
     }
 
     fn dsd_reference() -> DsdReference {
-        DsdReference { agency: "ECB".into(), id: "ECB_EXR".into(), version: "1.0.0".into() }
+        DsdReference {
+            agency: "ECB".into(),
+            id: "ECB_EXR".into(),
+            version: "1.0.0".parse().unwrap(),
+        }
     }
 
     #[test]
@@ -362,7 +366,10 @@ mod tests {
         assert_eq!(dataflow.links().len(), 1);
         assert_eq!(dataflow.names().first(), "Exchange rates");
         assert_eq!(dataflow.descriptions().map(LocalisedString::first), Some("How often"));
-        assert_eq!(dataflow.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(
+            dataflow.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.2.3")
+        );
         assert!(dataflow.valid_from().is_some());
         assert_eq!(dataflow.valid_to(), None);
         assert_eq!(dataflow.agency(), "ECB");

@@ -357,6 +357,7 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
+///     version: "1.0.0".parse().unwrap(),
 ///     id: "OBS_STATUS".to_string(),
 /// };
 /// let attribute =
@@ -542,7 +543,12 @@ mod tests {
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
-        ConceptReference { agency: "SDMX".into(), scheme_id: "CS".into(), id: id.into() }
+        ConceptReference {
+            agency: "SDMX".into(),
+            scheme_id: "CS".into(),
+            version: "1.0.0".parse().unwrap(),
+            id: id.into(),
+        }
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {

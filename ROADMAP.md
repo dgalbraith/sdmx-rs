@@ -67,20 +67,21 @@ Modelling the SDMX structural metadata in pure Rust with minimal external depend
 - [x] **DataStructureDefinition (DSD)**: Structural key families, dimensions, attributes, measures
 - [x] **Dataflow**: The primary REST query target, referencing a DSD
 - [x] **Constraints**: Version-split data constraints for SDMX 3.0 and 3.1 via a unified `ConstraintModel`.
-- [ ] **Property-based testing**: `proptest` for construction invariants and lossless serde round-trips.
+- [x] **Lexical grammar completion**: Version and time-period types completed to the full spec grammars, including wildcard version references.
+- [x] **Reference URN contract**: Reference types own their URN parse/render contract and adopt typed version references.
+- [ ] **Property-based testing**: `proptest` for construction invariants, lossless serde round-trips, and format/parse round-trips over the canonical lexical grammars.
 - [ ] **WASM Test Execution**: `wasm-pack test --node` wired into `just verify` and a CI job.
-- [ ] **Framework publication to crates.io**: Publish `0.1.0` full project scaffolding and data types to crates.io
+- [ ] **Framework publication to crates.io**: Publish `0.1.0` full project scaffolding and data types to crates.io once the spec-exact model above is complete
 
 ---
 
 ## Phase 2: Serialisation Engine (`sdmx-parsers` & `sdmx-writers`)
 
-Streaming CSV, JSON, and XML parsing (deserialisation) and writing (serialisation) consuming the types defined in Phase 1.
+Streaming CSV, JSON, and XML parsing (deserialisation) and writing (serialisation) consuming the types defined in Phase 1. The reference, version, and time-period grammars arrive settled from Phase 1; parsers consume that contract.
 
 ### Parsers (Deserialisation)
 
-- [ ] **SDMX-JSON wire-shape policy**: Own the SDMX-JSON wire mapping in the parser/writer, since the domain types' `serde` is an internal projection, not the wire. Settle the uniform absent-statedness policy (emit `null` vs omit the attribute), the `LocalisedString` wire shape, and enum representations at that layer.
-- [ ] **Reference-types / URN-contract pass (entry gate)**: Must land before any parser work consumes the reference structs, since every wire reference is URN element content the parser must split into the parsed `agency`/`scheme_id`/`id`/`version` fields. Fixed scope: (1) the URN grammar contract per reference shape (maintainable triple vs item-in-scheme, e.g. `CL_AGE(1.0).Y`), with named error variants; (2) the `version: String` → `SdmxVersion`/`Option<SdmxVersion>` decision for the reference structs; (3) the divergent wildcard-reference grammar (3.0 admits `major+`, 3.1 does not), which also intersects [ADR-0024](docs/adr/0024-byte-preserving-document-integrity-pathway.md)'s document pathway (a reference is wire text that must round-trip verbatim); (4) alignment with `TimePeriodRange.period`'s pending `SdmxTimePeriod` adoption as part of the same lexical-typing family — the target must cover the `ObservationalTimePeriodType` union (`StandardTimePeriodType ∪ TimeRangeType`), so a Standard-only newtype would reject schema-valid wire; newtype-vs-raw is this pass's own call
+- [ ] **SDMX-JSON wire-shape policy**: The parser/writer owns the SDMX-JSON wire mapping; the domain types' `serde` stays an internal projection
 - [ ] **SDMX-ML (XML) structure message parser**: Streaming deserializer using `quick-xml` with `serde` integration
 - [ ] **SDMX-JSON structure message parser**: Deserializer using `serde_json`
 

@@ -550,7 +550,10 @@ mod tests {
         assert_eq!(scheme.links().len(), 1);
         assert_eq!(scheme.names().first(), "Eurostat");
         assert_eq!(scheme.descriptions().map(LocalisedString::first), Some("Statistical office"));
-        assert_eq!(scheme.version().map(SdmxVersion::as_str), Some("1.2.3"));
+        assert_eq!(
+            scheme.version().map(alloc::string::ToString::to_string).as_deref(),
+            Some("1.2.3")
+        );
         assert_eq!(scheme.valid_from(), Some(&valid_from));
         assert_eq!(scheme.valid_to(), None);
         assert_eq!(scheme.agency(), "SDMX");

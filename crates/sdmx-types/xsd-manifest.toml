@@ -47,9 +47,50 @@ file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
 rust = ["SdmxVersion"]
 
+# Version references: WildcardVersionType (the union VersionRef models) plus the
+# members that carry the reference-only grammar. SemanticVersionReferenceType
+# diverges structurally between editions (3.0's third pattern is looser), so it
+# splits into per-edition fragments.
+[[fragment]]
+symbol = "WildcardVersionType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["VersionRef"]
+
+[[fragment]]
+symbol = "VersionReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["VersionRef"]
+
+[[fragment]]
+symbol = "SemanticVersionReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["VersionRef"]
+
+[[fragment]]
+symbol = "WildcardType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["VersionRef"]
+
 # Time periods: StandardTimePeriodType (the union) is cited by both SdmxTimePeriod
 # and the SdmxTimePeriodKind classifier, the shared-symbol / multi-rust case. Its
 # members carry the actual grammar and are cited by the Kind enum.
+# ObservationalTimePeriodType widens Standard with TimeRangeType (SdmxTimeRange).
+[[fragment]]
+symbol = "ObservationalTimePeriodType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["ObservationalTimePeriod"]
+
+[[fragment]]
+symbol = "TimeRangeType"
+file = "schemas/SDMXCommon.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SdmxTimeRange"]
+
 [[fragment]]
 symbol = "StandardTimePeriodType"
 file = "schemas/SDMXCommon.xsd"

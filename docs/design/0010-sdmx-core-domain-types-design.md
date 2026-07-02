@@ -214,12 +214,12 @@ Below is the type system blueprint for `crates/sdmx-types/src/lib.rs` (and its s
 
 ##### 5.1.1 Lexical newtype convention (D-0027)
 
-Several SDMX fields are constrained lexical types — `xs:decimal`, `xs:integer`, `VersionType`, `StandardTimePeriodType` — whose value space does not map losslessly onto any fixed Rust type (`xs:decimal`/`xs:integer` are unbounded; the time/version types are structured grammars). The crate models each as a **validated newtype with lossless `String` storage**:
+Several SDMX fields are constrained lexical types — `xs:decimal`, `xs:integer`, `VersionType` and its reference union `WildcardVersionType`, `StandardTimePeriodType` and its observational union — whose value space does not map losslessly onto any fixed Rust type (`xs:decimal`/`xs:integer` are unbounded; the time/version types are structured grammars). The crate models each as a **validated newtype or grammar-closed enum**:
 
-- **Lossless storage:** the canonical lexical form is kept verbatim in a `String` (`raw`). It is the source of truth for round-trip — never normalised or rewritten.
+- **Storage forks on canonicity (D-0070):** a non-canonical grammar (several lexemes per value: `xs:decimal`, `xs:integer`, the time-period grammars) keeps the canonical lexical form verbatim in a `String` (`raw`) as the round-trip source of truth, never normalised or rewritten. A canonical grammar (`VersionType`, `WildcardVersionType`: one lexeme per value) makes format-then-parse a bijection, so only the parsed decomposition is stored and `Display` reconstructs the lexeme.
 - **Validated at construction, never deferred:** `new()` checks the grammar (cheap, hand-rolled, `no_std` — no regex crate). Per D-0004 this runs on the single write path, so *every* caller (not just the parser) gets a well-formed object — a hand-built `SdmxDecimal("banana")` is uncallable. This replaces the earlier "defer grammar to the parser" approach (D-0024 Tier-A).
-- **Retain the cheap discriminant:** where validation naturally classifies the value (it must traverse the string to validate anyway), the classification is retained alongside `raw` as cheap derived fields (`SdmxVersion`'s parsed components; `SdmxTimePeriod`'s `kind`). Where no useful sub-kind exists, the bare newtype suffices (`SdmxDecimal`, `SdmxInteger`).
-- **Naming:** the `Sdmx` prefix is applied to these because their bare names collide with well-known types in normal use (`Decimal`↔`rust_decimal`, `Integer`↔primitives, `Version`↔semver crates, `TimePeriod`↔`chrono`). Distinctive domain names (`Codelist`, `Dimension`, `CubeRegion`, …) and the per-crate `Error` (ADR-0006, path-disambiguated as `sdmx_types::Error`) stand bare.
+- **Retain the cheap discriminant:** where validation naturally classifies the value (it must traverse the string to validate anyway), the classification is retained as cheap derived fields (`SdmxVersion`'s parsed components; `SdmxTimePeriod`'s `kind`; `ObservationalTimePeriod`'s member arms). Where no useful sub-kind exists, the bare newtype suffices (`SdmxDecimal`, `SdmxInteger`, `SdmxTimeRange`).
+- **Naming:** the `Sdmx` prefix is applied where the bare name collides in normal use — with well-known external types (`Decimal`↔`rust_decimal`, `Integer`↔primitives, `Version`↔semver crates, `TimePeriod`↔`chrono`) or with the crate's own vocabulary (`TimeRange` is the constraint selection type, so the lexeme is `SdmxTimeRange`). Distinctive names (`VersionRef`, `ObservationalTimePeriod`, `Codelist`, `Dimension`, …) and the per-crate `Error` (ADR-0006, path-disambiguated as `sdmx_types::Error`) stand bare.
 
 ```rust
 use alloc::string::String;
@@ -491,57 +491,69 @@ impl VersionableMetadata {
     }
 }
 
-// `SdmxVersion` is a validating newtype over the spec's `VersionType` (a union of
-// `SemanticVersionNumberType` = major.minor.patch(-extension)? and `LegacyVersionNumberType`
-// = major.minor?). Per the lexical-newtype convention (D-0027, revising D-0024): `raw` is the
-// lossless canonical string; new() VALIDATES the full grammar (not deferred) and retains the
-// parsed decomposition. `patch: None` encodes the legacy form (major.minor) — so the
-// semantic-vs-legacy distinction is structural, no separate kind enum. `extension` is the
-// semantic prerelease suffix (e.g. "rc.1"), kept so prerelease versions are lossless and `raw`
-// and the fields never disagree. major/minor/patch are u32 — parsed from a digits-only
-// validated grammar whose lexical space mechanically excludes a sign, so unsigned loses
-// nothing (the D-0043 rule: integer types mirror the XSD value space; contrast xs:int fields
-// like position and the availability counts, which admit negatives and store i32).
-pub struct SdmxVersion {
-    raw: String,               // validated, lossless, canonical — the round-trip source of truth
+// `SdmxVersion` models the spec's `VersionType` (a union of `SemanticVersionNumberType`
+// = major.minor.patch(-extension)? and `LegacyVersionNumberType` = major(.minor)?). RAW-FREE
+// (D-0070, amending D-0027's blanket lossless-raw rule): the grammar is canonical — every
+// numeric component is `0|[1-9]\d*` and the extension has one spelling per value — so
+// format-then-parse is a bijection, the decomposition alone is lossless, and `Display`
+// reconstructs the lexeme. Statedness is preserved structurally: `minor: Option<u32>` keeps the
+// bare-major legacy form ("1") distinct from "1.0", and `patch: None` encodes the legacy form,
+// so semantic-vs-legacy needs no separate kind enum. major/minor/patch are u32 — the validated
+// grammar is digits-only (the D-0043 rule: integer types mirror the XSD value space).
+#[derive(Clone, Debug, PartialEq, Eq, Hash)] // structural — by the bijection, the same
+pub struct SdmxVersion {                     // partition as comparing lexemes (D-0070)
     major: u32,
-    minor: u32,
-    patch: Option<u32>,        // None = legacy (major.minor); Some = semantic (major.minor.patch)
+    minor: Option<u32>,        // None = bare-major legacy ("1"); Some(0) = "x.0"
+    patch: Option<u32>,        // None = legacy (major[.minor]); Some = semantic
     extension: Option<String>, // semantic prerelease suffix; None for legacy/plain semantic
 }
 
 impl SdmxVersion {
     pub fn new(raw: String) -> Result<Self, Error> {
-        // Validates the VersionType union grammar and populates the fields. Rejects garbage
-        // ("banana"), leading zeros, etc. (hand-rolled, no_std). On success `raw` is retained
-        // verbatim; major/minor/patch/extension are the parsed decomposition of that string.
+        // Validates the VersionType union grammar and keeps the decomposition. Rejects garbage
+        // ("banana"), leading zeros, etc. (hand-rolled, no_std). No raw is stored; the lexeme
+        // is reconstructible on demand.
         parse_sdmx_version(raw)
     }
-    pub fn as_str(&self) -> &str { &self.raw }
     pub fn major(&self) -> u32 { self.major }
-    pub fn minor(&self) -> u32 { self.minor }
+    pub fn minor(&self) -> Option<u32> { self.minor }
     pub fn patch(&self) -> Option<u32> { self.patch }
     pub fn extension(&self) -> Option<&str> { self.extension.as_deref() }
     pub fn is_legacy(&self) -> bool { self.patch.is_none() }
 }
-// Custom Deserialize calls SdmxVersion::new(). Display is VERBATIM (raw, no sentinel).
-impl core::fmt::Display for SdmxVersion {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { f.write_str(&self.raw) }
+// Custom Deserialize calls SdmxVersion::new(); Serialize goes through Display, keeping the
+// single-canonical-string projection shape. Display RECONSTRUCTS the lexeme (D-0070); there is
+// no as_str()/AsRef<str> — nothing stored to borrow.
+
+// Ordering is DEFERRED past Phase 1 (D-0060, Eq mechanism amended by D-0070): no
+// `Ord`/`PartialOrd` is implemented on the type. SemVer §11 precedence
+// (<https://semver.org/#spec-item-11>) is the intended basis, but the legacy/semantic-equivalence
+// question (`3.1` vs `3.1.0`: equal under precedence, distinct under the structural `Eq` above)
+// is undecided and premature to lock, and a precedence `Ord` bound to that `Eq` would violate the
+// `Ord`/`Eq` consistency contract. The likely future shape is an explicit precedence-comparison
+// convenience (a method or a comparison wrapper) rather than an `Ord` impl, so structural `Eq`
+// and SemVer precedence coexist without an `Ord`/`Eq` contract: distinct under equality, equal
+// under precedence.
+
+// `VersionRef` models `WildcardVersionType`, the version grammar of a REFERENCE (D-0071):
+// everything a declared version admits, plus `+` on exactly one component of a full semantic
+// triple ("latest available": `2+.3.1` reads "latest available >= 2.3.1"), plus the bare `*`.
+// Exactly one `+` is enforced across both editions (3.1's patterns each admit one position;
+// 3.0's third pattern is regex slack its own documentation forbids). The full-triple and
+// no-extension requirements are structural: `Latest` has three mandatory u32 components and no
+// extension slot. Raw-free on the same canonicity grounds as SdmxVersion. `1.*`/`1.0.*` are
+// `VersionQueryType` (registry-query grammar, a different message family) and are rejected.
+// Wildcard RESOLUTION (which concrete version "2+.3.1" denotes) needs a registry catalogue and
+// is outside the type (D-0069).
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum VersionRef {
+    Exact(SdmxVersion),                                                  // the declaration grammar
+    Latest { major: u32, minor: u32, patch: u32, at: WildcardPosition }, // one `+`, full triple
+    Any,                                                                 // the bare `*`
 }
 
-// Equality is on `raw` (two versions are equal iff their canonical strings match) — so a
-// prerelease and its release (`1.0.0-rc` vs `1.0.0`) are correctly UNEQUAL.
-impl PartialEq for SdmxVersion { fn eq(&self, o: &Self) -> bool { self.raw == o.raw } }
-impl Eq for SdmxVersion {}
-
-// Ordering is DEFERRED past Phase 1 (D-0060): no `Ord`/`PartialOrd` is implemented on the type.
-// SemVer §11 precedence (<https://semver.org/#spec-item-11>) is the intended basis, but the
-// legacy/semantic-equivalence question (`3.1` vs `3.1.0`: equal under precedence, distinct under
-// the raw-based `Eq` above) is undecided and premature to lock, and a precedence `Ord` bound to
-// raw-`Eq` would violate the `Ord`/`Eq` consistency contract (the lossy collision D-0024/D-0027
-// avoid). The likely future shape is an explicit precedence-comparison convenience (a method or a
-// comparison wrapper) rather than an `Ord` impl, so raw-`Eq` and SemVer precedence coexist without
-// an `Ord`/`Eq` contract: distinct under equality, equal under precedence.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum WildcardPosition { Major, Minor, Patch } // which component carries the `+`
 
 // Display adapter for the OPTIONAL version. The `<unversioned>` sentinel lives ONLY here,
 // reachable only through `VersionableArtefact::version_display()` (§5.3). The angle brackets
@@ -575,6 +587,34 @@ impl SdmxTimePeriod {
     pub fn kind(&self) -> SdmxTimePeriodKind { self.kind }
 }
 // Custom Deserialize calls SdmxTimePeriod::new().
+
+// `SdmxTimeRange` is the validated newtype for `TimeRangeType` (D-0072): `start/duration`,
+// where the start is a full xs:date or xs:dateTime (optional timezone) and the duration is a
+// non-empty, ordered xs:duration. Lossless raw (date/duration lexemes are not canonical — the
+// D-0070 fork); the `/` occurs exactly once, so start()/duration() are cheap slices. The `Sdmx`
+// prefix is forced by the crate's own `TimeRange` (the constraint selection type).
+pub struct SdmxTimeRange {
+    raw: String,
+}
+
+impl SdmxTimeRange {
+    pub fn new(raw: String) -> Result<Self, Error> { /* validates TimeRangeType */ }
+    pub fn as_str(&self) -> &str { &self.raw }
+    pub fn start(&self) -> &str { /* the half before '/' */ }
+    pub fn duration(&self) -> &str { /* the half after '/' */ }
+}
+
+// `ObservationalTimePeriod` is the exhaustive union ObservationalTimePeriodType =
+// StandardTimePeriodType ∪ TimeRangeType (D-0072) — the widest time-period vocabulary. A union
+// of the member newtypes rather than a widened SdmxTimePeriod: Standard-only positions (the
+// TimeRange validity pair, the §5.8 validity attributes) must keep rejecting time-range
+// lexemes. The member grammars are disjoint (only a range contains '/'), so classification is
+// unambiguous. Both members store their lexeme, so the union exposes as_str() like the other
+// lexeme-storing newtypes.
+pub enum ObservationalTimePeriod {
+    Standard(SdmxTimePeriod),
+    Range(SdmxTimeRange),
+}
 
 // Mirrors StandardTimePeriodType = (Gregorian* | xs:dateTime) | Reporting* — verified 1:1
 // against SDMXCommon.xsd. Exhaustive (D-0021): a bounded spec-fixed union.
@@ -1248,60 +1288,77 @@ pub enum RepresentationChoice {
     TextFormat(TextFormat),
 }
 
-// The reference structs derive `Hash` (their fields are all `String`, so it is free).
-// `Hash` is deliberately scoped to the reference/identity types — they are the natural
-// map keys (e.g. "have I already fetched this DSD?", deduping a set of references). The
-// composite types (DataStructureDefinition, Codelist, …) are NOT hashed: you key *by their
-// reference*, not by the whole object, and several carry Vec collections where a derived Hash
-// would be semantically pointless. Scoped by actual use, not blanket (cf. D-0021).
+// The reference structs derive `Hash` (free — no floats). `Hash` originated here as the
+// natural map keys (e.g. "have I already fetched this DSD?"); D-0065 later generalised it.
+//
+// THE URN CONTRACT (D-0073): every structural reference is, on the wire, URN text of a
+// per-class simpleType, and each struct owns its class URN — `Display` renders the full
+// `urn:sdmx:org.sdmx.infomodel.<package>.<Class>=...` form and `FromStr` parses exactly that
+// class into the decomposed fields (`Error::InvalidReferenceUrn { urn, class }` names the
+// expected class). All version fields are `VersionRef` (§5.1.1): every reference class
+// descends from the URN reference chain, so `+` wildcards are admitted; NONE admits the bare
+// `*` (its WildcardUrnType family is consumed only by unmodelled metadata targets), so
+// `FromStr` rejects it as a grammar failure and a hand-built `VersionRef::Any` is lint
+// territory (§5.11 #17). Fields stay unvalidated pub carriers (D-0020: identifiers are
+// validated at declaration, not reference); serde stays field-wise derived (the projection is
+// not the wire — D-0068). Item tails are held verbatim (nested paths are wire-legal).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DsdReference {
     pub agency: String,
     pub id: String,
-    pub version: String,
+    pub version: VersionRef,
 }
+// Display: urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=<agency>:<id>(<version>)
 
+// ITEM-IN-SCHEME shape: the URN mandates the ENCLOSING SCHEME's version
+// (`<agency>:<scheme_id>(<version>).<item>` — D-0073), so the reference carries it.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ConceptReference {
     pub agency: String,
     pub scheme_id: String,
+    pub version: VersionRef, // the enclosing concept scheme's version
     pub id: String,
 }
+// Display: urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=<agency>:<scheme_id>(<version>).<id>
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct CodelistReference {
     pub agency: String,
     pub id: String,
-    pub version: String,
+    pub version: VersionRef,
 }
+// Display: urn:sdmx:org.sdmx.infomodel.codelist.Codelist=<agency>:<id>(<version>)
 
 // ValueList is MAINTAINABLE (D-0047), so its reference is the flat triple, like
 // CodelistReference. Referenced from EnumerationReference (D-0048).
+// Display: urn:sdmx:org.sdmx.infomodel.codelist.ValueList=<agency>:<id>(<version>)
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ValueListReference {
     pub agency: String,
     pub id: String,
-    pub version: String,
+    pub version: VersionRef,
 }
 
 // Added for the constraint-attachment split (D-0034 / D3). ProvisionAgreement is a MAINTAINABLE
 // artefact (MaintainableUrnReferenceType), so its reference is the flat agency/id/version triple,
 // like DsdReference/DataflowReference.
+// Display: urn:sdmx:org.sdmx.infomodel.registry.ProvisionAgreement=<agency>:<id>(<version>)
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ProvisionAgreementReference {
     pub agency: String,
     pub id: String,
-    pub version: String,
+    pub version: VersionRef,
 }
 
 // DataProvider is an ITEM in a DataProviderScheme — its spec type OrganisationReferenceType
 // restricts the SAME base as ConceptReferenceType (ComponentUrnReferenceType), so it takes the
-// item-in-scheme shape (agency + scheme_id + id), NOT the maintainable triple. Mirrors
-// ConceptReference, not DsdReference. (D-0034 / D3.)
+// item-in-scheme shape, NOT the maintainable triple. Mirrors ConceptReference. (D-0034 / D3.)
+// Display: urn:sdmx:org.sdmx.infomodel.base.DataProvider=<agency>:<scheme_id>(<version>).<id>
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataProviderReference {
     pub agency: String,
-    pub scheme_id: String,  // the DataProviderScheme (DATA_PROVIDERS) the provider belongs to
+    pub scheme_id: String,   // the DataProviderScheme (DATA_PROVIDERS) the provider belongs to
+    pub version: VersionRef, // the enclosing data-provider scheme's version
     pub id: String,
 }
 
@@ -1951,12 +2008,11 @@ impl SimpleComponentValues {
 // One endpoint of a time-range selection. The wire type of the period content is
 // ObservationalTimePeriodType = StandardTimePeriodType ∪ TimeRangeType (report-5 V-7 corrected
 // the earlier StandardTimePeriodType claim) — a strict superset admitting time-range lexemes
-// (`<start>/<duration>`), so the raw String stays for now and the scheduled lexical-typing
-// alignment (the Phase-2 reference-types/URN-contract entry gate, ROADMAP scope item 4) must cover the ObservationalTimePeriod union
-// type; adopting the Standard-only SdmxTimePeriod here would reject schema-valid wire.
+// (`<start>/<duration>`), carried by the `ObservationalTimePeriod` union type (D-0072, §5.1.1);
+// the Standard-only SdmxTimePeriod would reject schema-valid wire.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct TimePeriodRange {
-    pub period: String,
+    pub period: ObservationalTimePeriod,
     // isInclusive (xs:boolean, schema DEFAULT "true", both versions): STATEDNESS stored
     // (D-0052 — a missed sweep site, closed by report-5 V-6); the default is the
     // effective_is_inclusive() view (self.inclusive.unwrap_or(true)).
@@ -1977,7 +2033,7 @@ pub enum TimeRangeKind {
 // type-level `validFrom`/`validTo` attributes the earlier enum-only model dropped. Those
 // attributes are `StandardTimePeriodType`, so they map to `SdmxTimePeriod` (D-0027), distinct
 // from the endpoint content on `TimePeriodRange.period` (the ObservationalTimePeriodType
-// superset, which stays a raw String). Optional with no schema default, so plain statedness
+// superset, carried by the `ObservationalTimePeriod` union — D-0072). Optional with no schema default, so plain statedness
 // (None means absent), no effective view. Pub-field carrier with derived Deserialize (no
 // between-field invariant; `SdmxTimePeriod` self-validates, reusing Error::InvalidTimePeriod).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -2221,11 +2277,13 @@ pub struct DataComponentValueSet {
 }
 
 // Derives `Hash` for the same reason as the other reference structs (identity/map-key use).
+// Owns its class URN like every reference (D-0073).
+// Display: urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=<agency>:<id>(<version>)
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataflowReference {
     pub agency: String,
     pub id: String,
-    pub version: String,
+    pub version: VersionRef,
 }
 
 // Constraint attachment is TWO distinct spec types, modelled as two distinct enums (D-0034 / D3).
@@ -2640,6 +2698,8 @@ The two-layer architecture (ADR-0023) gives coherence and quality concerns a non
 14. **Two both-`@include`-absent cube regions** — `*_CubeRegionInclusion` `xs:unique` (on `@include`) makes two regions with the same *stated* direction schema-invalid; the residue a lint may flag is the pair that both omit `@include`, whose equality under the `default="true"` value is validator-dependent (D-0036).
 15. **Language-key well-formedness** — a blank or off-pattern stated `xs:language` key, preserved verbatim under the parsable-within-spec principle; validity is this view (D-0059).
 16. **Member-value well-formedness** — a blank or off-pattern `WildcardedMemberValueType` selection value (its `[A-Za-z0-9_@$-%]+` pattern forbids the empty string), preserved verbatim under the parsable-within-spec principle; validity is this view (D-0061).
+17. **Reference URN renderability** — a reference whose fields cannot render a wire-conformant class URN: a `VersionRef::Any` version (no structural reference class admits the bare `*`), or an off-charset agency/id/item. `FromStr` never produces one; the hand-built case is the carrier posture (D-0020) doing what it does everywhere, and the writer's conformance check is this lint (D-0073).
+18. **Dot-nested item tail on a flat item class** — the URN's container-object-id may repeat for hierarchical objects, but `Concept` and `DataProvider` are "maintained in a flat structure and therefore do not have a container-object-id" (Registry Specification, Section 5 document, §6.2.2), so a nested tail on those classes is model-illegal while the XSD patterns mechanically admit it. Parsable-within-spec: `FromStr` holds the tail verbatim and this lint flags it (D-0073).
 
 The surface grows as decisions catalogue new members; a lint is added here (with its source D-number) at the moment a decision names it, so the catalogue and the register never diverge.
 
@@ -2691,7 +2751,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 - **Delegation Boilerplate:** Exposing getters like `id()` or `version()` requires writing delegating trait implementations for each concrete domain struct (e.g., implementing `IdentifiableArtefact` on `Code` by forwarding to `self.metadata.id()`). This is a small, one-time writing cost that can be mitigated by macros if the number of types grows. We accept this trade-off to keep the public API clean.
 - **Linear Lookup over Ordered Stores:** Wire collections are ordered `Vec`s (D-0051/ADR-0023), so identity lookup (`get(id)`, `get(lang)`) is a first-match O(n) scan rather than a keyed O(log n)/O(1) access. This is the price of preserving element order and schema-valid duplicates — wire information a keyed store destroys. At SDMX metadata cardinalities (10 to 5,000 items) the scan is bounded and cache-friendly; per-observation hot paths live in the parser/client crates, which build their own indexes; and cached index *views* over the `Vec` store are the sanctioned, additive evolution if profiling ever demands (the reverse migration — map store to `Vec` — would have been a breaking change, which is why the store side was fixed first).
 - **Owned Types & Allocations:** Having the domain model own all strings (`String` instead of references or `Cow`) increases allocation counts during parsing. This is a deliberate choice: keeping the domain structures lifetimeless (`'static`) simplifies consumer code, client caching, and storage. Lifetimes are confined strictly to the parsers during raw tokenise loops.
-- **Reference Type Structural Repetition:** The seven reference structs (`DsdReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DsdReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (The URN parse contract these structs imply is the scheduled Phase-2 reference-types/URN-contract entry gate; see ROADMAP Phase 2 → Parsers.)
+- **Reference Type Structural Repetition:** The seven reference structs (`DsdReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DsdReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (Each struct owns its class URN contract — `Display` renders it, `FromStr` parses exactly that class — with versions typed `VersionRef`; D-0073.)
 - **`DataConstraint` Naming (earlier divergence reversed — D-0037):** An earlier draft named this type `ReportingConstraint` for "semantic clarity" (reporting limits on a dataflow). That reading did not survive the 3.0 `role` attribute: a 3.0 data constraint with `role="Actual"` states what data actually *exists* — not a reporting limit — so the invented name described only one of the type's two roles, while the type's own attachment enum (`DataConstraintAttachment`) already carried the spec name. The type is now named `DataConstraint`, matching `DataConstraintType` in both 3.0 and 3.1, per D-0002's rule that types map 1-to-1 to named spec concepts.
 - **`Link` Elements Modelled (earlier omission reversed — D-0035):** An earlier draft (D-0014) omitted `Link`, calling it a transport-layer HATEOAS affordance belonging in the HTTP envelope. That was a misreading of the schema: `LinkType` sits on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship (`rel`), a target `url`/`urn`, and a media-type hint — strictly more than the `uri` field can express. Reconstructing it from `uri`/`urn` is not possible (those are single identity fields, not a typed multi-valued association). So omitting it lost real, producer-supplied domain content — a lossless-superset defect (ADR-0008 #1). `Link` is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (the single `IdentifiableType` chokepoint), surfaced via `IdentifiableArtefact::links()`. See D-0035.
 - **`AvailabilityConstraint` Asymmetry in `ConstraintModel`:** The two variants of `ConstraintModel` are structurally asymmetric: `DataConstraint` is a maintainable, registerable artefact with `MaintainableMetadata`; `AvailabilityConstraint` is an ephemeral, non-maintainable response type with no registry identity. This asymmetry is intentional — it reflects the spec's own distinction. The asymmetry is precisely *maintainability*, not annotability: both extend `AnnotableType`, so both carry `annotations` (D-0033) — `DataConstraint` via its `MaintainableMetadata`, `AvailabilityConstraint` via a bare field. Both share the `ConstraintModel` enum because both express constraint semantics on a dataflow and are consumed by the same client code paths.
