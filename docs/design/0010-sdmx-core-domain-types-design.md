@@ -2174,7 +2174,7 @@ pub struct FixedInclude(Option<bool>);
 impl FixedInclude {
     pub fn new(stated: Option<bool>) -> Result<Self, Error> {
         if stated == Some(false) {
-            return Err(Error::FixedAttributeMismatch("include".into(), "false".into()));
+            return Err(Error::FixedAttributeMismatch { attribute: "include".into(), value: "false".into() });
         }
         Ok(Self(stated))
     }
@@ -2620,27 +2620,28 @@ pub enum Error {
     #[error("Invalid codelist extension: a code selection must contain at least one member value.")]
     EmptyMemberValues,
 
-    // Per-position representation rules (D-0048) — all mechanical XSD restrictions. The first
-    // String names the component kind ("Dimension", "TimeDimension", ...).
+    // Per-position representation rules (D-0048) — all mechanical XSD restrictions. The
+    // String payload names the component kind ("Dimension", "TimeDimension", ...); the
+    // two-payload variants use named fields (single payload stays positional).
     #[error("Invalid representation for {0}: a ValueList enumeration is not allowed at this position (codelist-only).")]
     ValueListEnumerationNotAllowed(String),
 
     #[error("Invalid representation for {0}: an Enumeration is not allowed (TextFormat-only position).")]
     EnumerationNotAllowed(String),
 
-    #[error("Invalid representation for {0}: facet '{1}' is prohibited at this position.")]
-    ProhibitedRepresentationFacet(String, String),
+    #[error("Invalid representation for {component}: facet '{facet}' is prohibited at this position.")]
+    ProhibitedRepresentationFacet { component: String, facet: String },
 
-    #[error("Invalid representation for {0}: textType '{1}' is outside this position's allowed subset.")]
-    InvalidTextTypeForComponent(String, String),
+    #[error("Invalid representation for {component}: textType '{text_type}' is outside this position's allowed subset.")]
+    InvalidTextTypeForComponent { component: String, text_type: String },
 
     // D-0052: a STATED value differing from an XSD fixed value is mechanically schema-invalid
-    // (an XSD validator rejects the mismatch). First String names the attribute/site, second
+    // (an XSD validator rejects the mismatch). `attribute` names the attribute/site, `value`
     // the offending stated value. Producers: AgencyScheme id ("AGENCIES"), the DSD descriptor
     // ids, TimeDimension's stated id ("TIME_PERIOD" — D-0057), and FixedInclude::new() (the
     // DataKey/DataKeyValue fixed-true includes — the V-3 wrapper).
-    #[error("Invalid fixed attribute {0}: stated value '{1}' differs from the schema-fixed value.")]
-    FixedAttributeMismatch(String, String),
+    #[error("Invalid fixed attribute {attribute}: stated value '{value}' differs from the schema-fixed value.")]
+    FixedAttributeMismatch { attribute: String, value: String },
 }
 ```
 
