@@ -42,6 +42,11 @@ log_section "Checking sources for absolute file:// links..."
 # added nested directory cannot silently bypass the check. `find … | while
 # read` is the POSIX-portable recursion idiom here — /bin/sh (dash) has no
 # `globstar`. Template files are excluded to match the md-link-check recipe.
+# The generated xsd-fragments are excluded: they are rewritten in place by
+# gen-xsd-fragments (which under `[parallel] verify` can race this scan,
+# deleting files between find and grep), and their content is verified
+# byte-exact against the pinned schemas by check-xsd-fragments, so an
+# authored-link scan of them is redundant coverage.
 find . \
     \( -name '*.md' -o -name '*.toml' -o -name '*.rs' \) \
     -not -path '*/templates/*' \
@@ -49,6 +54,7 @@ find . \
     -not -path '*/.direnv/*' \
     -not -path '*/.git/*' \
     -not -path '*/node_modules/*' \
+    -not -path '*/docs/xsd-fragments/*' \
     | while IFS= read -r file; do
     # Match an ABSOLUTE file:// URL — the leak form an IDE emits, i.e.
     # file:/// (scheme + empty host + absolute path). Requiring the third
