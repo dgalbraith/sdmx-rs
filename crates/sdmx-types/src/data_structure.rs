@@ -497,4 +497,20 @@ mod tests {
                 .is_err()
         );
     }
+
+    // Property tests: the internal serde round-trip over full generated data structures
+    // (see `test_strategy`); wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::data_structure_definition;
+
+        proptest! {
+            #[test]
+            fn data_structure_definition_round_trips(value in data_structure_definition()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

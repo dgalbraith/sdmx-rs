@@ -934,4 +934,36 @@ mod tests {
         assert_eq!(GroupDimensions::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(GroupDimensions::new(v.clone()).unwrap()), v);
     }
+
+    // Property tests: the internal serde round-trip over the generated descriptor
+    // families (see `test_strategy`); wasm32 is excluded with the rest of the property
+    // suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::{attribute_list, dimension_list, group, measure_list};
+
+        proptest! {
+            #[test]
+            fn dimension_list_round_trips(value in dimension_list()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn attribute_list_round_trips(value in attribute_list()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn measure_list_round_trips(value in measure_list()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn group_round_trips(value in group()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

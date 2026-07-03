@@ -588,4 +588,21 @@ mod tests {
         assert_eq!(with_email.details.len(), 1);
         assert!(with_email.names.is_none());
     }
+
+    // Property tests: the internal serde round-trip over generated agency schemes, which
+    // compose agencies and contacts (see `test_strategy`); wasm32 is excluded with the
+    // rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::agency_scheme;
+
+        proptest! {
+            #[test]
+            fn agency_scheme_round_trips(value in agency_scheme()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

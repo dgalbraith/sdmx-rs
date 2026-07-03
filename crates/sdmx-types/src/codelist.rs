@@ -683,4 +683,27 @@ mod tests {
         assert_eq!(MemberValues::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(MemberValues::new(v.clone()).unwrap()), v);
     }
+
+    // Property tests: the headline internal serde round-trip (D-0031/D-0063/D-0068) over
+    // the full generated spine — a codelist composes every metadata leaf and its codes —
+    // via `test_support::round_trip`. wasm32 is excluded with the rest of the property
+    // suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::{code, codelist};
+
+        proptest! {
+            #[test]
+            fn code_round_trips(value in code()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn codelist_round_trips(value in codelist()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

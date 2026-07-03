@@ -75,6 +75,12 @@ mod valuelist;
 #[cfg(test)]
 mod test_support;
 
+// Property-test strategies are wasm-excluded with the rest of the property suite: the
+// properties verify platform-independent invariants, and proptest itself is a host-only
+// dev-dependency (see Cargo.toml and docs/dev/testing.md).
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod test_strategy;
+
 pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},

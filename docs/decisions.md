@@ -154,8 +154,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0071](#d-0071) | Lexical types               | VersionRef models the version reference grammar (WildcardVersionType); one + wildcard enforced across editions                                                                                                                    |
 | [D-0072](#d-0072) | Lexical types               | ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme                                                                                                                       |
 | [D-0073](#d-0073) | Reference types             | Reference types own their class URN (Display/FromStr); versions typed VersionRef; + admitted everywhere, * nowhere                                                                                                                |
+| [D-0074](#d-0074) | Lexical types               | `PartialEq<str>` string identity on the lexeme-storing types only; raw-free grammar types take none (canonical semantics pre-agreed)                                                                                              |
 
-<!-- Next ID: D-0074 -->
+<!-- Next ID: D-0075 -->
 
 ## Entries
 
@@ -1683,5 +1684,23 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: The parse path is where the grammar belongs: the Phase-2 parsers split wire references through `FromStr` ([D-0069](#d-0069)), while construction stays invariant-free because identifiers are validated at declaration, not reference ([D-0020](#d-0020)); rendering a wire-conformant URN from hand-built fields is the writer's obligation, like every other carrier field. The version is `VersionRef` rather than `SdmxVersion` because the chain says so: every reference class admits the `+` forms a declaration version cannot carry.
 
 **Consequences**: (1) Resolves [D-0027](#d-0027) consequence (3): the references adopt `VersionRef`, not `SdmxVersion` (amended in place). (2) Extends [D-0002](#d-0002) without amendment: each distinct type now also owns its class URN; [D-0069](#d-0069)'s anticipated D-0002 amendment resolves as this extension. (3) Public API: the five triple `version` fields change type, and the two item-in-scheme structs gain a `version` field. (4) Two Layer-2 lints are catalogued in 0010 §5.11: a reference whose fields cannot render a wire-conformant URN (`VersionRef::Any` included) fails the writer's conformance check; and a dot-nested item tail on a flat item class (`Concept`, `DataProvider`), which the XSD patterns mechanically admit but the Registry Specification's URN prose forbids, is held verbatim and flagged. (5) The `*`-admitting contexts (metadata targets) take their own modelling when they arrive, not this shape. (6) Round-trip tests fold into the property-based-testing roadmap item.
+
+---
+
+### D-0074 — `PartialEq<str>` confined to the lexeme-storing lexical types
+
+| **Area**     | Lexical types |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | partial-eq, string-comparison, operator-semantics, lexical, raw-backed, raw-free, api-surface, deferral |
+| **Related**  | [D-0027](#d-0027), [D-0060](#d-0060), [D-0070](#d-0070), [D-0071](#d-0071), [D-0072](#d-0072) |
+
+**Observation**: practices.md's trait-surface table lists `PartialEq<str>`/`PartialEq<&str>` as "intended" for the lexical newtypes without qualification, a row predating the split of the family by storage model. On the lexeme-storing types the stored text is the datum ([D-0027](#d-0027)), so comparison to a literal has exactly one reading: string identity. That covers the raw-backed four (`SdmxDecimal`, `SdmxInteger`, `SdmxTimePeriod`, `SdmxTimeRange`) and equally the `ObservationalTimePeriod` union ([D-0072](#d-0072)), whose members both store their lexeme and whose grammars are disjoint, so string identity coincides with structural equality. On the raw-free grammar types (`SdmxVersion` per [D-0070](#d-0070), `VersionRef` per [D-0071](#d-0071)) the lexeme is reconstructed, and `version == "1.0.0"` is guessable two ways — lexeme identity or version equivalence — the contested-operator shape that deferred `Ord` ([D-0060](#d-0060)); ecosystem precedent agrees (`semver::Version` carries no `PartialEq<str>`).
+
+**Decision**: The operator follows the storage model: `PartialEq<str>`/`PartialEq<&str>` are implemented on the lexeme-storing types — the raw-backed four and the `ObservationalTimePeriod` union — as string identity with the stored lexeme, and the raw-free grammar types take no string-comparison operator.
+
+**Rationale**: A comparison operator must have one obvious reading at the call site. Where the lexeme is reconstructed, the operator would silently pick one of two readings users legitimately hold — the hazard [D-0060](#d-0060) resolved by deferral — while declining costs nothing, because the operator is additive whenever its semantics are settled.
+
+**Consequences**: (1) practices.md's trait-surface row is recut from unqualified "intended" to the lexeme-storing types, citing this entry. (2) Parse-based equality on the raw-free types is rejected outright, not merely deferred: under the bijective canonical grammars it duplicates structural equality wherever the literal is grammar-valid, and any divergence would bless non-stated forms against the statedness principle. (3) Canonical (formats-to-equal) semantics are pre-agreed as the meaning if ergonomic pressure ever justifies adopting the operator on a raw-free type — an additive MINOR change.
 
 ---

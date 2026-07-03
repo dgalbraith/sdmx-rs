@@ -728,4 +728,64 @@ mod tests {
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<MaintainableMetadata>(&bytes).is_err());
     }
+
+    // Property tests: the internal serde round-trip over the generated metadata spine (see
+    // `test_strategy`). The datetime-bearing leaves additionally assert the stated-offset
+    // tuple: `DateTime<FixedOffset>` equality compares the instant only, and the offset is
+    // data (Q-G). wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use super::super::*;
+        use crate::{
+            test_strategy::{
+                identifiable_metadata, maintainable_metadata, nameable_metadata,
+                versionable_metadata,
+            },
+            test_support::{round_trip, with_stated_offset},
+        };
+
+        proptest! {
+            #[test]
+            fn identifiable_metadata_round_trips(value in identifiable_metadata()) {
+                round_trip(&value);
+            }
+
+            #[test]
+            fn nameable_metadata_round_trips(value in nameable_metadata()) {
+                round_trip(&value);
+            }
+
+            #[test]
+            fn versionable_metadata_round_trips_with_stated_offsets(
+                value in versionable_metadata(),
+            ) {
+                let restored = round_trip(&value);
+                prop_assert_eq!(
+                    with_stated_offset(value.valid_from()),
+                    with_stated_offset(restored.valid_from())
+                );
+                prop_assert_eq!(
+                    with_stated_offset(value.valid_to()),
+                    with_stated_offset(restored.valid_to())
+                );
+            }
+
+            #[test]
+            fn maintainable_metadata_round_trips_with_stated_offsets(
+                value in maintainable_metadata(),
+            ) {
+                let restored = round_trip(&value);
+                prop_assert_eq!(
+                    with_stated_offset(value.valid_from()),
+                    with_stated_offset(restored.valid_from())
+                );
+                prop_assert_eq!(
+                    with_stated_offset(value.valid_to()),
+                    with_stated_offset(restored.valid_to())
+                );
+            }
+        }
+    }
 }

@@ -3078,4 +3078,31 @@ mod tests {
         assert_eq!(SimpleDataSources::new(sds.clone()).unwrap().into_inner(), sds);
         assert_eq!(Vec::from(SimpleDataSources::new(sds.clone()).unwrap()), sds);
     }
+
+    // Property tests: the internal serde round-trip over the generated constraint model,
+    // composing every selection, key-set, and attachment family (see `test_strategy`);
+    // wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::{availability_constraint, constraint_model, data_constraint};
+
+        proptest! {
+            #[test]
+            fn data_constraint_round_trips(value in data_constraint()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn availability_constraint_round_trips(value in availability_constraint()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn constraint_model_round_trips(value in constraint_model()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

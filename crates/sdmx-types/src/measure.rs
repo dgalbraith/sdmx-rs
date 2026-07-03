@@ -333,4 +333,21 @@ mod tests {
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Measure>(&bytes).is_err());
     }
+
+    // Property tests: the internal serde round-trip over generated position-valid
+    // measures (see `test_strategy`); wasm32 is excluded with the rest of the property
+    // suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::measure;
+
+        proptest! {
+            #[test]
+            fn measure_round_trips(value in measure()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

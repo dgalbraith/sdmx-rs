@@ -379,6 +379,16 @@ Keep mocks in sync with reality:
 
 ## Property-Based Testing & Fuzzing
 
+### Domain-Type Property Tests (Phase 1)
+
+`sdmx-types` carries an in-crate property suite: in-module `proptest!` blocks beside the example tests, with the shared lexeme generators in the crate-private `test_strategy` module. Three conventions govern it:
+
+- **Generation routes through the validated constructors.** Strategies emit grammar-valid lexemes (or the components one is formatted from) and the properties construct values through `new()`/`from_str()`, the same single write path production code uses. A generator that bypassed the constructor would have the same defect as a `Deserialize` that did (design 0010 §7), and would spend its case budget on bizarre invariants that can never arrive in reality.
+- **Property tests complement, never replace, the example tests.** The deterministic example tests enumerate every boundary and hit every branch identically on every run, so they remain the coverage backbone under the crate's 0%-tolerance coverage gate; a branch reached only probabilistically by a generator would make that gate flaky. Property tests add fuzzed breadth on top.
+- **The property suite is wasm-excluded by design.** The properties verify platform-independent protocol invariants of pure `no_std + alloc` logic, so the same generated cases yield identical verdicts on every target and wasm re-execution verifies nothing new: wasm capability belongs to the `cargo check` gate, and wasm runtime behaviour to the example tests running there. `proptest` is therefore a `cfg(not(target_arch = "wasm32"))` dev-dependency, and the property modules carry the same target gate. Revisit trigger: any `cfg(target_arch)`-conditional code entering the library.
+
+Discovered failing seeds are written to `src/proptest-regressions/` automatically and are committed, so a found failure replays on every subsequent run (the `.gitignore` allowlists the `.txt` seeds).
+
 ### Fuzzing Strategy (Phase 5)
 
 Fuzz targets exercise parsers with random/malformed input to find panics and undefined behaviour:
