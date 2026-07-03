@@ -81,8 +81,16 @@ pub trait VersionableArtefact: NameableArtefact {
     /// version value.
     fn version(&self) -> Option<&SdmxVersion>;
     /// The start of the artefact's validity window, if any.
+    ///
+    /// The preserved datum is the XSD `dateTime` value: the instant *and* the stated
+    /// numeric offset. The stated offset is data — a document stating `+05:00` and its UTC
+    /// equivalent are distinct — and survives the round-trip, even though
+    /// `DateTime<FixedOffset>` equality compares the instant alone. The spelling
+    /// distinctions XSD's own lexical-to-value mapping collapses (`Z` versus `+00:00`,
+    /// fractional-second zero padding) are deliberately not preserved.
     fn valid_from(&self) -> Option<&DateTime<FixedOffset>>;
-    /// The end of the artefact's validity window, if any.
+    /// The end of the artefact's validity window, if any. Carries the same stated-offset
+    /// contract as [`valid_from`](Self::valid_from).
     fn valid_to(&self) -> Option<&DateTime<FixedOffset>>;
 
     /// A `Display` adapter for the version that renders `<unversioned>` when absent. Every
