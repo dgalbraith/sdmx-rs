@@ -20,7 +20,11 @@ docs/dev/workflow.md
 
 ## Related Documents
 
-<!-- Link any ADRs, design docs, or guides that motivated or were updated by this PR. Omit if none. -->
+<!--
+Link ADRs, design docs, or guides that motivated this PR. Never link files the PR
+itself changes (those are its subject, shown by the diff). Remove this section
+entirely if there are none.
+-->
 
 ## Quality Checklist
 
