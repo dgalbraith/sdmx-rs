@@ -40,6 +40,13 @@ postcard = { workspace = true }
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 wasm-bindgen-test = "0.3"
 
+# Property-based testing harness, host-only — the mirror image of the wasm-bindgen-test
+# scoping above. The property suite verifies platform-independent invariants, so it is
+# excluded from the wasm32 test build by design; the std-requiring harness then never
+# compiles for the wasm targets.
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+proptest = { workspace = true }
+
 # serde / thiserror / chrono are now actively used (Milestone 1), so they are no longer
 # suppressed — machete will flag them if they ever fall out of use. Only the platform-specific
 # WASM test harness stays ignored (it is referenced exclusively under cfg(target_arch = wasm32)).

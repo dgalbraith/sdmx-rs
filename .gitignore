@@ -270,6 +270,10 @@
 !/crates/sdmx-types/xsd-manifest.toml
 !/crates/sdmx-types/docs/xsd-fragments/.markdownlint.yaml
 
+# sdmx-types: proptest regression seeds (committed so a discovered failure replays)
+!/crates/sdmx-types/src/proptest-regressions/
+!/crates/sdmx-types/src/proptest-regressions/*.txt
+
 # sdmx-parsers: spec validation fixtures
 !/crates/sdmx-parsers/tests/fixtures/**/*.xml
 !/crates/sdmx-parsers/tests/fixtures/**/*.json
