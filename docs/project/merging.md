@@ -51,9 +51,15 @@ We use specific Git trailer keywords to reference and automatically close issue 
 
 *   **`Fixes #ISSUE_ID`**: Used in bug fix commits to denote resolving a defect/problem.
 *   **`Closes #ISSUE_ID`**: Used in chore, feature, or task commits to denote completing a requirement.
+*   **`Refs #ISSUE_ID`**: Used in commits that relate to an issue without completing it.
 *   **`Resolves #ISSUE_ID`**: Used in the final merge commit to denote the completion and integration of the work addressing that issue.
 
-These play two distinct roles, not three copies of one. `Fixes`/`Closes` on the **branch commit and PR** provide issue *linkage* — the cross-references that wire issue, PR, and commit together in the forge UI for navigability — and their choice is type-driven (`Fixes` for bugs, `Closes` for chores/features/tasks). `Resolves` on the **merge commit** is the keyword that *guarantees closure*: in this repository's local-merge model (no GitHub merge button — see [CI Gates & Branch Protection](#ci-gates--branch-protection)), the reliable closer is a keyword on a commit that lands on `main`, which is the maintainer-authored merge commit. In short: `Closes`/`Fixes` link and *claim* completion; `Resolves` *certifies* integration and closes the issue.
+The four keywords are not interchangeable; they play three distinct roles. `Refs` provides bare issue *linkage* — the cross-reference that wires issue, PR, and commit together in the forge UI for navigability — and nothing more. `Fixes`/`Closes` on the **branch commit and PR** add the *completion claim* to that linkage, and their choice is type-driven (`Fixes` for bugs, `Closes` for chores/features/tasks). `Resolves` on the **merge commit** is the keyword that *indicates closure*: in this repository's local-merge model (no GitHub merge button — see [CI Gates & Branch Protection](#ci-gates--branch-protection)), an issue is only closed automatically by a closing keyword on a commit that lands on `main` — and the commit guaranteed to do that with the right keyword is the maintainer-authored merge commit. In short: `Refs` links; `Closes`/`Fixes` link and *claim* completion; `Resolves` *certifies* integration and closes the issue.
+
+On a **multi-commit branch**, the completion claim belongs to exactly one commit per issue; every other commit links with `Refs`. The two patterns:
+
+*   **Single issue, multiple commits**: intermediate commits carry `Refs #ISSUE_ID`; only the terminal commit that completes the requirement carries the type-driven `Fixes`/`Closes #ISSUE_ID`. The merge commit carries `Resolves #ISSUE_ID` as usual.
+*   **Multiple issues under an umbrella issue**: each commit carries the type-driven `Fixes`/`Closes` for its own sub-issue and may additionally carry `Refs` for the umbrella; the merge commit enumerates one `Resolves #ISSUE_ID` per issue it integrates.
 
 > [!IMPORTANT]
 > Never include platform-specific Pull Request IDs (e.g., `#2` for PR #2) in your commit or merge messages. Always reference the underlying Issue ID (e.g., `#1`). The associated pull requests will still be automatically tracked and closed when the branch merge is detected.
