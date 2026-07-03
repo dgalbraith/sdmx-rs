@@ -81,7 +81,7 @@ git checkout -b chore/initialise-workspace-configuration
 With the code written and local checks passing, the developer stages the changes and creates a GPG-signed commit.
 
 > [!NOTE]
-> **Keep the branch commit lean.** Its body need only state *what* the change is and why — the exhaustive, enumerated record is authored by the maintainer on the **merge commit** (Stage 5), which is the canonical, signed entry on `main`. This deliberately spares contributors from polishing a commit body to repo standard: the maintainer curates the durable description at merge time rather than blocking review on message quality. The `Closes`/`Fixes` trailer here links the issue for navigability; the merge commit's `Resolves` is what guarantees closure (see [Merge Protocol — Semantic Keywords](../project/merging.md#semantic-keywords)).
+> **Keep the branch commit lean.** Its body need only state *what* the change is and why — the exhaustive, enumerated record is authored by the maintainer on the **merge commit** (Stage 5), which is the canonical, signed entry on `main`. This deliberately spares contributors from polishing a commit body to repo standard: the maintainer curates the durable description at merge time rather than blocking review on message quality. The `Closes`/`Fixes` trailer here links the issue for navigability; on a multi-commit branch, intermediate commits carry `Refs` instead, and only the terminal commit claims completion with `Closes`/`Fixes`. The merge commit's `Resolves` is what guarantees closure (see [Merge Protocol — Semantic Keywords](../project/merging.md#semantic-keywords)).
 
 ### Exemplar Commit Command
 
