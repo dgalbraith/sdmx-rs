@@ -606,14 +606,14 @@ The lexical newtypes (`SdmxDecimal`, `SdmxInteger`, `SdmxVersion`, `SdmxTimePeri
 | `FromStr`                        | ✅       | Delegates to `new()`, so `"…".parse()` is the idiomatic, validating constructor.                                                                                                                                                                         |
 | `AsRef<str>`                     | ✅       | Explicit borrow of the raw lexeme.                                                                                                                                                                                                                       |
 | `PartialEq` / `Eq`               | ✅       | Equality is string identity, lossless-distinct (`SdmxVersion` treats `1.0.0-rc` and `1.0.0`, and `3.1` and `3.1.0`, as unequal).                                                                                                                         |
-| `PartialEq<str>` / `<&str>`      | intended | Ergonomic comparison to literals; not yet implemented (its round-trip property test lands with the M5/M6 `proptest` suite).                                                                                                                              |
+| `PartialEq<str>` / `<&str>`      | ✅       | String identity with the stored lexeme, on the lexeme-storing types only (the raw-backed newtypes and the `ObservationalTimePeriod` union); the raw-free `SdmxVersion`/`VersionRef` take none (D-0074).                                                  |
 | `Ord` / `PartialOrd`             | ❌       | Deferred. `SdmxVersion` ordering is unresolved (legacy-vs-semantic equivalence), and a precedence `Ord` bound to the raw `Eq` would violate the `Ord`/`Eq` contract (D-0060); precedence will be an explicit method or wrapper, not a type-level `Ord`.  |
 | `Borrow<str>`                    | ❌       | Conditional only. It would require `Eq`/`Hash`/`Ord` consistent with `str`, locking the equality/ordering semantics and foreclosing the `SdmxVersion` precedence question. Adopt only if a `str`-keyed lookup need arises and the semantics are settled. |
 | `Deref<str>`                     | ❌       | Rejected. Auto-deref would surface every `str` method as the newtype's own API, dissolving the validated boundary; `AsRef<str>` gives explicit raw access instead.                                                                                       |
 
 The single-`String` newtypes (`SdmxDecimal`, `SdmxInteger`) additionally provide `From<Self> for String` and an inherent `into_inner()`. A *consuming* unwrap moves the value out rather than coercing it while the newtype is live, so it does not dissolve the validated boundary the way `Deref` would. The composite `SdmxVersion`/`SdmxTimePeriod` wrap more than a string and expose no such unwrap.
 
-Decisions: D-0027, D-0060.
+Decisions: D-0027, D-0060, D-0074.
 
 ### Const and Const Functions
 
