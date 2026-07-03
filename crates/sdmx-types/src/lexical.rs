@@ -1929,4 +1929,108 @@ mod tests {
         assert_eq!(i.clone().into_inner(), "42");
         assert_eq!(String::from(i), "42");
     }
+
+    // Property tests: fuzzed breadth over the validated grammars, generated through the
+    // constructors (see `test_strategy`). They complement the example tests above, which
+    // stay the deterministic coverage backbone; wasm32 is excluded with the rest of the
+    // property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use alloc::{format, string::ToString};
+
+        use proptest::prelude::*;
+
+        use super::super::*;
+        use crate::test_strategy::{
+            observational_time_period_lexeme, standard_time_period_lexeme, time_range_lexeme,
+            version_lexeme, version_ref_lexeme, xs_decimal_lexeme, xs_integer_lexeme,
+        };
+
+        proptest! {
+            #[test]
+            fn decimal_grammar_round_trips(lexeme in xs_decimal_lexeme()) {
+                // Lossless raw (D-0027): stored verbatim, rendered verbatim, parsed back equal.
+                let value = SdmxDecimal::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(value.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<SdmxDecimal>().unwrap(), &value);
+                prop_assert_eq!(value.to_string(), lexeme);
+            }
+
+            #[test]
+            fn integer_grammar_round_trips(lexeme in xs_integer_lexeme()) {
+                let value = SdmxInteger::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(value.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<SdmxInteger>().unwrap(), &value);
+                prop_assert_eq!(value.to_string(), lexeme);
+            }
+
+            #[test]
+            fn integer_widens_into_decimal_losslessly(lexeme in xs_integer_lexeme()) {
+                // The subset relationship made executable (D-0027): widening is verbatim and
+                // total, and narrowing an integer-lexeme decimal recovers the original.
+                let integer = SdmxInteger::new(lexeme.clone()).unwrap();
+                let decimal = SdmxDecimal::from(integer.clone());
+                prop_assert_eq!(decimal.as_str(), lexeme.as_str());
+                prop_assert_eq!(SdmxInteger::try_from(decimal).unwrap(), integer);
+            }
+
+            #[test]
+            fn decimal_narrows_exactly_when_the_lexeme_is_integral(lexeme in xs_decimal_lexeme()) {
+                // Narrowing is lexical, never numeric: it succeeds iff the stored lexeme is
+                // already an xs:integer lexeme, and preserves it verbatim when it does.
+                let decimal = SdmxDecimal::new(lexeme.clone()).unwrap();
+                let narrowed = SdmxInteger::try_from(decimal);
+                prop_assert_eq!(narrowed.is_ok(), is_xs_integer(&lexeme));
+                if let Ok(integer) = narrowed {
+                    prop_assert_eq!(integer.as_str(), lexeme.as_str());
+                }
+            }
+
+            #[test]
+            fn version_grammar_round_trips(lexeme in version_lexeme()) {
+                // The canonical grammar's bijection (D-0070): the reconstructed lexeme is the
+                // parsed one, and format-then-parse is the identity on values.
+                let version = SdmxVersion::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(version.to_string(), lexeme);
+                prop_assert_eq!(version.to_string().parse::<SdmxVersion>().unwrap(), version);
+            }
+
+            #[test]
+            fn version_ref_grammar_round_trips(lexeme in version_ref_lexeme()) {
+                let reference = VersionRef::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(reference.to_string(), lexeme);
+                prop_assert_eq!(reference.to_string().parse::<VersionRef>().unwrap(), reference);
+            }
+
+            #[test]
+            fn time_period_grammar_round_trips(lexeme in standard_time_period_lexeme()) {
+                let period = SdmxTimePeriod::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(period.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<SdmxTimePeriod>().unwrap(), &period);
+                prop_assert_eq!(period.to_string(), lexeme);
+            }
+
+            #[test]
+            fn time_range_grammar_round_trips(lexeme in time_range_lexeme()) {
+                let range = SdmxTimeRange::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(range.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<SdmxTimeRange>().unwrap(), &range);
+                // The accessor halves reassemble the verbatim lexeme.
+                prop_assert_eq!(format!("{}/{}", range.start(), range.duration()), lexeme);
+            }
+
+            #[test]
+            fn observational_grammar_round_trips(lexeme in observational_time_period_lexeme()) {
+                let period = ObservationalTimePeriod::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(period.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<ObservationalTimePeriod>().unwrap(), &period);
+                // The member grammars are disjoint on '/', so classification is determined
+                // by the lexeme.
+                prop_assert_eq!(
+                    matches!(period, ObservationalTimePeriod::Range(_)),
+                    lexeme.contains('/')
+                );
+            }
+        }
+    }
 }

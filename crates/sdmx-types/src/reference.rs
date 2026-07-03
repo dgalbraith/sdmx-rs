@@ -695,4 +695,87 @@ mod tests {
                 .is_err()
         );
     }
+
+    // Property tests: the URN contract over generated grammar-valid components. Every
+    // reference class renders its URN and parses it back to an equal value (Display and
+    // FromStr as mutual inverses, D-0073); the version part is generated over the full
+    // reference grammar (exact and `+`-wildcarded, never the bare `*`). Complements the
+    // example tests above; wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use alloc::string::ToString;
+
+        use proptest::prelude::*;
+
+        use super::super::*;
+        use crate::{
+            lexical::VersionRef,
+            test_strategy::{reference_version_lexeme, urn_agency, urn_id, urn_item_path},
+        };
+
+        proptest! {
+            #[test]
+            fn triple_reference_urns_round_trip(
+                agency in urn_agency(),
+                id in urn_id(),
+                version in reference_version_lexeme(),
+            ) {
+                let version: VersionRef = version.parse().unwrap();
+                let dsd = DsdReference {
+                    agency: agency.clone(),
+                    id: id.clone(),
+                    version: version.clone(),
+                };
+                prop_assert_eq!(dsd.to_string().parse::<DsdReference>().unwrap(), dsd);
+                let codelist = CodelistReference {
+                    agency: agency.clone(),
+                    id: id.clone(),
+                    version: version.clone(),
+                };
+                prop_assert_eq!(codelist.to_string().parse::<CodelistReference>().unwrap(), codelist);
+                let value_list = ValueListReference {
+                    agency: agency.clone(),
+                    id: id.clone(),
+                    version: version.clone(),
+                };
+                prop_assert_eq!(
+                    value_list.to_string().parse::<ValueListReference>().unwrap(),
+                    value_list
+                );
+                let dataflow = DataflowReference {
+                    agency: agency.clone(),
+                    id: id.clone(),
+                    version: version.clone(),
+                };
+                prop_assert_eq!(dataflow.to_string().parse::<DataflowReference>().unwrap(), dataflow);
+                let agreement = ProvisionAgreementReference { agency, id, version };
+                prop_assert_eq!(
+                    agreement.to_string().parse::<ProvisionAgreementReference>().unwrap(),
+                    agreement
+                );
+            }
+
+            #[test]
+            fn item_reference_urns_round_trip(
+                agency in urn_agency(),
+                scheme_id in urn_id(),
+                version in reference_version_lexeme(),
+                id in urn_item_path(),
+            ) {
+                let version: VersionRef = version.parse().unwrap();
+                let concept = ConceptReference {
+                    agency: agency.clone(),
+                    scheme_id: scheme_id.clone(),
+                    version: version.clone(),
+                    id: id.clone(),
+                };
+                prop_assert_eq!(concept.to_string().parse::<ConceptReference>().unwrap(), concept);
+                let provider = DataProviderReference { agency, scheme_id, version, id };
+                prop_assert_eq!(
+                    provider.to_string().parse::<DataProviderReference>().unwrap(),
+                    provider
+                );
+            }
+        }
+    }
 }
