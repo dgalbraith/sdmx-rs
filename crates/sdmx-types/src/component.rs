@@ -235,4 +235,20 @@ mod tests {
             crate::test_support::round_trip(&usage);
         }
     }
+
+    // Property tests: the internal serde round-trip over generated values (see
+    // `test_strategy`); wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::component_metadata;
+
+        proptest! {
+            #[test]
+            fn component_metadata_round_trips(value in component_metadata()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

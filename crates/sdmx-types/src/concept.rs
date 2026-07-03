@@ -561,4 +561,25 @@ mod tests {
         assert_eq!(concept.names().first(), "Frequency");
         assert_eq!(concept.descriptions().map(LocalisedString::first), Some("How often"));
     }
+
+    // Property tests: the internal serde round-trip over generated concepts and schemes
+    // (see `test_strategy`); wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::{concept, concept_scheme};
+
+        proptest! {
+            #[test]
+            fn concept_round_trips(value in concept()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn concept_scheme_round_trips(value in concept_scheme()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }

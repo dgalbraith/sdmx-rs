@@ -25,8 +25,25 @@ use chrono::{DateTime, FixedOffset};
 use proptest::prelude::*;
 
 use crate::{
-    Code, Codelist, IdentifiableMetadata, LocalisedString, LocalisedText, MaintainableMetadata,
-    NameableMetadata, SdmxVersion, VersionableMetadata,
+    Agency, AgencyScheme, Annotation, AnnotationUrl, Attribute, AttributeList, AttributeListMember,
+    AttributeRelationship, AvailabilityConstraint, AvailabilityConstraintAttachment, Cascade, Code,
+    CodeSelection, Codelist, CodelistExtension, CodelistReference, ComponentMetadata,
+    ComponentSelection, ComponentValueSet, Concept, ConceptReference, ConceptScheme,
+    ConstraintModel, ConstraintRole, Contact, ContactDetail, CubeKeyValue, CubeKeyValues,
+    CubeRegion, CubeRegionKey, CubeRegions, DataComponentSelection, DataComponentValue,
+    DataComponentValueSet, DataComponentValues, DataConstraint, DataConstraintAttachment, DataKey,
+    DataKeySet, DataKeyValue, DataKeys, DataProviderReference, DataStructureDefinition,
+    DataStructureRefs, DataType, Dataflow, DataflowReference, DataflowRefs, Dimension,
+    DimensionConstraint, DimensionList, DimensionRef, DsdReference, EnumerationFormat,
+    EnumerationReference, FixedInclude, Group, GroupDimensions, IdentifiableMetadata,
+    KeyValueSelection, Link, LocalisedString, LocalisedText, MaintainableMetadata, MaxOccurs,
+    Measure, MeasureList, MeasureRelationship, MemberValue, MemberValues, MetadataAttributeUsage,
+    NameableMetadata, ObservationalTimePeriod, ProvisionAgreementReference, ProvisionAgreementRefs,
+    QueryableDataSource, ReleaseCalendar, Representation, RepresentationChoice, SdmxDecimal,
+    SdmxInteger, SdmxTimePeriod, SdmxVersion, SimpleComponentValue, SimpleComponentValues,
+    SimpleDataSources, SimpleKeyValues, TextFormat, TimeDimension, TimePeriodRange, TimeRange,
+    TimeRangeKind, Usage, ValueItem, ValueList, ValueListReference, VersionRef,
+    VersionableMetadata,
 };
 
 // ---------------------------------------------------------------------------
@@ -322,25 +339,31 @@ pub(crate) fn fixed_offset_datetime() -> impl Strategy<Value = DateTime<FixedOff
 pub(crate) fn localised_text() -> impl Strategy<Value = LocalisedText> {
     (proptest::option::of(any::<String>()), any::<String>())
         .prop_map(|(language, text)| LocalisedText { language, text })
+        .boxed()
 }
 
 /// A `LocalisedString`: one to three entries (the non-empty invariant holds by construction).
 pub(crate) fn localised_string() -> impl Strategy<Value = LocalisedString> {
     proptest::collection::vec(localised_text(), 1..=3)
         .prop_map(|entries| LocalisedString::new(entries).expect("entries are non-empty"))
+        .boxed()
 }
 
-/// Identifiable metadata over the given id strategy. Annotations and links stay empty at
-/// this stage; their strategies join with the remaining type families.
+/// Identifiable metadata over the given id strategy, annotations and links included.
 fn identifiable_metadata_from(
     id: impl Strategy<Value = String>,
 ) -> impl Strategy<Value = IdentifiableMetadata> {
-    (id, proptest::option::of(any::<String>()), proptest::option::of(any::<String>())).prop_map(
-        |(id, uri, urn)| {
-            IdentifiableMetadata::new(id, uri, urn, Vec::new(), Vec::new())
-                .expect("strategy emits valid ids")
-        },
+    (
+        id,
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+        annotations(),
+        links(),
     )
+        .prop_map(|(id, uri, urn, annotations, links)| {
+            IdentifiableMetadata::new(id, uri, urn, annotations, links)
+                .expect("strategy emits valid ids")
+        })
 }
 
 /// Identifiable metadata over a valid `IDType` id.
@@ -433,6 +456,7 @@ pub(crate) fn maintainable_metadata() -> impl Strategy<Value = MaintainableMetad
 pub(crate) fn code() -> impl Strategy<Value = Code> {
     (nameable_metadata(), proptest::option::of(id_type_lexeme()))
         .prop_map(|(metadata, parent_id)| Code { metadata, parent_id })
+        .boxed()
 }
 
 /// A `Codelist` over an `NCName` scheme id, carrying zero to three codes in wire order.
@@ -441,13 +465,1166 @@ pub(crate) fn codelist() -> impl Strategy<Value = Codelist> {
         maintainable_metadata_from(ncname_lexeme()),
         proptest::option::of(any::<bool>()),
         proptest::collection::vec(code(), 0..=3),
+        proptest::collection::vec(codelist_extension(), 0..=1),
     )
-        .prop_map(|(metadata, is_partial, codes)| {
+        .prop_map(|(metadata, is_partial, codes, extensions)| {
             let mut list =
                 Codelist::new(metadata, is_partial).expect("strategy emits NCName scheme ids");
             for code in codes {
                 list.push(code);
             }
+            list.extensions = extensions;
             list
         })
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Annotations and links (verbatim carriers)
+// ---------------------------------------------------------------------------
+
+/// An `AnnotationUrl`: verbatim URL text with an optional language tag.
+fn annotation_url() -> impl Strategy<Value = AnnotationUrl> {
+    (any::<String>(), proptest::option::of(any::<String>()))
+        .prop_map(|(url, lang)| AnnotationUrl { url, lang })
+}
+
+/// An `Annotation`: every field optional or possibly-empty, mirroring the wire.
+pub(crate) fn annotation() -> impl Strategy<Value = Annotation> {
+    (
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+        proptest::collection::vec(annotation_url(), 0..=2),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(localised_string()),
+    )
+        .prop_map(
+            |(id, annotation_type, annotation_title, annotation_urls, annotation_value, texts)| {
+                Annotation {
+                    id,
+                    annotation_type,
+                    annotation_title,
+                    annotation_urls,
+                    annotation_value,
+                    texts,
+                }
+            },
+        )
+        .boxed()
+}
+
+/// A `Link`: required rel and url, optional urn and type, all held verbatim.
+pub(crate) fn link() -> impl Strategy<Value = Link> {
+    (
+        any::<String>(),
+        any::<String>(),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(rel, url, urn, link_type)| Link { rel, url, urn, link_type })
+        .boxed()
+}
+
+/// Zero to two annotations, the collection shape shared by every annotable carrier.
+fn annotations() -> impl Strategy<Value = Vec<Annotation>> {
+    proptest::collection::vec(annotation(), 0..=2)
+}
+
+/// Zero to two links.
+fn links() -> impl Strategy<Value = Vec<Link>> {
+    proptest::collection::vec(link(), 0..=2)
+}
+
+// ---------------------------------------------------------------------------
+// Typed lexical values and the fixed-include wrapper
+// ---------------------------------------------------------------------------
+
+/// A typed `SdmxDecimal` built from a valid lexeme.
+pub(crate) fn sdmx_decimal() -> impl Strategy<Value = SdmxDecimal> {
+    xs_decimal_lexeme()
+        .prop_map(|s| SdmxDecimal::new(s).expect("strategy emits valid lexemes"))
+        .boxed()
+}
+
+/// A typed `SdmxInteger` built from a valid lexeme.
+pub(crate) fn sdmx_integer() -> impl Strategy<Value = SdmxInteger> {
+    xs_integer_lexeme()
+        .prop_map(|s| SdmxInteger::new(s).expect("strategy emits valid lexemes"))
+        .boxed()
+}
+
+/// A typed `SdmxTimePeriod` built from a valid lexeme.
+pub(crate) fn sdmx_time_period() -> impl Strategy<Value = SdmxTimePeriod> {
+    standard_time_period_lexeme()
+        .prop_map(|s| SdmxTimePeriod::new(s).expect("strategy emits valid lexemes"))
+        .boxed()
+}
+
+/// A typed `ObservationalTimePeriod` built from a valid lexeme of either member.
+pub(crate) fn observational_time_period() -> impl Strategy<Value = ObservationalTimePeriod> {
+    observational_time_period_lexeme()
+        .prop_map(|s| ObservationalTimePeriod::new(s).expect("strategy emits valid lexemes"))
+        .boxed()
+}
+
+/// A `FixedInclude`: absent or the stated fixed value `true` (a stated `false` is the one
+/// rejected input).
+pub(crate) fn fixed_include() -> impl Strategy<Value = FixedInclude> {
+    prop_oneof![Just(None), Just(Some(true))]
+        .prop_map(|stated| FixedInclude::new(stated).expect("never the mismatching false"))
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Representation (D-0048: the position subsets filter one wide DataType table)
+// ---------------------------------------------------------------------------
+
+/// Every `DataType` variant; the position strategies filter this table through the subset
+/// predicates so each position generates exactly its admitted set.
+const ALL_DATA_TYPES: [DataType; 44] = [
+    DataType::String,
+    DataType::Alpha,
+    DataType::AlphaNumeric,
+    DataType::Numeric,
+    DataType::BigInteger,
+    DataType::Integer,
+    DataType::Long,
+    DataType::Short,
+    DataType::Decimal,
+    DataType::Float,
+    DataType::Double,
+    DataType::Boolean,
+    DataType::URI,
+    DataType::Count,
+    DataType::InclusiveValueRange,
+    DataType::ExclusiveValueRange,
+    DataType::Incremental,
+    DataType::ObservationalTimePeriod,
+    DataType::StandardTimePeriod,
+    DataType::BasicTimePeriod,
+    DataType::GregorianTimePeriod,
+    DataType::GregorianYear,
+    DataType::GregorianYearMonth,
+    DataType::GregorianDay,
+    DataType::ReportingTimePeriod,
+    DataType::ReportingYear,
+    DataType::ReportingSemester,
+    DataType::ReportingTrimester,
+    DataType::ReportingQuarter,
+    DataType::ReportingMonth,
+    DataType::ReportingWeek,
+    DataType::ReportingDay,
+    DataType::DateTime,
+    DataType::TimeRange,
+    DataType::Month,
+    DataType::MonthDay,
+    DataType::Day,
+    DataType::Time,
+    DataType::Duration,
+    DataType::GeospatialInformation,
+    DataType::XHTML,
+    DataType::KeyValues,
+    DataType::IdentifiableReference,
+    DataType::DataSetReference,
+];
+
+/// A `DataType` drawn from the subset the given predicate admits.
+fn data_type_where(predicate: fn(DataType) -> bool) -> impl Strategy<Value = DataType> {
+    let admitted: Vec<DataType> =
+        ALL_DATA_TYPES.into_iter().filter(|data_type| predicate(*data_type)).collect();
+    proptest::sample::select(admitted)
+}
+
+/// A representation-level `maxOccurs`: a finite count or `unbounded`.
+fn max_occurs() -> impl Strategy<Value = MaxOccurs> {
+    prop_oneof![any::<u32>().prop_map(MaxOccurs::Count), Just(MaxOccurs::Unbounded)]
+}
+
+/// An uncoded facet bundle whose `textType` draws from the given position subset;
+/// `is_multi_lingual` is supplied by the caller because some positions prohibit it.
+fn text_format(
+    text_type_subset: fn(DataType) -> bool,
+    is_multi_lingual: impl Strategy<Value = Option<bool>>,
+) -> impl Strategy<Value = TextFormat> {
+    (
+        (
+            proptest::option::of(data_type_where(text_type_subset)),
+            proptest::option::of(any::<bool>()),
+            proptest::option::of(sdmx_decimal()),
+            proptest::option::of(sdmx_decimal()),
+            proptest::option::of(sdmx_decimal()),
+        ),
+        (
+            proptest::option::of(any::<String>()),
+            proptest::option::of(sdmx_time_period()),
+            proptest::option::of(sdmx_time_period()),
+            proptest::option::of(any::<u32>()),
+            proptest::option::of(any::<u32>()),
+        ),
+        (
+            proptest::option::of(sdmx_decimal()),
+            proptest::option::of(sdmx_decimal()),
+            proptest::option::of(any::<u32>()),
+            proptest::option::of(any::<String>()),
+            is_multi_lingual,
+        ),
+    )
+        .prop_map(
+            |(
+                (text_type, is_sequence, interval, start_value, end_value),
+                (time_interval, start_time, end_time, min_length, max_length),
+                (min_value, max_value, decimals, pattern, is_multi_lingual),
+            )| {
+                TextFormat {
+                    text_type,
+                    is_sequence,
+                    interval,
+                    start_value,
+                    end_value,
+                    time_interval,
+                    start_time,
+                    end_time,
+                    min_length,
+                    max_length,
+                    min_value,
+                    max_value,
+                    decimals,
+                    pattern,
+                    is_multi_lingual,
+                }
+            },
+        )
+}
+
+/// The time-position facet bundle: only `textType` (the time subset), `startTime`, and
+/// `endTime` may be set; every other facet is prohibited there.
+fn time_text_format() -> impl Strategy<Value = TextFormat> {
+    (
+        proptest::option::of(data_type_where(DataType::is_time)),
+        proptest::option::of(sdmx_time_period()),
+        proptest::option::of(sdmx_time_period()),
+    )
+        .prop_map(|(text_type, start_time, end_time)| TextFormat {
+            text_type,
+            start_time,
+            end_time,
+            ..TextFormat::default()
+        })
+        .boxed()
+}
+
+/// A coded facet bundle: integer numerics, no `decimals`, `textType` from the Code subset.
+fn enumeration_format() -> impl Strategy<Value = EnumerationFormat> {
+    (
+        (
+            proptest::option::of(data_type_where(DataType::is_code)),
+            proptest::option::of(any::<bool>()),
+            proptest::option::of(sdmx_integer()),
+            proptest::option::of(sdmx_integer()),
+            proptest::option::of(sdmx_integer()),
+        ),
+        (
+            proptest::option::of(any::<String>()),
+            proptest::option::of(sdmx_time_period()),
+            proptest::option::of(sdmx_time_period()),
+        ),
+        (
+            proptest::option::of(any::<u32>()),
+            proptest::option::of(any::<u32>()),
+            proptest::option::of(sdmx_integer()),
+            proptest::option::of(sdmx_integer()),
+            proptest::option::of(any::<String>()),
+        ),
+    )
+        .prop_map(
+            |(
+                (text_type, is_sequence, interval, start_value, end_value),
+                (time_interval, start_time, end_time),
+                (min_length, max_length, min_value, max_value, pattern),
+            )| {
+                EnumerationFormat {
+                    text_type,
+                    is_sequence,
+                    interval,
+                    start_value,
+                    end_value,
+                    time_interval,
+                    start_time,
+                    end_time,
+                    min_length,
+                    max_length,
+                    min_value,
+                    max_value,
+                    pattern,
+                }
+            },
+        )
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Typed references
+// ---------------------------------------------------------------------------
+
+/// A typed reference version (exact or `+`-wildcarded, never the bare `*`).
+fn reference_version() -> impl Strategy<Value = VersionRef> {
+    reference_version_lexeme()
+        .prop_map(|s| VersionRef::new(s).expect("strategy emits valid reference versions"))
+}
+
+/// A typed `CodelistReference` over generated URN components.
+pub(crate) fn codelist_reference() -> impl Strategy<Value = CodelistReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| CodelistReference { agency, id, version })
+}
+
+/// A typed `ValueListReference`.
+fn value_list_reference() -> impl Strategy<Value = ValueListReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| ValueListReference { agency, id, version })
+}
+
+/// A typed `DsdReference`.
+pub(crate) fn dsd_reference() -> impl Strategy<Value = DsdReference> {
+    (urn_agency(), urn_id(), reference_version()).prop_map(|(agency, id, version)| DsdReference {
+        agency,
+        id,
+        version,
+    })
+}
+
+/// A typed `DataflowReference`.
+fn dataflow_reference() -> impl Strategy<Value = DataflowReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| DataflowReference { agency, id, version })
+}
+
+/// A typed `ProvisionAgreementReference`.
+fn provision_agreement_reference() -> impl Strategy<Value = ProvisionAgreementReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| ProvisionAgreementReference { agency, id, version })
+}
+
+/// A typed `DataProviderReference` (item-in-scheme shape).
+fn data_provider_reference() -> impl Strategy<Value = DataProviderReference> {
+    (urn_agency(), urn_id(), reference_version(), urn_id()).prop_map(
+        |(agency, scheme_id, version, id)| DataProviderReference { agency, scheme_id, version, id },
+    )
+}
+
+/// A typed `ConceptReference` (item-in-scheme shape).
+pub(crate) fn concept_reference() -> impl Strategy<Value = ConceptReference> {
+    (urn_agency(), urn_id(), reference_version(), urn_id()).prop_map(
+        |(agency, scheme_id, version, id)| ConceptReference { agency, scheme_id, version, id },
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Position-valid representations (D-0048)
+// ---------------------------------------------------------------------------
+
+/// A Basic-position representation (a concept core representation, an attribute, or a
+/// measure): either enumeration target, the Basic `textType` subset, occurrence attributes
+/// admitted.
+pub(crate) fn basic_representation() -> impl Strategy<Value = Representation> {
+    let enumeration = prop_oneof![
+        codelist_reference().prop_map(EnumerationReference::Codelist),
+        value_list_reference().prop_map(EnumerationReference::ValueList),
+    ];
+    let choice = prop_oneof![
+        text_format(DataType::is_basic, proptest::option::of(any::<bool>()))
+            .prop_map(RepresentationChoice::TextFormat),
+        (enumeration, proptest::option::of(enumeration_format())).prop_map(
+            |(enumeration, format)| RepresentationChoice::Enumeration { enumeration, format }
+        ),
+    ];
+    (choice, proptest::option::of(any::<u32>()), proptest::option::of(max_occurs()))
+        .prop_map(|(choice, min_occurs, max_occurs)| Representation {
+            choice,
+            min_occurs,
+            max_occurs,
+        })
+        .boxed()
+}
+
+/// A Dimension-position representation: codelist enumeration only, the Simple `textType`
+/// subset, no `isMultiLingual`, no occurrence attributes.
+pub(crate) fn dimension_representation() -> impl Strategy<Value = Representation> {
+    let choice = prop_oneof![
+        text_format(DataType::is_simple, Just(None)).prop_map(RepresentationChoice::TextFormat),
+        (
+            codelist_reference().prop_map(EnumerationReference::Codelist),
+            proptest::option::of(enumeration_format())
+        )
+            .prop_map(|(enumeration, format)| RepresentationChoice::Enumeration {
+                enumeration,
+                format
+            }),
+    ];
+    choice.prop_map(|choice| Representation { choice, min_occurs: None, max_occurs: None }).boxed()
+}
+
+/// A TimeDimension-position representation: an uncoded time facet bundle only.
+pub(crate) fn time_representation() -> impl Strategy<Value = Representation> {
+    time_text_format()
+        .prop_map(|text_format| Representation {
+            choice: RepresentationChoice::TextFormat(text_format),
+            min_occurs: None,
+            max_occurs: None,
+        })
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Components and descriptors
+// ---------------------------------------------------------------------------
+
+/// Component metadata over the given optional-id strategy.
+fn component_metadata_from(
+    id: impl Strategy<Value = Option<String>>,
+) -> impl Strategy<Value = ComponentMetadata> {
+    (
+        id,
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+        annotations(),
+        links(),
+    )
+        .prop_map(|(id, uri, urn, annotations, links)| {
+            ComponentMetadata::new(id, uri, urn, annotations, links)
+                .expect("strategy emits valid component ids")
+        })
+}
+
+/// Component metadata whose stated id, when present, is a valid `NCNameIDType`.
+pub(crate) fn component_metadata() -> impl Strategy<Value = ComponentMetadata> {
+    component_metadata_from(proptest::option::of(ncname_lexeme()))
+}
+
+/// A stated-or-absent `usage` flag value.
+fn usage() -> impl Strategy<Value = Usage> {
+    prop_oneof![Just(Usage::Mandatory), Just(Usage::Optional)]
+}
+
+/// A `Dimension` with a position-valid representation.
+pub(crate) fn dimension() -> impl Strategy<Value = Dimension> {
+    (
+        component_metadata(),
+        concept_reference(),
+        proptest::option::of(dimension_representation()),
+        proptest::option::of(any::<i32>()),
+    )
+        .prop_map(|(metadata, concept, representation, position)| {
+            Dimension::new(metadata, concept, representation, position)
+                .expect("strategy respects the dimension position rules")
+        })
+        .boxed()
+}
+
+/// A `TimeDimension`: the stated id is absent or the fixed `TIME_PERIOD`, and the mandatory
+/// representation is time-position-valid.
+pub(crate) fn time_dimension() -> impl Strategy<Value = TimeDimension> {
+    let id = prop_oneof![Just(None), Just(Some(String::from("TIME_PERIOD")))];
+    (component_metadata_from(id), concept_reference(), time_representation())
+        .prop_map(|(metadata, concept, representation)| {
+            TimeDimension::new(metadata, concept, representation)
+                .expect("strategy respects the time position rules")
+        })
+        .boxed()
+}
+
+/// A `DimensionRef` for an attribute relationship.
+fn dimension_ref() -> impl Strategy<Value = DimensionRef> {
+    (id_type_lexeme(), proptest::option::of(any::<bool>()))
+        .prop_map(|(id, optional)| DimensionRef { id, optional })
+}
+
+/// An `AttributeRelationship` across all four arms.
+pub(crate) fn attribute_relationship() -> impl Strategy<Value = AttributeRelationship> {
+    prop_oneof![
+        Just(AttributeRelationship::Dataflow),
+        Just(AttributeRelationship::Observation),
+        id_type_lexeme()
+            .prop_map(|id| AttributeRelationship::group(id).expect("group ids are non-empty")),
+        proptest::collection::vec(dimension_ref(), 1..=3).prop_map(|refs| {
+            AttributeRelationship::dimensions(refs).expect("dimension refs are non-empty")
+        }),
+    ]
+    .boxed()
+}
+
+/// A non-empty `MeasureRelationship`.
+fn measure_relationship() -> impl Strategy<Value = MeasureRelationship> {
+    proptest::collection::vec(id_type_lexeme(), 1..=2)
+        .prop_map(|ids| MeasureRelationship::new(ids).expect("measure ids are non-empty"))
+}
+
+/// An `Attribute` with a Basic-position representation.
+pub(crate) fn attribute() -> impl Strategy<Value = Attribute> {
+    (
+        component_metadata(),
+        concept_reference(),
+        proptest::option::of(basic_representation()),
+        attribute_relationship(),
+        proptest::option::of(measure_relationship()),
+        proptest::option::of(usage()),
+    )
+        .prop_map(
+            |(metadata, concept, representation, relationship, measure_relationship, usage)| {
+                Attribute::new(
+                    metadata,
+                    concept,
+                    representation,
+                    relationship,
+                    measure_relationship,
+                    usage,
+                )
+                .expect("strategy respects the basic position rules")
+            },
+        )
+        .boxed()
+}
+
+/// A `MetadataAttributeUsage`.
+fn metadata_attribute_usage() -> impl Strategy<Value = MetadataAttributeUsage> {
+    (id_type_lexeme(), attribute_relationship(), annotations(), proptest::option::of(link()))
+        .prop_map(|(metadata_attribute_ref, relationship, annotations, link)| {
+            MetadataAttributeUsage { metadata_attribute_ref, relationship, annotations, link }
+        })
+        .boxed()
+}
+
+/// An attribute-list member: an attribute or a metadata attribute usage.
+fn attribute_list_member() -> impl Strategy<Value = AttributeListMember> {
+    prop_oneof![
+        attribute().prop_map(AttributeListMember::Attribute),
+        metadata_attribute_usage().prop_map(AttributeListMember::MetadataAttributeUsage),
+    ]
+    .boxed()
+}
+
+/// A `Measure` with a Basic-position representation.
+pub(crate) fn measure() -> impl Strategy<Value = Measure> {
+    (
+        component_metadata(),
+        concept_reference(),
+        proptest::option::of(basic_representation()),
+        proptest::option::of(usage()),
+    )
+        .prop_map(|(metadata, concept, representation, usage)| {
+            Measure::new(metadata, concept, representation, usage)
+                .expect("strategy respects the basic position rules")
+        })
+        .boxed()
+}
+
+/// A descriptor id: absent or the schema-fixed literal.
+fn descriptor_id(fixed: &'static str) -> impl Strategy<Value = Option<String>> {
+    prop_oneof![Just(None), Just(Some(String::from(fixed)))]
+}
+
+/// A non-empty `DimensionList` with an optional time dimension.
+pub(crate) fn dimension_list() -> impl Strategy<Value = DimensionList> {
+    (
+        descriptor_id("DimensionDescriptor"),
+        proptest::collection::vec(dimension(), 1..=2),
+        proptest::option::of(time_dimension()),
+        annotations(),
+        links(),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(id, dimensions, time_dimension, annotations, links, urn)| {
+            DimensionList::new(id, dimensions, time_dimension, annotations, links, urn)
+                .expect("fixed id and non-empty dimensions hold")
+        })
+        .boxed()
+}
+
+/// A `Group` with a non-empty dimension selection.
+pub(crate) fn group() -> impl Strategy<Value = Group> {
+    (identifiable_metadata(), proptest::collection::vec(id_type_lexeme(), 1..=2))
+        .prop_map(|(metadata, ids)| Group {
+            metadata,
+            dimensions: GroupDimensions::new(ids).expect("group dimensions are non-empty"),
+        })
+        .boxed()
+}
+
+/// A non-empty `AttributeList`.
+pub(crate) fn attribute_list() -> impl Strategy<Value = AttributeList> {
+    (
+        descriptor_id("AttributeDescriptor"),
+        proptest::collection::vec(attribute_list_member(), 1..=2),
+        annotations(),
+        links(),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(id, members, annotations, links, urn)| {
+            AttributeList::new(id, members, annotations, links, urn)
+                .expect("fixed id and non-empty members hold")
+        })
+        .boxed()
+}
+
+/// A non-empty `MeasureList`.
+pub(crate) fn measure_list() -> impl Strategy<Value = MeasureList> {
+    (
+        descriptor_id("MeasureDescriptor"),
+        proptest::collection::vec(measure(), 1..=2),
+        annotations(),
+        links(),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(id, measures, annotations, links, urn)| {
+            MeasureList::new(id, measures, annotations, links, urn)
+                .expect("fixed id and non-empty measures hold")
+        })
+        .boxed()
+}
+
+/// A full `DataStructureDefinition` composing every descriptor family.
+pub(crate) fn data_structure_definition() -> impl Strategy<Value = DataStructureDefinition> {
+    (
+        maintainable_metadata(),
+        dimension_list(),
+        proptest::collection::vec(group(), 0..=1),
+        proptest::option::of(attribute_list()),
+        proptest::option::of(measure_list()),
+        proptest::option::of(any::<bool>()),
+    )
+        .prop_map(|(metadata, dimension_list, groups, attribute_list, measure_list, evolving)| {
+            DataStructureDefinition {
+                metadata,
+                dimension_list,
+                groups,
+                attribute_list,
+                measure_list,
+                evolving_structure: evolving,
+            }
+        })
+        .boxed()
+}
+
+/// A `Dataflow` with an optional structure reference and 3.1 dimension constraint.
+pub(crate) fn dataflow() -> impl Strategy<Value = Dataflow> {
+    let constraint = proptest::collection::vec(id_type_lexeme(), 1..=2)
+        .prop_map(|ids| DimensionConstraint::new(ids).expect("dimension ids are non-empty"));
+    (
+        maintainable_metadata(),
+        proptest::option::of(dsd_reference()),
+        proptest::option::of(constraint),
+    )
+        .prop_map(|(metadata, dsd, dimension_constraint)| Dataflow {
+            metadata,
+            dsd,
+            dimension_constraint,
+        })
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Concept, organisation, and value-list schemes
+// ---------------------------------------------------------------------------
+
+/// A `Concept` over an `NCName` id with a Basic-position core representation.
+pub(crate) fn concept() -> impl Strategy<Value = Concept> {
+    (
+        nameable_metadata_from(ncname_lexeme()),
+        proptest::option::of(id_type_lexeme()),
+        proptest::option::of(basic_representation()),
+    )
+        .prop_map(|(metadata, parent_id, core_representation)| {
+            Concept::new(metadata, parent_id, core_representation)
+                .expect("strategy emits NCName ids and basic-valid representations")
+        })
+        .boxed()
+}
+
+/// A `ConceptScheme` over an `NCName` scheme id, carrying zero to two concepts.
+pub(crate) fn concept_scheme() -> impl Strategy<Value = ConceptScheme> {
+    (
+        maintainable_metadata_from(ncname_lexeme()),
+        proptest::option::of(any::<bool>()),
+        proptest::collection::vec(concept(), 0..=2),
+    )
+        .prop_map(|(metadata, is_partial, concepts)| {
+            let mut scheme =
+                ConceptScheme::new(metadata, is_partial).expect("strategy emits NCName scheme ids");
+            for concept in concepts {
+                scheme.push(concept);
+            }
+            scheme
+        })
+        .boxed()
+}
+
+/// A `ContactDetail` across the five endpoint kinds.
+fn contact_detail() -> impl Strategy<Value = ContactDetail> {
+    prop_oneof![
+        any::<String>().prop_map(ContactDetail::Telephone),
+        any::<String>().prop_map(ContactDetail::Fax),
+        any::<String>().prop_map(ContactDetail::X400),
+        any::<String>().prop_map(ContactDetail::Uri),
+        any::<String>().prop_map(ContactDetail::Email),
+    ]
+}
+
+/// A `Contact` with optional localised triple and interleaved details.
+fn contact() -> impl Strategy<Value = Contact> {
+    (
+        proptest::option::of(localised_string()),
+        proptest::option::of(localised_string()),
+        proptest::option::of(localised_string()),
+        proptest::collection::vec(contact_detail(), 0..=2),
+    )
+        .prop_map(|(names, departments, roles, details)| Contact {
+            names,
+            departments,
+            roles,
+            details,
+        })
+        .boxed()
+}
+
+/// An `Agency` over an `NCName` id with zero to two contacts.
+pub(crate) fn agency() -> impl Strategy<Value = Agency> {
+    (nameable_metadata_from(ncname_lexeme()), proptest::collection::vec(contact(), 0..=2))
+        .prop_map(|(metadata, contacts)| {
+            Agency::new(metadata, contacts).expect("strategy emits NCName agency ids")
+        })
+        .boxed()
+}
+
+/// An `AgencyScheme`: the scheme id is the schema-fixed `AGENCIES`.
+pub(crate) fn agency_scheme() -> impl Strategy<Value = AgencyScheme> {
+    (
+        maintainable_metadata_from(Just(String::from("AGENCIES"))),
+        proptest::option::of(any::<bool>()),
+        proptest::collection::vec(agency(), 0..=2),
+    )
+        .prop_map(|(metadata, is_partial, agencies)| {
+            let mut scheme =
+                AgencyScheme::new(metadata, is_partial).expect("the fixed AGENCIES id holds");
+            for agency in agencies {
+                scheme.push(agency);
+            }
+            scheme
+        })
+        .boxed()
+}
+
+/// A `ValueItem`: its id is the unvalidated fourth tier, so arbitrary text is legal.
+fn value_item() -> impl Strategy<Value = ValueItem> {
+    (
+        any::<String>(),
+        proptest::option::of(localised_string()),
+        proptest::option::of(localised_string()),
+        annotations(),
+    )
+        .prop_map(|(id, names, descriptions, annotations)| ValueItem {
+            id,
+            names,
+            descriptions,
+            annotations,
+        })
+        .boxed()
+}
+
+/// A `ValueList` carrying zero to three items in wire order.
+pub(crate) fn value_list() -> impl Strategy<Value = ValueList> {
+    (maintainable_metadata(), proptest::collection::vec(value_item(), 0..=3))
+        .prop_map(|(metadata, items)| ValueList { metadata, items })
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Codelist extensions
+// ---------------------------------------------------------------------------
+
+/// A `Cascade` selection across the tri-state.
+pub(crate) fn cascade() -> impl Strategy<Value = Cascade> {
+    prop_oneof![Just(Cascade::None), Just(Cascade::IncludeChildren), Just(Cascade::ExcludeRoot)]
+}
+
+/// A non-empty `MemberValues` list (member content is held verbatim).
+fn member_values() -> impl Strategy<Value = MemberValues> {
+    let member = (any::<String>(), proptest::option::of(cascade()))
+        .prop_map(|(value, cascade)| MemberValue { value, cascade });
+    proptest::collection::vec(member, 1..=2)
+        .prop_map(|values| MemberValues::new(values).expect("member values are non-empty"))
+        .boxed()
+}
+
+/// A `CodeSelection`: inclusive or exclusive member values.
+fn code_selection() -> impl Strategy<Value = CodeSelection> {
+    prop_oneof![
+        member_values().prop_map(CodeSelection::Inclusive),
+        member_values().prop_map(CodeSelection::Exclusive),
+    ]
+    .boxed()
+}
+
+/// A `CodelistExtension` with an optional filtered selection.
+pub(crate) fn codelist_extension() -> impl Strategy<Value = CodelistExtension> {
+    (
+        codelist_reference(),
+        proptest::option::of(code_selection()),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(codelist, selection, prefix)| CodelistExtension { codelist, selection, prefix })
+        .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// The constraint model
+// ---------------------------------------------------------------------------
+
+/// A `CubeKeyValue` with optional cascade and validity window.
+fn cube_key_value() -> impl Strategy<Value = CubeKeyValue> {
+    (
+        any::<String>(),
+        proptest::option::of(cascade()),
+        proptest::option::of(sdmx_time_period()),
+        proptest::option::of(sdmx_time_period()),
+    )
+        .prop_map(|(value, cascade, valid_from, valid_to)| CubeKeyValue {
+            value,
+            cascade,
+            valid_from,
+            valid_to,
+        })
+        .boxed()
+}
+
+/// A `SimpleComponentValue` with optional cascade, language, and validity window.
+fn simple_component_value() -> impl Strategy<Value = SimpleComponentValue> {
+    (
+        any::<String>(),
+        proptest::option::of(cascade()),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(sdmx_time_period()),
+        proptest::option::of(sdmx_time_period()),
+    )
+        .prop_map(|(value, cascade, lang, valid_from, valid_to)| SimpleComponentValue {
+            value,
+            cascade,
+            lang,
+            valid_from,
+            valid_to,
+        })
+        .boxed()
+}
+
+/// A `DataComponentValue` (the key-set counterpart: no validity window exists there).
+fn data_component_value() -> impl Strategy<Value = DataComponentValue> {
+    (any::<String>(), proptest::option::of(cascade()), proptest::option::of(any::<String>()))
+        .prop_map(|(value, cascade, lang)| DataComponentValue { value, cascade, lang })
+        .boxed()
+}
+
+/// A `TimePeriodRange` endpoint over the observational union.
+fn time_period_range() -> impl Strategy<Value = TimePeriodRange> {
+    (observational_time_period(), proptest::option::of(any::<bool>()))
+        .prop_map(|(period, inclusive)| TimePeriodRange { period, inclusive })
+        .boxed()
+}
+
+/// A `TimeRangeKind` across the before/after/between arms.
+fn time_range_kind() -> impl Strategy<Value = TimeRangeKind> {
+    prop_oneof![
+        time_period_range().prop_map(TimeRangeKind::Before),
+        time_period_range().prop_map(TimeRangeKind::After),
+        (time_period_range(), time_period_range())
+            .prop_map(|(start, end)| TimeRangeKind::Between { start, end }),
+    ]
+    .boxed()
+}
+
+/// A `TimeRange` with its own optional validity window.
+pub(crate) fn time_range() -> impl Strategy<Value = TimeRange> {
+    (
+        time_range_kind(),
+        proptest::option::of(sdmx_time_period()),
+        proptest::option::of(sdmx_time_period()),
+    )
+        .prop_map(|(kind, valid_from, valid_to)| TimeRange { kind, valid_from, valid_to })
+        .boxed()
+}
+
+/// A `KeyValueSelection`: enumerated values or a time range (no empty state exists).
+fn key_value_selection() -> impl Strategy<Value = KeyValueSelection> {
+    let values = proptest::collection::vec(cube_key_value(), 1..=2)
+        .prop_map(|values| CubeKeyValues::new(values).expect("cube key values are non-empty"));
+    prop_oneof![
+        values.prop_map(KeyValueSelection::Values),
+        time_range().prop_map(KeyValueSelection::TimeRange),
+    ]
+    .boxed()
+}
+
+/// A `ComponentSelection` across all three arms, `Empty` included.
+fn component_selection() -> impl Strategy<Value = ComponentSelection> {
+    let values = proptest::collection::vec(simple_component_value(), 1..=2).prop_map(|values| {
+        SimpleComponentValues::new(values).expect("component values are non-empty")
+    });
+    prop_oneof![
+        values.prop_map(ComponentSelection::Values),
+        time_range().prop_map(ComponentSelection::TimeRange),
+        Just(ComponentSelection::Empty),
+    ]
+    .boxed()
+}
+
+/// A `CubeRegionKey` dimension selection.
+fn cube_region_key() -> impl Strategy<Value = CubeRegionKey> {
+    (
+        (id_type_lexeme(), key_value_selection()),
+        (
+            proptest::option::of(any::<bool>()),
+            proptest::option::of(any::<bool>()),
+            proptest::option::of(sdmx_time_period()),
+            proptest::option::of(sdmx_time_period()),
+        ),
+    )
+        .prop_map(|((id, selection), (include, remove_prefix, valid_from, valid_to))| {
+            CubeRegionKey { id, selection, include, remove_prefix, valid_from, valid_to }
+        })
+        .boxed()
+}
+
+/// A `ComponentValueSet` component selection (validity is prohibited here by omission).
+fn component_value_set() -> impl Strategy<Value = ComponentValueSet> {
+    (
+        nested_ncname_lexeme(),
+        component_selection(),
+        proptest::option::of(any::<bool>()),
+        proptest::option::of(any::<bool>()),
+    )
+        .prop_map(|(id, selection, include, remove_prefix)| ComponentValueSet {
+            id,
+            selection,
+            include,
+            remove_prefix,
+        })
+        .boxed()
+}
+
+/// A `CubeRegion` of dimension and component selections.
+pub(crate) fn cube_region() -> impl Strategy<Value = CubeRegion> {
+    (
+        proptest::collection::vec(cube_region_key(), 0..=2),
+        proptest::collection::vec(component_value_set(), 0..=2),
+        proptest::option::of(any::<bool>()),
+        annotations(),
+    )
+        .prop_map(|(key_values, components, include, annotations)| CubeRegion {
+            key_values,
+            components,
+            include,
+            annotations,
+        })
+        .boxed()
+}
+
+/// A `CubeRegions` list within the schema's bound of two.
+fn cube_regions() -> impl Strategy<Value = CubeRegions> {
+    proptest::collection::vec(cube_region(), 0..=2)
+        .prop_map(|regions| CubeRegions::new(regions).expect("at most two regions"))
+        .boxed()
+}
+
+/// A `DataComponentSelection` across all three arms.
+fn data_component_selection() -> impl Strategy<Value = DataComponentSelection> {
+    let values = proptest::collection::vec(data_component_value(), 1..=2).prop_map(|values| {
+        DataComponentValues::new(values).expect("component values are non-empty")
+    });
+    prop_oneof![
+        values.prop_map(DataComponentSelection::Values),
+        time_range().prop_map(DataComponentSelection::TimeRange),
+        Just(DataComponentSelection::Empty),
+    ]
+    .boxed()
+}
+
+/// A `DataComponentValueSet` key-set component selection.
+fn data_component_value_set() -> impl Strategy<Value = DataComponentValueSet> {
+    (
+        nested_ncname_lexeme(),
+        data_component_selection(),
+        proptest::option::of(any::<bool>()),
+        proptest::option::of(any::<bool>()),
+    )
+        .prop_map(|(id, selection, include, remove_prefix)| DataComponentValueSet {
+            id,
+            selection,
+            include,
+            remove_prefix,
+        })
+        .boxed()
+}
+
+/// A `DataKeyValue`: bare non-empty values with the schema-fixed include flag.
+fn data_key_value() -> impl Strategy<Value = DataKeyValue> {
+    let values = proptest::collection::vec(any::<String>(), 1..=2)
+        .prop_map(|values| SimpleKeyValues::new(values).expect("key values are non-empty"));
+    (id_type_lexeme(), values, fixed_include(), proptest::option::of(any::<bool>()))
+        .prop_map(|(id, values, include, remove_prefix)| DataKeyValue {
+            id,
+            values,
+            include,
+            remove_prefix,
+        })
+        .boxed()
+}
+
+/// A `DataKey` with its validity window and annotations.
+fn data_key() -> impl Strategy<Value = DataKey> {
+    (
+        (
+            proptest::collection::vec(data_key_value(), 0..=2),
+            proptest::collection::vec(data_component_value_set(), 0..=2),
+        ),
+        (
+            fixed_include(),
+            annotations(),
+            proptest::option::of(sdmx_time_period()),
+            proptest::option::of(sdmx_time_period()),
+        ),
+    )
+        .prop_map(|((key_values, components), (include, annotations, valid_from, valid_to))| {
+            DataKey { key_values, components, include, annotations, valid_from, valid_to }
+        })
+        .boxed()
+}
+
+/// A `DataKeySet` of at least one key.
+fn data_key_set() -> impl Strategy<Value = DataKeySet> {
+    (
+        proptest::collection::vec(data_key(), 1..=2)
+            .prop_map(|keys| DataKeys::new(keys).expect("data keys are non-empty")),
+        any::<bool>(),
+    )
+        .prop_map(|(keys, is_included)| DataKeySet { keys, is_included })
+        .boxed()
+}
+
+/// A `QueryableDataSource` (3.0-only attachment trailer).
+fn queryable_data_source() -> impl Strategy<Value = QueryableDataSource> {
+    (
+        any::<String>(),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+        any::<bool>(),
+        any::<bool>(),
+    )
+        .prop_map(|(data_url, wsdl_url, wadl_url, is_rest, is_ws)| QueryableDataSource {
+            data_url,
+            wsdl_url,
+            wadl_url,
+            is_rest_datasource: is_rest,
+            is_web_service_datasource: is_ws,
+        })
+        .boxed()
+}
+
+/// A `DataConstraintAttachment` across all five arms.
+fn data_constraint_attachment() -> impl Strategy<Value = DataConstraintAttachment> {
+    let queryable = || proptest::collection::vec(queryable_data_source(), 0..=1);
+    prop_oneof![
+        data_provider_reference().prop_map(DataConstraintAttachment::DataProvider),
+        proptest::collection::vec(any::<String>(), 1..=2).prop_map(|urls| {
+            DataConstraintAttachment::SimpleDataSource(
+                SimpleDataSources::new(urls).expect("urls are non-empty"),
+            )
+        }),
+        (proptest::collection::vec(dsd_reference(), 1..=2), queryable()).prop_map(
+            |(refs, queryable)| DataConstraintAttachment::DataStructure {
+                refs: DataStructureRefs::new(refs).expect("refs are non-empty"),
+                queryable,
+            }
+        ),
+        (proptest::collection::vec(dataflow_reference(), 1..=2), queryable()).prop_map(
+            |(refs, queryable)| DataConstraintAttachment::Dataflow {
+                refs: DataflowRefs::new(refs).expect("refs are non-empty"),
+                queryable,
+            }
+        ),
+        (proptest::collection::vec(provision_agreement_reference(), 1..=2), queryable()).prop_map(
+            |(refs, queryable)| DataConstraintAttachment::ProvisionAgreement {
+                refs: ProvisionAgreementRefs::new(refs).expect("refs are non-empty"),
+                queryable,
+            }
+        ),
+    ]
+    .boxed()
+}
+
+/// An `AvailabilityConstraintAttachment`: a single target of the data subset.
+fn availability_constraint_attachment() -> impl Strategy<Value = AvailabilityConstraintAttachment> {
+    prop_oneof![
+        dsd_reference().prop_map(AvailabilityConstraintAttachment::DataStructure),
+        dataflow_reference().prop_map(AvailabilityConstraintAttachment::Dataflow),
+        provision_agreement_reference()
+            .prop_map(AvailabilityConstraintAttachment::ProvisionAgreement),
+    ]
+    .boxed()
+}
+
+/// A `ReleaseCalendar` (3.0-only; the duration strings are held verbatim).
+fn release_calendar() -> impl Strategy<Value = ReleaseCalendar> {
+    (any::<String>(), any::<String>(), any::<String>())
+        .prop_map(|(periodicity, offset, tolerance)| ReleaseCalendar {
+            periodicity,
+            offset,
+            tolerance,
+        })
+        .boxed()
+}
+
+/// A full `DataConstraint`.
+pub(crate) fn data_constraint() -> impl Strategy<Value = DataConstraint> {
+    (
+        (
+            maintainable_metadata(),
+            proptest::option::of(prop_oneof![
+                Just(ConstraintRole::Allowed),
+                Just(ConstraintRole::Actual)
+            ]),
+        ),
+        (
+            proptest::option::of(data_constraint_attachment()),
+            proptest::option::of(release_calendar()),
+            proptest::collection::vec(data_key_set(), 0..=2),
+            cube_regions(),
+        ),
+    )
+        .prop_map(|((metadata, role), (attachment, release_calendar, key_sets, regions))| {
+            DataConstraint { metadata, role, attachment, release_calendar, key_sets, regions }
+        })
+        .boxed()
+}
+
+/// A full `AvailabilityConstraint`.
+pub(crate) fn availability_constraint() -> impl Strategy<Value = AvailabilityConstraint> {
+    (
+        availability_constraint_attachment(),
+        cube_region(),
+        annotations(),
+        proptest::option::of(any::<i32>()),
+        proptest::option::of(any::<i32>()),
+    )
+        .prop_map(|(attachment, region, annotations, series_count, obs_count)| {
+            AvailabilityConstraint { attachment, region, annotations, series_count, obs_count }
+        })
+        .boxed()
+}
+
+/// The unified `ConstraintModel` across both kinds.
+pub(crate) fn constraint_model() -> impl Strategy<Value = ConstraintModel> {
+    prop_oneof![
+        data_constraint().prop_map(ConstraintModel::Data),
+        availability_constraint().prop_map(ConstraintModel::Availability),
+    ]
+    .boxed()
 }

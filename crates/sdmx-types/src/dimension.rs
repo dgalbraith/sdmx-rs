@@ -558,4 +558,26 @@ mod tests {
             RepresentationChoice::TextFormat(_)
         ));
     }
+
+    // Property tests: the internal serde round-trip over generated position-valid
+    // components (see `test_strategy`); wasm32 is excluded with the rest of the property
+    // suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use crate::test_strategy::{dimension, time_dimension};
+
+        proptest! {
+            #[test]
+            fn dimension_round_trips(value in dimension()) {
+                crate::test_support::round_trip(&value);
+            }
+
+            #[test]
+            fn time_dimension_round_trips(value in time_dimension()) {
+                crate::test_support::round_trip(&value);
+            }
+        }
+    }
 }
