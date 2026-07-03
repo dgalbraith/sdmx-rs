@@ -703,7 +703,7 @@ mod tests {
     // example tests above; wasm32 is excluded with the rest of the property suite.
     #[cfg(not(target_arch = "wasm32"))]
     mod prop {
-        use alloc::string::ToString;
+        use alloc::{format, string::ToString};
 
         use proptest::prelude::*;
 
@@ -753,6 +753,37 @@ mod tests {
                     agreement.to_string().parse::<ProvisionAgreementReference>().unwrap(),
                     agreement
                 );
+            }
+
+            #[test]
+            fn mutated_urns_are_rejected(
+                agency in urn_agency(),
+                id in urn_id(),
+                version in reference_version_lexeme(),
+                item in urn_item_path(),
+            ) {
+                // Each case mutates one component of an otherwise-valid URN (D-0073):
+                // the wrong class token for the parsing type, the bare `*` version no
+                // structural reference admits, an item tail on a maintainable triple, a
+                // dropped item tail on an item-in-scheme class, and an off-grammar agency.
+                let codelist =
+                    format!("urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency}:{id}({version})");
+                prop_assert!(codelist.parse::<DsdReference>().is_err());
+                let any_version =
+                    format!("urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency}:{id}(*)");
+                prop_assert!(any_version.parse::<CodelistReference>().is_err());
+                let item_on_triple = format!(
+                    "urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency}:{id}({version}).{item}"
+                );
+                prop_assert!(item_on_triple.parse::<CodelistReference>().is_err());
+                let dropped_item = format!(
+                    "urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept={agency}:{id}({version})"
+                );
+                prop_assert!(dropped_item.parse::<ConceptReference>().is_err());
+                let bad_agency = format!(
+                    "urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency} x:{id}({version})"
+                );
+                prop_assert!(bad_agency.parse::<CodelistReference>().is_err());
             }
 
             #[test]

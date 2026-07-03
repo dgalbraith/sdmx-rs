@@ -179,4 +179,34 @@ mod tests {
             );
         }
     }
+
+    // Property tests: rejection breadth over the tractable off-grammar families (see the
+    // `invalid_*` strategies in `test_strategy`); the precise boundary stays with the
+    // example tests above. wasm32 is excluded with the rest of the property suite.
+    #[cfg(not(target_arch = "wasm32"))]
+    mod prop {
+        use proptest::prelude::*;
+
+        use super::super::*;
+        use crate::test_strategy::{
+            invalid_id_lexeme, invalid_ncname_lexeme, invalid_nested_ncname_lexeme,
+        };
+
+        proptest! {
+            #[test]
+            fn id_rejects_off_grammar(candidate in invalid_id_lexeme()) {
+                prop_assert!(validate_id(&candidate).is_err());
+            }
+
+            #[test]
+            fn ncname_rejects_off_grammar(candidate in invalid_ncname_lexeme()) {
+                prop_assert!(validate_ncname(&candidate).is_err());
+            }
+
+            #[test]
+            fn nested_ncname_rejects_off_grammar(candidate in invalid_nested_ncname_lexeme()) {
+                prop_assert!(validate_nested_ncname(&candidate).is_err());
+            }
+        }
+    }
 }

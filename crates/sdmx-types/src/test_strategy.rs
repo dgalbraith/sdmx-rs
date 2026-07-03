@@ -5,8 +5,8 @@
 //! from), and the property owning it constructs the value through the type's validated
 //! `new()`/`from_str()` — the same single write path production code uses, so the generated
 //! set is exactly the legal set. A generator that bypassed the constructor would have the
-//! same defect as a `Deserialize` that did (design 0010 §7). Strategies for deliberately
-//! off-grammar input land separately, with the rejection-family properties.
+//! same defect as a `Deserialize` that did (design 0010 §7). Strategies for deliberately off-grammar
+//! input are the clearly named `invalid_*` family at the end of the module.
 
 // Strategies are `pub(crate)` so property tests in sibling modules can compose them; the
 // enclosing module is private, which makes clippy's nursery `redundant_pub_crate` fire, but
@@ -1625,6 +1625,74 @@ pub(crate) fn constraint_model() -> impl Strategy<Value = ConstraintModel> {
     prop_oneof![
         data_constraint().prop_map(ConstraintModel::Data),
         availability_constraint().prop_map(ConstraintModel::Availability),
+    ]
+    .boxed()
+}
+
+// ---------------------------------------------------------------------------
+// Rejection families: deliberately off-grammar input. Each strategy guarantees every
+// emitted value lies outside the target grammar, so the owning property asserts rejection
+// unconditionally. Only the tractable complements live here; the precise boundary stays
+// with the deterministic example tests.
+// ---------------------------------------------------------------------------
+
+/// An off-grammar `xs:decimal` lexeme: digitless shapes, an embedded letter or space, a
+/// second point, or an exponent.
+pub(crate) fn invalid_decimal_lexeme() -> impl Strategy<Value = String> {
+    prop_oneof![
+        Just(String::new()),
+        Just(String::from(".")),
+        Just(String::from("+")),
+        Just(String::from("-")),
+        r"[0-9]{1,5}[A-Za-z][0-9]{0,4}",
+        r"[0-9]{1,4}\.[0-9]{0,3}\.[0-9]{0,3}",
+        r"[0-9]{1,4} [0-9]{1,4}",
+        r"[0-9]{1,4}[eE][+-]?[0-9]{1,3}",
+        r" [0-9]{1,4}",
+        r"[0-9]{1,4} ",
+    ]
+    .boxed()
+}
+
+/// An off-grammar `xs:integer` lexeme: every invalid decimal shape plus any lexeme with a
+/// point (valid as a decimal, invalid as an integer).
+pub(crate) fn invalid_integer_lexeme() -> impl Strategy<Value = String> {
+    prop_oneof![invalid_decimal_lexeme(), r"[+-]?[0-9]{0,4}\.[0-9]{1,4}", r"[+-]?[0-9]{1,4}\.",]
+        .boxed()
+}
+
+/// An off-grammar `IDType` identifier: empty, or a valid base with one out-of-class
+/// character injected.
+pub(crate) fn invalid_id_lexeme() -> impl Strategy<Value = String> {
+    prop_oneof![
+        Just(String::new()),
+        (id_type_lexeme(), r"[ .#/%()]", id_type_lexeme())
+            .prop_map(|(head, bad, tail)| format!("{head}{bad}{tail}")),
+    ]
+    .boxed()
+}
+
+/// An off-grammar `NCNameIDType` identifier: empty, a bad leading character, or an
+/// out-of-class character injected after a valid head.
+pub(crate) fn invalid_ncname_lexeme() -> impl Strategy<Value = String> {
+    prop_oneof![
+        Just(String::new()),
+        r"[0-9_-][A-Za-z0-9_-]{0,5}",
+        (ncname_lexeme(), r"[@$. ]", r"[A-Za-z0-9_-]{0,5}")
+            .prop_map(|(head, bad, tail)| format!("{head}{bad}{tail}")),
+    ]
+    .boxed()
+}
+
+/// An off-grammar `NestedNCNameIDType` identifier: empty, a leading, trailing, or doubled
+/// dot, or a bad leading character on one segment.
+pub(crate) fn invalid_nested_ncname_lexeme() -> impl Strategy<Value = String> {
+    prop_oneof![
+        Just(String::new()),
+        ncname_lexeme().prop_map(|segment| format!(".{segment}")),
+        ncname_lexeme().prop_map(|segment| format!("{segment}.")),
+        (ncname_lexeme(), ncname_lexeme()).prop_map(|(a, b)| format!("{a}..{b}")),
+        (r"[0-9_-][A-Za-z0-9_-]{0,4}", ncname_lexeme()).prop_map(|(bad, ok)| format!("{bad}.{ok}")),
     ]
     .boxed()
 }

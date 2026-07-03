@@ -2052,8 +2052,9 @@ mod tests {
 
         use super::super::*;
         use crate::test_strategy::{
-            observational_time_period_lexeme, standard_time_period_lexeme, time_range_lexeme,
-            version_lexeme, version_ref_lexeme, xs_decimal_lexeme, xs_integer_lexeme,
+            invalid_decimal_lexeme, invalid_integer_lexeme, observational_time_period_lexeme,
+            standard_time_period_lexeme, time_range_lexeme, version_lexeme, version_ref_lexeme,
+            xs_decimal_lexeme, xs_integer_lexeme,
         };
 
         proptest! {
@@ -2184,6 +2185,18 @@ mod tests {
                 prop_assert!(value == a[..]);
                 prop_assert!(value == a.as_str());
                 prop_assert_eq!(value == b[..], a == b);
+            }
+
+            #[test]
+            fn decimal_rejects_off_grammar(lexeme in invalid_decimal_lexeme()) {
+                // Rejection breadth over the tractable complement families; the precise
+                // boundary stays with the example tests.
+                prop_assert!(SdmxDecimal::new(lexeme).is_err());
+            }
+
+            #[test]
+            fn integer_rejects_off_grammar(lexeme in invalid_integer_lexeme()) {
+                prop_assert!(SdmxInteger::new(lexeme).is_err());
             }
 
             #[test]
