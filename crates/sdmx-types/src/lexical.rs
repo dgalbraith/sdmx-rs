@@ -1345,7 +1345,11 @@ fn classify_time_period(s: &str) -> Option<SdmxTimePeriodKind> {
     }
 
     // Reporting periods are `YYYY-<letter>...`; the letter at offset 5 disambiguates them
-    // from every basic form (whose offset-5 byte, when present, is a digit or `T`).
+    // from every basic form (whose offset-5 byte, when present, is a digit or `T`). The
+    // reporting year is pinned to exactly four digits here (offsets 0..4, `-` at offset 4),
+    // matching `BaseReportPeriodType`'s `\d{4}` and unlike the unbounded `xs:gYear` that
+    // `is_year` admits (four or more): a five-digit run is not a reporting period, so it
+    // falls through to the Gregorian path. The asymmetry is deliberate; do not unify it.
     let bytes = core.as_bytes();
     if bytes.len() >= 6
         && bytes[..4].iter().all(u8::is_ascii_digit)
@@ -1403,7 +1407,9 @@ fn is_valid_timezone(tz: &str) -> bool {
 /// designator or its numeric value is out of range.
 fn classify_reporting(core: &str) -> Option<SdmxTimePeriodKind> {
     let bytes = core.as_bytes();
-    // YYYY '-' <letter> <number>
+    // YYYY '-' <letter> <number>: the fixed offsets 5 (designator) and 6 (number) encode the
+    // four-digit reporting year `BaseReportPeriodType` pins (`\d{4}`), the same asymmetry
+    // against the unbounded `xs:gYear` that the caller's disambiguation guard enforces.
     let designator = bytes[5];
     let number = &core[6..];
     if !number.bytes().all(|b| b.is_ascii_digit()) {
@@ -1436,6 +1442,11 @@ fn classify_gregorian(core: &str) -> Option<SdmxTimePeriodKind> {
         (Some(month), None, _) => {
             num_in(month, 2, 1, 12).then_some(SdmxTimePeriodKind::GregorianYearMonth)
         }
+        // Day-of-month is range-checked `1..=31` for every month, so `2024-02-30` is
+        // accepted: the XSD chain's month-length and leap-year validity is deliberately not
+        // re-implemented (the `SdmxTimeRange` design note). This is not superset preservation
+        // (schema-valid wire can never carry a calendar-invalid date, so admitting one round-
+        // trips nothing); it is the one boundary this classifier leaves to calendar-aware code.
         (Some(month), Some(day), None) => (num_in(month, 2, 1, 12) && num_in(day, 2, 1, 31))
             .then_some(SdmxTimePeriodKind::GregorianDay),
         _ => None,
@@ -1461,6 +1472,8 @@ fn is_time(time: &str) -> bool {
     let mut parts = hms.split(':');
     match (parts.next(), parts.next(), parts.next(), parts.next()) {
         (Some(h), Some(m), Some(s), None) => {
+            // Seconds are `0..=59`: a leap-second `60` is rejected, matching `xs:dateTime`,
+            // which does not admit it (a detail often assumed the other way).
             num_in(h, 2, 0, 23) && num_in(m, 2, 0, 59) && num_in(s, 2, 0, 59)
         }
         _ => false,
@@ -1826,6 +1839,34 @@ mod tests {
         for (input, kind) in cases {
             assert_eq!(SdmxTimePeriod::new(input.into()).unwrap().kind(), kind, "{input:?}");
         }
+    }
+
+    #[test]
+    fn gregorian_day_admits_calendar_invalid_dates() {
+        // Day-of-month is range-checked `1..=31` for every month, so `2024-02-30` classifies
+        // as a Gregorian day: calendar arithmetic is deliberately not re-implemented (the
+        // `SdmxTimeRange` design note), a boundary this locks against a well-meaning refactor.
+        let parsed = SdmxTimePeriod::new("2024-02-30".into()).unwrap();
+        assert_eq!(parsed.kind(), SdmxTimePeriodKind::GregorianDay);
+    }
+
+    #[test]
+    fn reporting_year_is_fixed_at_four_digits() {
+        // `BaseReportPeriodType` pins the reporting year at exactly four digits (`\d{4}`),
+        // unlike the unbounded `xs:gYear` that `is_year` admits, so a five-digit reporting
+        // year is not a reporting period and is rejected outright.
+        assert!(SdmxTimePeriod::new("20241-A1".into()).is_err());
+        // Contrast: the four-digit form is a reporting year.
+        assert_eq!(
+            SdmxTimePeriod::new("2024-A1".into()).unwrap().kind(),
+            SdmxTimePeriodKind::ReportingYear
+        );
+    }
+
+    #[test]
+    fn date_time_rejects_leap_second() {
+        // `xs:dateTime` seconds are `0..=59`: a leap-second `60` is rejected.
+        assert!(SdmxTimePeriod::new("2024-05-01T09:30:60".into()).is_err());
     }
 
     #[test]
