@@ -16,7 +16,11 @@
 //! URN for the reference's class (`urn:sdmx:org.sdmx.infomodel.codelist.Codelist=SDMX:CL_FREQ(1.0.0)`),
 //! and [`FromStr`](core::str::FromStr) parses exactly that class, splitting the URN into the
 //! decomposed fields. Versions are typed [`VersionRef`], so the `+` wildcard reference forms are
-//! carried structurally.
+//! carried structurally. [`Display`](core::fmt::Display) renders the fields verbatim, so the round-trip
+//! through [`FromStr`](core::str::FromStr) is guaranteed only for grammar-valid fields: emitting a
+//! conformant URN from hand-built fields is the writer's obligation, and a field outside the URN
+//! grammar (an off-grammar agency, or a [`VersionRef::Any`] no reference class admits) renders
+//! but does not parse back.
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -636,6 +640,26 @@ mod tests {
         assert_eq!(urns[4].parse::<ProvisionAgreementReference>().unwrap().to_string(), urns[4]);
         assert_eq!(urns[5].parse::<ConceptReference>().unwrap().to_string(), urns[5]);
         assert_eq!(urns[6].parse::<DataProviderReference>().unwrap().to_string(), urns[6]);
+    }
+
+    #[test]
+    fn urn_round_trip_holds_only_for_grammar_valid_fields() {
+        // Display renders the fields verbatim (D-0073), so the round-trip is guaranteed only
+        // when they are grammar-valid. An off-grammar agency renders but does not parse back.
+        let off_grammar_agency = CodelistReference {
+            agency: "SDMX AGENCY".into(), // space is outside the agency NCName grammar
+            id: "CL_FREQ".into(),
+            version: "1.0.0".parse().unwrap(),
+        };
+        assert!(off_grammar_agency.to_string().parse::<CodelistReference>().is_err());
+        // `VersionRef::Any` is the design's own lint value: no reference class admits the bare
+        // `*` version (D-0073), so it renders (`(*)`) but FromStr rejects it.
+        let any_version = CodelistReference {
+            agency: "SDMX".into(),
+            id: "CL_FREQ".into(),
+            version: VersionRef::Any,
+        };
+        assert!(any_version.to_string().parse::<CodelistReference>().is_err());
     }
 
     #[test]

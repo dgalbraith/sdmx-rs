@@ -160,6 +160,9 @@ fn reporting_core() -> impl Strategy<Value = String> {
         (1_u32..=53).prop_map(|n| format!("W{n:02}")),
         (1_u32..=366).prop_map(|n| format!("D{n:03}")),
     ];
+    // The reporting year is exactly four digits (`BaseReportPeriodType`'s `\d{4}`), not the
+    // four-or-more of `gregorian_year`: a wider run is not a reporting period (see
+    // `classify_reporting` and its disambiguation guard).
     (r"[0-9]{4}", period).prop_map(|(year, period)| format!("{year}-{period}"))
 }
 
