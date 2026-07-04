@@ -1779,6 +1779,7 @@ mod tests {
             "2010-01-01/P2M1Y",  // components out of order
             "2010-01-01/PT2H1H", // repeated unit
             "2010-01-01/P2X",    // unknown unit
+            "2010-01-01/P1Y2",   // trailing digit run has no unit
             "2010-01-01/PT0.5M", // fraction only on seconds
             "2010-01-01/PT0.S",  // fraction needs digits
             "2010-01-01/P2M/P1D",
