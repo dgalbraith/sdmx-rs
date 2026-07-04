@@ -2228,6 +2228,47 @@ mod tests {
                 prop_assert_eq!(value == b[..], a == b);
             }
 
+            // The value-equal-sibling adversary below applies only to the numeric newtypes:
+            // `xs:decimal` and `xs:integer` admit many lexemes per value, so lexeme identity
+            // and value identity genuinely diverge. The time-storing types (`SdmxTimePeriod`,
+            // `SdmxTimeRange`, `ObservationalTimePeriod`) keep the lexeme AS the datum
+            // (statedness-preserving, D-0027), so no value-equal-but-distinct spelling exists
+            // to construct; their lexeme identity is covered by the properties above.
+            #[test]
+            fn decimal_eq_str_rejects_value_equal_sibling(a in xs_decimal_lexeme()) {
+                // Equality is lexeme identity, never numeric value (D-0027 lossless-distinct):
+                // a value-equal but distinctly-spelled sibling (a trailing zero, `.0` when the
+                // lexeme is integral) must compare unequal. The transform is total over the
+                // generator, so the constructor accepts the sibling.
+                let sibling =
+                    if a.contains('.') { format!("{a}0") } else { format!("{a}.0") };
+                prop_assert_ne!(sibling.as_str(), a.as_str());
+                let value = SdmxDecimal::new(a).unwrap();
+                let twin = SdmxDecimal::new(sibling.clone())
+                    .expect("a trailing-zero decimal is value-equal and grammar-valid");
+                prop_assert!(value != sibling[..]);
+                prop_assert!(value != sibling.as_str());
+                prop_assert_ne!(value, twin);
+            }
+
+            #[test]
+            fn integer_eq_str_rejects_value_equal_sibling(a in xs_integer_lexeme()) {
+                // The same lossless-distinct claim for `xs:integer`: a leading zero (after any
+                // sign) is value-equal, distinctly spelled, and grammar-valid, so it compares
+                // unequal.
+                let sibling = a.strip_prefix(['+', '-']).map_or_else(
+                    || format!("0{a}"),
+                    |rest| format!("{}0{rest}", &a[..1]),
+                );
+                prop_assert_ne!(sibling.as_str(), a.as_str());
+                let value = SdmxInteger::new(a).unwrap();
+                let twin = SdmxInteger::new(sibling.clone())
+                    .expect("a leading-zero integer is value-equal and grammar-valid");
+                prop_assert!(value != sibling[..]);
+                prop_assert!(value != sibling.as_str());
+                prop_assert_ne!(value, twin);
+            }
+
             #[test]
             fn decimal_rejects_off_grammar(lexeme in invalid_decimal_lexeme()) {
                 // Rejection breadth over the tractable complement families; the precise
