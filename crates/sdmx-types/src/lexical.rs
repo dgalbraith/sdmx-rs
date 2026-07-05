@@ -805,6 +805,19 @@ impl SdmxTimeRange {
     pub fn duration(&self) -> &str {
         self.raw.split_once('/').map_or("", |(_, duration)| duration)
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.raw
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<SdmxTimeRange> for String {
+    fn from(value: SdmxTimeRange) -> Self {
+        value.into_inner()
+    }
 }
 
 /// An SDMX `ObservationalTimePeriodType`: a standard time period or a time range.
@@ -2054,6 +2067,11 @@ mod tests {
         let i = SdmxInteger::new("42".to_string()).unwrap();
         assert_eq!(i.clone().into_inner(), "42");
         assert_eq!(String::from(i), "42");
+        let r = SdmxTimeRange::new("2010-01-01/P2M".to_string()).unwrap();
+        assert_eq!(r.clone().into_inner(), "2010-01-01/P2M");
+        assert_eq!(String::from(r.clone()), "2010-01-01/P2M");
+        // The unwrapped string reconstructs the same value through the constructor.
+        assert_eq!(SdmxTimeRange::new(r.clone().into_inner()).unwrap(), r);
     }
 
     #[test]
