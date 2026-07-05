@@ -421,14 +421,9 @@ mod tests {
             max_occurs: None,
         };
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
-        let ok = (
-            metadata(Some("FREQ")),
-            concept("FREQ"),
-            Option::<Representation>::None,
-            Option::<i32>::None,
-        );
+        let ok = (metadata(Some("FREQ")), concept("FREQ"), None::<Representation>, None::<i32>);
         assert!(postcard::from_bytes::<Dimension>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
-        let raw = (metadata(Some("FREQ")), concept("FREQ"), Some(value_list), Option::<i32>::None);
+        let raw = (metadata(Some("FREQ")), concept("FREQ"), Some(value_list), None::<i32>);
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Dimension>(&bytes).is_err());
     }

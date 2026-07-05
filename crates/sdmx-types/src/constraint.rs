@@ -2184,16 +2184,13 @@ mod tests {
         // `valid_from` decodes at the field level but is rejected by `SdmxTimePeriod`'s deserialize,
         // which `TimeRange`'s derive propagates.
         // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
-        let ok = (
-            TimeRangeKind::Before(period("2024")),
-            Some(String::from("2024")),
-            Option::<String>::None,
-        );
+        let ok =
+            (TimeRangeKind::Before(period("2024")), Some(String::from("2024")), None::<String>);
         assert!(postcard::from_bytes::<TimeRange>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
         let raw = (
             TimeRangeKind::Before(period("2024")),
             Some(String::from("not-a-period")),
-            Option::<String>::None,
+            None::<String>,
         );
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<TimeRange>(&bytes).is_err());
@@ -2404,11 +2401,9 @@ mod tests {
         // `include = Some(false)` decodes at the field level but is rejected only by `FixedInclude`,
         // which `DataKeyValue`'s derive propagates.
         // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
-        let ok =
-            (String::from("FREQ"), vec![String::from("A")], None::<bool>, Option::<bool>::None);
+        let ok = (String::from("FREQ"), vec![String::from("A")], None::<bool>, None::<bool>);
         assert!(postcard::from_bytes::<DataKeyValue>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
-        let raw =
-            (String::from("FREQ"), vec![String::from("A")], Some(false), Option::<bool>::None);
+        let raw = (String::from("FREQ"), vec![String::from("A")], Some(false), None::<bool>);
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<DataKeyValue>(&bytes).is_err());
     }
@@ -2885,9 +2880,9 @@ mod tests {
         // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
         let ok = (
             constraint_metadata("CR_EXR"),
-            Option::<ConstraintRole>::None,
-            Option::<DataConstraintAttachment>::None,
-            Option::<ReleaseCalendar>::None,
+            None::<ConstraintRole>,
+            None::<DataConstraintAttachment>,
+            None::<ReleaseCalendar>,
             Vec::<DataKeySet>::new(),
             vec![cube_region(), cube_region()],
         );
@@ -2896,9 +2891,9 @@ mod tests {
         );
         let raw = (
             constraint_metadata("CR_EXR"),
-            Option::<ConstraintRole>::None,
-            Option::<DataConstraintAttachment>::None,
-            Option::<ReleaseCalendar>::None,
+            None::<ConstraintRole>,
+            None::<DataConstraintAttachment>,
+            None::<ReleaseCalendar>,
             Vec::<DataKeySet>::new(),
             vec![cube_region(), cube_region(), cube_region()],
         );

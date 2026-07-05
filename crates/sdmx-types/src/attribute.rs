@@ -792,8 +792,8 @@ mod tests {
             concept("OBS_STATUS"),
             Some(ok_repr),
             AttributeRelationship::Observation,
-            Option::<MeasureRelationship>::None,
-            Option::<Usage>::None,
+            None::<MeasureRelationship>,
+            None::<Usage>,
         );
         assert!(postcard::from_bytes::<Attribute>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
         let repr = Representation {
@@ -822,8 +822,8 @@ mod tests {
             concept("OBS_STATUS"),
             Some(repr),
             AttributeRelationship::Observation,
-            Option::<MeasureRelationship>::None,
-            Option::<Usage>::None,
+            None::<MeasureRelationship>,
+            None::<Usage>,
         );
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Attribute>(&bytes).is_err());
