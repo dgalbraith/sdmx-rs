@@ -742,23 +742,23 @@ mod tests {
         // check.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
         let ok = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             vec![dimension("FREQ")],
-            Option::<TimeDimension>::None,
+            None::<TimeDimension>,
         );
         assert!(
             postcard::from_bytes::<DimensionList>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
         );
         let raw = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             Vec::<Dimension>::new(),
-            Option::<TimeDimension>::None,
+            None::<TimeDimension>,
         );
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<DimensionList>(&bytes).is_err());
@@ -840,20 +840,20 @@ mod tests {
         // which rejects it on the wire.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
         let ok = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             vec![AttributeListMember::Attribute(attribute("OBS_STATUS"))],
         );
         assert!(
             postcard::from_bytes::<AttributeList>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
         );
         let raw = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             Vec::<AttributeListMember>::new(),
         );
         let bytes = postcard::to_allocvec(&raw).unwrap();
@@ -905,18 +905,18 @@ mod tests {
         // rejects it on the wire.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
         let ok = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             vec![measure("OBS_VALUE")],
         );
         assert!(postcard::from_bytes::<MeasureList>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
         let raw = (
-            Option::<String>::None,
+            None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
-            Option::<String>::None,
+            None::<String>,
             Vec::<Measure>::new(),
         );
         let bytes = postcard::to_allocvec(&raw).unwrap();

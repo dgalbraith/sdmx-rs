@@ -430,9 +430,9 @@ mod tests {
         // leading-digit id (valid IDType, so the nested metadata deserialises, but rejected by the
         // NCName tightening in Concept::new) proves the wire path re-runs the check.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
-        let ok = (nameable("FREQ"), Option::<String>::None, Option::<Representation>::None);
+        let ok = (nameable("FREQ"), None::<String>, None::<Representation>);
         assert!(postcard::from_bytes::<Concept>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
-        let raw = (nameable("1FREQ"), Option::<String>::None, Option::<Representation>::None);
+        let raw = (nameable("1FREQ"), None::<String>, None::<Representation>);
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Concept>(&bytes).is_err());
     }
