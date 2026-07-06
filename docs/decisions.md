@@ -286,7 +286,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Status**   | Active |
 | **Keywords** | datetime, chrono, no_std, spec-alignment |
 | **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L351-L374) |
-| **Source**   | [chrono docs](https://docs.rs/chrono) |
+| **Source**   | [chrono docs](https://docs.rs/chrono/0.4/chrono/) |
 
 **Observation**: `validFrom`/`validTo` are `xs:dateTime` in the spec; options were `String`, a validated `DateTimeString` newtype, or first-class `chrono::DateTime`.
 
