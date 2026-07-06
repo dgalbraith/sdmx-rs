@@ -116,6 +116,8 @@ pub fn validate_nested_ncname(id: &str) -> Result<(), Error> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
+    use alloc::string::String;
+
     use super::*;
 
     #[test]
@@ -155,7 +157,10 @@ mod tests {
         // A stated value differing from the fixed one is a mechanical mismatch.
         assert_eq!(
             validate_fixed("id", Some("OTHER"), "AGENCIES"),
-            Err(Error::FixedAttributeMismatch { attribute: "id".into(), value: "OTHER".into() })
+            Err(Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("OTHER")
+            })
         );
     }
 

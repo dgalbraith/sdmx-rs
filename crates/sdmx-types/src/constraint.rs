@@ -168,7 +168,7 @@ pub struct SimpleComponentValue {
 /// use sdmx_types::{CubeKeyValue, CubeKeyValues};
 ///
 /// let value =
-///     CubeKeyValue { value: "A".to_string(), cascade: None, valid_from: None, valid_to: None };
+///     CubeKeyValue { value: String::from("A"), cascade: None, valid_from: None, valid_to: None };
 /// let values = CubeKeyValues::new(vec![value])?;
 /// assert_eq!(values.as_slice().len(), 1);
 ///
@@ -634,9 +634,9 @@ impl ComponentValueSet {
 /// use sdmx_types::{CubeKeyValue, CubeKeyValues, CubeRegion, CubeRegionKey, KeyValueSelection};
 ///
 /// let value =
-///     CubeKeyValue { value: "A".to_string(), cascade: None, valid_from: None, valid_to: None };
+///     CubeKeyValue { value: String::from("A"), cascade: None, valid_from: None, valid_to: None };
 /// let key = CubeRegionKey {
-///     id: "FREQ".to_string(),
+///     id: String::from("FREQ"),
 ///     selection: KeyValueSelection::Values(CubeKeyValues::new(vec![value])?),
 ///     include: None,
 ///     remove_prefix: None,
@@ -1193,8 +1193,8 @@ impl<'de> serde::Deserialize<'de> for DataKeys {
 /// use sdmx_types::{DataKey, DataKeySet, DataKeyValue, DataKeys, FixedInclude, SimpleKeyValues};
 ///
 /// let key_value = DataKeyValue {
-///     id: "FREQ".to_string(),
-///     values: SimpleKeyValues::new(vec!["A".to_string()])?,
+///     id: String::from("FREQ"),
+///     values: SimpleKeyValues::new(vec![String::from("A")])?,
 ///     include: FixedInclude::new(None)?,
 ///     remove_prefix: None,
 /// };
@@ -1256,7 +1256,7 @@ pub struct DataKeySet {
 /// use sdmx_types::QueryableDataSource;
 ///
 /// let source = QueryableDataSource {
-///     data_url: "https://example.com/sdmx".to_string(),
+///     data_url: String::from("https://example.com/sdmx"),
 ///     wsdl_url: None,
 ///     wadl_url: None,
 ///     is_rest_datasource: true,
@@ -1907,11 +1907,11 @@ pub struct AvailabilityConstraint {
 ///
 /// // A data constraint is a maintainable artefact, so it carries maintainable metadata.
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Allowed".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Allowed"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("CR_EXR".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("CR_EXR"), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -1919,7 +1919,7 @@ pub struct AvailabilityConstraint {
 ///     None,
 /// );
 /// let metadata =
-///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 /// let data = ConstraintModel::Data(DataConstraint {
 ///     metadata,
 ///     role: None,
@@ -1933,8 +1933,8 @@ pub struct AvailabilityConstraint {
 /// // An availability constraint is not maintainable: it carries no metadata.
 /// let availability = ConstraintModel::Availability(AvailabilityConstraint {
 ///     attachment: AvailabilityConstraintAttachment::DataStructure(DsdReference {
-///         agency: "SDMX".to_string(),
-///         id: "ECB_EXR1".to_string(),
+///         agency: String::from("SDMX"),
+///         id: String::from("ECB_EXR1"),
 ///         version: "1.0.0".parse().unwrap(),
 ///     }),
 ///     region: CubeRegion {
@@ -1991,10 +1991,10 @@ mod tests {
     #[test]
     fn cube_key_value_round_trips_with_cascade_and_validity() {
         let value = CubeKeyValue {
-            value: "A".to_string(),
+            value: String::from("A"),
             cascade: Some(Cascade::IncludeChildren),
-            valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
-            valid_to: Some(SdmxTimePeriod::new("2024".to_string()).unwrap()),
+            valid_from: Some(SdmxTimePeriod::new(String::from("2020")).unwrap()),
+            valid_to: Some(SdmxTimePeriod::new(String::from("2024")).unwrap()),
         };
         crate::test_support::round_trip(&value);
     }
@@ -2002,9 +2002,9 @@ mod tests {
     #[test]
     fn simple_component_value_round_trips_with_lang() {
         let value = SimpleComponentValue {
-            value: "EUR".to_string(),
+            value: String::from("EUR"),
             cascade: None,
-            lang: Some("en".to_string()),
+            lang: Some(String::from("en")),
             valid_from: None,
             valid_to: None,
         };
@@ -2015,7 +2015,7 @@ mod tests {
     fn cube_key_values_rejects_empty() {
         assert_eq!(CubeKeyValues::new(Vec::new()).unwrap_err(), Error::EmptyCubeKeyValues);
         let value = CubeKeyValue {
-            value: "A".to_string(),
+            value: String::from("A"),
             cascade: None,
             valid_from: None,
             valid_to: None,
@@ -2030,7 +2030,7 @@ mod tests {
             Error::EmptySimpleComponentValues
         );
         let value = SimpleComponentValue {
-            value: "EUR".to_string(),
+            value: String::from("EUR"),
             cascade: None,
             lang: None,
             valid_from: None,
@@ -2050,7 +2050,7 @@ mod tests {
             .is_err()
         );
         let value = CubeKeyValue {
-            value: "A".to_string(),
+            value: String::from("A"),
             cascade: None,
             valid_from: None,
             valid_to: None,
@@ -2104,7 +2104,7 @@ mod tests {
         assert!(cube_key("FREQ", "A").effective_is_included());
         assert!(
             ComponentValueSet {
-                id: "OBS_STATUS".to_string(),
+                id: String::from("OBS_STATUS"),
                 selection: ComponentSelection::Empty,
                 include: None,
                 remove_prefix: None,
@@ -2122,7 +2122,7 @@ mod tests {
         );
         assert!(
             DataComponentValueSet {
-                id: "TIME_PERIOD".to_string(),
+                id: String::from("TIME_PERIOD"),
                 selection: DataComponentSelection::TimeRange(TimeRange {
                     kind: TimeRangeKind::Before(period("2024")),
                     valid_from: None,
@@ -2169,8 +2169,8 @@ mod tests {
     fn time_range_between_round_trips_with_validity() {
         let range = TimeRange {
             kind: TimeRangeKind::Between { start: period("2020"), end: period("2024") },
-            valid_from: Some(SdmxTimePeriod::new("2019".to_string()).unwrap()),
-            valid_to: Some(SdmxTimePeriod::new("2025".to_string()).unwrap()),
+            valid_from: Some(SdmxTimePeriod::new(String::from("2019")).unwrap()),
+            valid_to: Some(SdmxTimePeriod::new(String::from("2025")).unwrap()),
         };
         crate::test_support::round_trip(&range);
     }
@@ -2217,7 +2217,7 @@ mod tests {
     #[test]
     fn cube_region_key_round_trips_with_time_range_selection() {
         let key = CubeRegionKey {
-            id: "TIME_PERIOD".to_string(),
+            id: String::from("TIME_PERIOD"),
             selection: KeyValueSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::After(period("2020")),
                 valid_from: None,
@@ -2225,7 +2225,7 @@ mod tests {
             }),
             include: Some(false),
             remove_prefix: Some(true),
-            valid_from: Some(SdmxTimePeriod::new("2019".to_string()).unwrap()),
+            valid_from: Some(SdmxTimePeriod::new(String::from("2019")).unwrap()),
             valid_to: None,
         };
         crate::test_support::round_trip(&key);
@@ -2234,7 +2234,7 @@ mod tests {
     #[test]
     fn component_selection_empty_is_distinct_from_values() {
         let value = SimpleComponentValue {
-            value: "EUR".to_string(),
+            value: String::from("EUR"),
             cascade: None,
             lang: None,
             valid_from: None,
@@ -2251,7 +2251,7 @@ mod tests {
     #[test]
     fn component_value_set_round_trips() {
         let set = ComponentValueSet {
-            id: "CONTACT.ADDRESS.STREET".to_string(),
+            id: String::from("CONTACT.ADDRESS.STREET"),
             selection: ComponentSelection::Empty,
             include: Some(true),
             remove_prefix: None,
@@ -2264,7 +2264,7 @@ mod tests {
         let region = CubeRegion {
             key_values: vec![cube_key("FREQ", "A"), cube_key("REF_AREA", "EU")],
             components: vec![ComponentValueSet {
-                id: "OBS_STATUS".to_string(),
+                id: String::from("OBS_STATUS"),
                 selection: ComponentSelection::Empty,
                 include: None,
                 remove_prefix: None,
@@ -2339,14 +2339,14 @@ mod tests {
             DataComponentValues::new(Vec::new()).unwrap_err(),
             Error::EmptyDataComponentValues
         );
-        let value = DataComponentValue { value: "EUR".to_string(), cascade: None, lang: None };
+        let value = DataComponentValue { value: String::from("EUR"), cascade: None, lang: None };
         assert_eq!(DataComponentValues::new(vec![value]).unwrap().as_slice().len(), 1);
     }
 
     #[test]
     fn simple_key_values_rejects_empty() {
         assert_eq!(SimpleKeyValues::new(Vec::new()).unwrap_err(), Error::EmptySimpleKeyValues);
-        let ok = SimpleKeyValues::new(vec!["A".to_string()]).unwrap();
+        let ok = SimpleKeyValues::new(vec![String::from("A")]).unwrap();
         assert_eq!(ok.as_slice().len(), 1);
         // The wire path rejects an empty list too: transparent over `Vec<String>`, routed through
         // `new()`, so an empty inner vector's positional bytes are rejected.
@@ -2384,9 +2384,13 @@ mod tests {
         // The 3.1 unbounded shape (FREQ = A or M or Q) is the carried superset; 3.0's single value
         // is the degenerate one-element case.
         let multi = DataKeyValue {
-            id: "FREQ".to_string(),
-            values: SimpleKeyValues::new(vec!["A".to_string(), "M".to_string(), "Q".to_string()])
-                .unwrap(),
+            id: String::from("FREQ"),
+            values: SimpleKeyValues::new(vec![
+                String::from("A"),
+                String::from("M"),
+                String::from("Q"),
+            ])
+            .unwrap(),
             include: FixedInclude::new(Some(true)).unwrap(),
             remove_prefix: None,
         };
@@ -2417,14 +2421,14 @@ mod tests {
         let key = DataKey {
             key_values: vec![data_key_value("FREQ", "A")],
             components: vec![DataComponentValueSet {
-                id: "OBS_STATUS".to_string(),
+                id: String::from("OBS_STATUS"),
                 selection: DataComponentSelection::Empty,
                 include: None,
                 remove_prefix: None,
             }],
             include: FixedInclude::new(Some(true)).unwrap(),
             annotations: Vec::new(),
-            valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
+            valid_from: Some(SdmxTimePeriod::new(String::from("2020")).unwrap()),
             valid_to: None,
         };
         crate::test_support::round_trip(&key);
@@ -2434,7 +2438,7 @@ mod tests {
     fn data_component_selection_empty_is_distinct_from_values() {
         let values = DataComponentSelection::Values(
             DataComponentValues::new(vec![DataComponentValue {
-                value: "EUR".to_string(),
+                value: String::from("EUR"),
                 cascade: None,
                 lang: None,
             }])
@@ -2463,7 +2467,7 @@ mod tests {
     #[test]
     fn data_component_selection_time_range_arm_round_trips() {
         let set = DataComponentValueSet {
-            id: "TIME_PERIOD".to_string(),
+            id: String::from("TIME_PERIOD"),
             selection: DataComponentSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::Before(period("2024")),
                 valid_from: None,
@@ -2478,7 +2482,7 @@ mod tests {
     #[test]
     fn component_selection_time_range_arm_round_trips() {
         let set = ComponentValueSet {
-            id: "TIME_PERIOD".to_string(),
+            id: String::from("TIME_PERIOD"),
             selection: ComponentSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::Before(period("2024")),
                 valid_from: None,
@@ -2493,12 +2497,12 @@ mod tests {
     #[test]
     fn data_component_value_set_values_arm_round_trips_and_rejects_empty() {
         let set = DataComponentValueSet {
-            id: "CURRENCY".to_string(),
+            id: String::from("CURRENCY"),
             selection: DataComponentSelection::Values(
                 DataComponentValues::new(vec![DataComponentValue {
-                    value: "EUR".to_string(),
+                    value: String::from("EUR"),
                     cascade: Some(Cascade::IncludeChildren),
-                    lang: Some("en".to_string()),
+                    lang: Some(String::from("en")),
                 }])
                 .unwrap(),
             ),
@@ -2532,8 +2536,8 @@ mod tests {
     #[test]
     fn queryable_data_source_round_trips_with_optional_urls() {
         let source = QueryableDataSource {
-            data_url: "https://example.com/sdmx".to_string(),
-            wsdl_url: Some("https://example.com/sdmx?wsdl".to_string()),
+            data_url: String::from("https://example.com/sdmx"),
+            wsdl_url: Some(String::from("https://example.com/sdmx?wsdl")),
             wadl_url: None,
             is_rest_datasource: true,
             is_web_service_datasource: true,
@@ -2543,7 +2547,7 @@ mod tests {
 
     fn dsd_ref(id: &str) -> DsdReference {
         DsdReference {
-            agency: "SDMX".to_string(),
+            agency: String::from("SDMX"),
             id: id.to_string(),
             version: "1.0.0".parse().unwrap(),
         }
@@ -2551,7 +2555,7 @@ mod tests {
 
     fn dataflow_ref(id: &str) -> DataflowReference {
         DataflowReference {
-            agency: "ECB".to_string(),
+            agency: String::from("ECB"),
             id: id.to_string(),
             version: "1.0.0".parse().unwrap(),
         }
@@ -2559,7 +2563,7 @@ mod tests {
 
     fn agreement_ref(id: &str) -> ProvisionAgreementReference {
         ProvisionAgreementReference {
-            agency: "ECB".to_string(),
+            agency: String::from("ECB"),
             id: id.to_string(),
             version: "1.0.0".parse().unwrap(),
         }
@@ -2582,7 +2586,7 @@ mod tests {
             1
         );
         assert_eq!(
-            SimpleDataSources::new(vec!["https://example.com/data".to_string()])
+            SimpleDataSources::new(vec![String::from("https://example.com/data")])
                 .unwrap()
                 .as_slice()
                 .len(),
@@ -2651,7 +2655,7 @@ mod tests {
     #[test]
     fn data_constraint_attachment_structural_arms_round_trip_with_queryable() {
         let queryable = vec![QueryableDataSource {
-            data_url: "https://example.com/sdmx".to_string(),
+            data_url: String::from("https://example.com/sdmx"),
             wsdl_url: None,
             wadl_url: None,
             is_rest_datasource: true,
@@ -2682,13 +2686,13 @@ mod tests {
     fn data_constraint_attachment_3_0_only_arms_round_trip() {
         // The DataProvider single arm and the 3.0-only SimpleDataSource arm.
         let provider = DataConstraintAttachment::DataProvider(DataProviderReference {
-            agency: "SDMX".to_string(),
-            scheme_id: "DATA_PROVIDERS".to_string(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("DATA_PROVIDERS"),
             version: "1.0.0".parse().unwrap(),
-            id: "ECB".to_string(),
+            id: String::from("ECB"),
         });
         let sources = DataConstraintAttachment::SimpleDataSource(
-            SimpleDataSources::new(vec!["https://example.com/data".to_string()]).unwrap(),
+            SimpleDataSources::new(vec![String::from("https://example.com/data")]).unwrap(),
         );
         for attachment in [provider, sources] {
             crate::test_support::round_trip(&attachment);
@@ -2710,8 +2714,8 @@ mod tests {
     fn constraint_metadata(id: &str) -> MaintainableMetadata {
         use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".to_string()),
-            text: "A constraint".to_string(),
+            language: Some(String::from("en")),
+            text: String::from("A constraint"),
         }])
         .unwrap();
         let identifiable =
@@ -2722,7 +2726,8 @@ mod tests {
             None,
             None,
         );
-        MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None).unwrap()
+        MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)
+            .unwrap()
     }
 
     fn data_key_set() -> DataKeySet {
@@ -2752,10 +2757,10 @@ mod tests {
     #[test]
     fn data_constraint_forwards_every_artefact_accessor() {
         use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
-        let version = SdmxVersion::new("1.2.3".to_string()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let annotation = Annotation {
-            id: Some("a1".to_string()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: Vec::new(),
@@ -2763,25 +2768,25 @@ mod tests {
             texts: None,
         };
         let link = Link {
-            rel: "self".to_string(),
-            url: "https://example.com/x".to_string(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".to_string()),
-            text: "Constraint".to_string(),
+            language: Some(String::from("en")),
+            text: String::from("Constraint"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".to_string()),
-            text: "How much".to_string(),
+            language: Some(String::from("en")),
+            text: String::from("How much"),
         }])
         .unwrap();
         let identifiable = IdentifiableMetadata::new(
-            "CR_EXR".to_string(),
-            Some("uri".to_string()),
-            Some("urn:x".to_string()),
+            String::from("CR_EXR"),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -2794,11 +2799,11 @@ mod tests {
         );
         let metadata = MaintainableMetadata::new(
             versionable,
-            "ESTAT".to_string(),
+            String::from("ESTAT"),
             Some(true),
             Some(true),
-            Some("https://service".to_string()),
-            Some("https://structure".to_string()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let constraint = DataConstraint {
@@ -2837,15 +2842,15 @@ mod tests {
             metadata: constraint_metadata("CR_EXR"),
             role: Some(ConstraintRole::Actual),
             attachment: Some(DataConstraintAttachment::DataProvider(DataProviderReference {
-                agency: "SDMX".to_string(),
-                scheme_id: "DATA_PROVIDERS".to_string(),
+                agency: String::from("SDMX"),
+                scheme_id: String::from("DATA_PROVIDERS"),
                 version: "1.0.0".parse().unwrap(),
-                id: "ECB".to_string(),
+                id: String::from("ECB"),
             })),
             release_calendar: Some(ReleaseCalendar {
-                periodicity: "P1M".to_string(),
-                offset: "P0D".to_string(),
-                tolerance: "P7D".to_string(),
+                periodicity: String::from("P1M"),
+                offset: String::from("P0D"),
+                tolerance: String::from("P7D"),
             }),
             key_sets: vec![data_key_set()],
             regions: CubeRegions::new(vec![cube_region()]).unwrap(),
@@ -3017,7 +3022,7 @@ mod tests {
     #[test]
     fn collection_newtype_into_inner_and_from() {
         let ckv = vec![CubeKeyValue {
-            value: "A".to_string(),
+            value: String::from("A"),
             cascade: None,
             valid_from: None,
             valid_to: None,
@@ -3026,7 +3031,7 @@ mod tests {
         assert_eq!(Vec::from(CubeKeyValues::new(ckv.clone()).unwrap()), ckv);
 
         let scv = vec![SimpleComponentValue {
-            value: "EUR".to_string(),
+            value: String::from("EUR"),
             cascade: None,
             lang: None,
             valid_from: None,
@@ -3044,11 +3049,12 @@ mod tests {
         assert_eq!(CubeRegions::new(cr.clone()).unwrap().into_inner(), cr);
         assert_eq!(Vec::from(CubeRegions::new(cr.clone()).unwrap()), cr);
 
-        let dcv = vec![DataComponentValue { value: "EUR".to_string(), cascade: None, lang: None }];
+        let dcv =
+            vec![DataComponentValue { value: String::from("EUR"), cascade: None, lang: None }];
         assert_eq!(DataComponentValues::new(dcv.clone()).unwrap().into_inner(), dcv);
         assert_eq!(Vec::from(DataComponentValues::new(dcv.clone()).unwrap()), dcv);
 
-        let skv = vec!["A".to_string()];
+        let skv = vec![String::from("A")];
         assert_eq!(SimpleKeyValues::new(skv.clone()).unwrap().into_inner(), skv);
         assert_eq!(Vec::from(SimpleKeyValues::new(skv.clone()).unwrap()), skv);
 
@@ -3072,14 +3078,14 @@ mod tests {
         assert_eq!(Vec::from(DataflowRefs::new(dfr.clone()).unwrap()), dfr);
 
         let par = vec![ProvisionAgreementReference {
-            agency: "A".to_string(),
-            id: "P".to_string(),
+            agency: String::from("A"),
+            id: String::from("P"),
             version: "1.0".parse().unwrap(),
         }];
         assert_eq!(ProvisionAgreementRefs::new(par.clone()).unwrap().into_inner(), par);
         assert_eq!(Vec::from(ProvisionAgreementRefs::new(par.clone()).unwrap()), par);
 
-        let sds = vec!["http://example.com".to_string()];
+        let sds = vec![String::from("http://example.com")];
         assert_eq!(SimpleDataSources::new(sds.clone()).unwrap().into_inner(), sds);
         assert_eq!(Vec::from(SimpleDataSources::new(sds.clone()).unwrap()), sds);
     }

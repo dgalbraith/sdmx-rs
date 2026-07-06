@@ -88,11 +88,11 @@ pub struct ValueItem {
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Currencies".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Currencies"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("VL_CUR".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("VL_CUR"), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -100,12 +100,12 @@ pub struct ValueItem {
 ///     None,
 /// );
 /// let metadata =
-///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 ///
 /// let value_list = ValueList {
 ///     metadata,
 ///     items: vec![ValueItem {
-///         id: "EUR".to_string(),
+///         id: String::from("EUR"),
 ///         names: None,
 ///         descriptions: None,
 ///         annotations: Vec::new(),
@@ -193,8 +193,8 @@ mod tests {
 
     fn metadata(id: &str) -> MaintainableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Currencies".into(),
+            language: Some(String::from("en")),
+            text: String::from("Currencies"),
         }])
         .unwrap();
         let identifiable =
@@ -205,7 +205,8 @@ mod tests {
             None,
             None,
         );
-        MaintainableMetadata::new(versionable, "SDMX".into(), None, None, None, None).unwrap()
+        MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)
+            .unwrap()
     }
 
     fn value_item(id: &str) -> ValueItem {
@@ -243,38 +244,38 @@ mod tests {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
 
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Currencies".into(),
+            language: Some(String::from("en")),
+            text: String::from("Currencies"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "ISO codes".into(),
+            language: Some(String::from("en")),
+            text: String::from("ISO codes"),
         }])
         .unwrap();
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(
-            "VL_CUR".into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            String::from("VL_CUR"),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -286,11 +287,11 @@ mod tests {
                 Some(valid_from),
                 None,
             ),
-            "SDMX".into(),
+            String::from("SDMX"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let value_list = ValueList { metadata, items: Vec::new() };

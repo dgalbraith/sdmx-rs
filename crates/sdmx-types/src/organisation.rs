@@ -114,11 +114,11 @@ pub struct Contact {
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Eurostat".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Eurostat"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("ESTAT".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("ESTAT"), None, None, Vec::new(), Vec::new())?;
 /// let agency = Agency::new(NameableMetadata::new(identifiable, names, None), Vec::new())?;
 /// assert_eq!(agency.id(), "ESTAT");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -214,8 +214,8 @@ impl<'de> serde::Deserialize<'de> for Agency {
 ///
 /// fn scheme(id: &str) -> Result<AgencyScheme, Error> {
 ///     let names = LocalisedString::new(vec![LocalisedText {
-///         language: Some("en".to_string()),
-///         text: "Agencies".to_string(),
+///         language: Some(String::from("en")),
+///         text: String::from("Agencies"),
 ///     }])?;
 ///     let identifiable =
 ///         IdentifiableMetadata::new(id.to_string(), None, None, Vec::new(), Vec::new())?;
@@ -226,7 +226,7 @@ impl<'de> serde::Deserialize<'de> for Agency {
 ///         None,
 ///     );
 ///     let metadata =
-///         MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///         MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 ///     AgencyScheme::new(metadata, None)
 /// }
 ///
@@ -361,8 +361,8 @@ mod tests {
 
     fn nameable(id: &str) -> NameableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Eurostat".into(),
+            language: Some(String::from("en")),
+            text: String::from("Eurostat"),
         }])
         .unwrap();
         let identifiable =
@@ -373,7 +373,7 @@ mod tests {
     fn scheme_metadata(id: &str) -> MaintainableMetadata {
         MaintainableMetadata::new(
             VersionableMetadata::new(nameable(id), None, None, None),
-            "SDMX".into(),
+            String::from("SDMX"),
             None,
             None,
             None,
@@ -387,7 +387,7 @@ mod tests {
         assert!(Agency::new(nameable("ESTAT"), Vec::new()).is_ok());
         assert_eq!(
             Agency::new(nameable("1ESTAT"), Vec::new()).unwrap_err(),
-            Error::InvalidNcNameIdentifier("1ESTAT".into())
+            Error::InvalidNcNameIdentifier(String::from("1ESTAT"))
         );
     }
 
@@ -395,16 +395,16 @@ mod tests {
         Contact {
             names: Some(
                 LocalisedString::new(vec![LocalisedText {
-                    language: Some("en".into()),
-                    text: "Helpdesk".into(),
+                    language: Some(String::from("en")),
+                    text: String::from("Helpdesk"),
                 }])
                 .unwrap(),
             ),
             departments: None,
             roles: None,
             details: vec![
-                ContactDetail::Email("info@example.com".into()),
-                ContactDetail::Uri("https://example.com".into()),
+                ContactDetail::Email(String::from("info@example.com")),
+                ContactDetail::Uri(String::from("https://example.com")),
             ],
         }
     }
@@ -449,7 +449,10 @@ mod tests {
         assert!(AgencyScheme::new(scheme_metadata("AGENCIES"), None).is_ok());
         assert_eq!(
             AgencyScheme::new(scheme_metadata("OTHER"), None).unwrap_err(),
-            Error::FixedAttributeMismatch { attribute: "id".into(), value: "OTHER".into() }
+            Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("OTHER")
+            }
         );
     }
 
@@ -488,36 +491,36 @@ mod tests {
     fn full_nameable(id: &str) -> NameableMetadata {
         use crate::annotation::AnnotationUrl;
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Eurostat".into(),
+            language: Some(String::from("en")),
+            text: String::from("Eurostat"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Statistical office".into(),
+            language: Some(String::from("en")),
+            text: String::from("Statistical office"),
         }])
         .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -527,7 +530,7 @@ mod tests {
 
     #[test]
     fn delegation_matrix_forwards_every_accessor() {
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let metadata = MaintainableMetadata::new(
             VersionableMetadata::new(
@@ -536,11 +539,11 @@ mod tests {
                 Some(valid_from),
                 None,
             ),
-            "SDMX".into(),
+            String::from("SDMX"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let scheme = AgencyScheme::new(metadata, Some(true)).unwrap();
@@ -585,8 +588,10 @@ mod tests {
         assert!(contact.details.is_empty());
 
         // Struct-update sets only the stated field; the rest fall back to the default.
-        let with_email =
-            Contact { details: vec![ContactDetail::Email("x@y".into())], ..Default::default() };
+        let with_email = Contact {
+            details: vec![ContactDetail::Email(String::from("x@y"))],
+            ..Default::default()
+        };
         assert_eq!(with_email.details.len(), 1);
         assert!(with_email.names.is_none());
     }

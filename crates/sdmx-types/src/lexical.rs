@@ -1604,27 +1604,27 @@ mod tests {
 
     #[test]
     fn integer_widens_and_narrows() {
-        let i = SdmxInteger::new("42".into()).unwrap();
+        let i = SdmxInteger::new(String::from("42")).unwrap();
         let d: SdmxDecimal = i.into();
         assert_eq!(d.as_str(), "42");
         assert_eq!(SdmxInteger::try_from(d).unwrap().as_str(), "42");
         // "42.0" is integral in value but not an integer lexeme.
-        let fractional = SdmxDecimal::new("42.0".into()).unwrap();
+        let fractional = SdmxDecimal::new(String::from("42.0")).unwrap();
         assert!(SdmxInteger::try_from(fractional).is_err());
     }
 
     #[test]
     fn version_semantic_and_legacy() {
-        let semantic = SdmxVersion::new("1.2.3".into()).unwrap();
+        let semantic = SdmxVersion::new(String::from("1.2.3")).unwrap();
         assert_eq!(
             (semantic.major(), semantic.minor(), semantic.patch(), semantic.is_legacy()),
             (1, Some(2), Some(3), false)
         );
-        let prerelease = SdmxVersion::new("1.0.0-rc.1".into()).unwrap();
+        let prerelease = SdmxVersion::new(String::from("1.0.0-rc.1")).unwrap();
         assert_eq!(prerelease.extension(), Some("rc.1"));
-        let legacy = SdmxVersion::new("1.3".into()).unwrap();
+        let legacy = SdmxVersion::new(String::from("1.3")).unwrap();
         assert_eq!((legacy.major(), legacy.minor(), legacy.patch()), (1, Some(3), None));
-        let bare = SdmxVersion::new("1".into()).unwrap();
+        let bare = SdmxVersion::new(String::from("1")).unwrap();
         assert_eq!((bare.major(), bare.minor(), bare.is_legacy()), (1, None, true));
     }
 
@@ -1653,13 +1653,16 @@ mod tests {
         // The structural fields distinguish exactly what the lexemes distinguish, so
         // trailing-zero-equivalent versions are deliberately unequal (lossless-distinct).
         assert_ne!(
-            SdmxVersion::new("1.0".into()).unwrap(),
-            SdmxVersion::new("1.0.0".into()).unwrap()
+            SdmxVersion::new(String::from("1.0")).unwrap(),
+            SdmxVersion::new(String::from("1.0.0")).unwrap()
         );
-        assert_ne!(SdmxVersion::new("1".into()).unwrap(), SdmxVersion::new("1.0".into()).unwrap());
+        assert_ne!(
+            SdmxVersion::new(String::from("1")).unwrap(),
+            SdmxVersion::new(String::from("1.0")).unwrap()
+        );
         assert_eq!(
-            SdmxVersion::new("2.1.0".into()).unwrap(),
-            SdmxVersion::new("2.1.0".into()).unwrap()
+            SdmxVersion::new(String::from("2.1.0")).unwrap(),
+            SdmxVersion::new(String::from("2.1.0")).unwrap()
         );
     }
 
@@ -1684,8 +1687,8 @@ mod tests {
             collector.0
         }
 
-        let a = SdmxVersion::new("2.1.0".into()).unwrap();
-        let b = SdmxVersion::new("2.1.0".into()).unwrap();
+        let a = SdmxVersion::new(String::from("2.1.0")).unwrap();
+        let b = SdmxVersion::new(String::from("2.1.0")).unwrap();
         assert_eq!(a, b);
         assert_eq!(hash_bytes(&a), hash_bytes(&b), "equal versions must hash equally");
     }
@@ -1702,7 +1705,7 @@ mod tests {
             assert_eq!(v.to_string(), lexeme);
             assert_eq!(v, v.to_string().parse().unwrap());
         }
-        let v = SdmxVersion::new("3.0.0-beta.2".into()).unwrap();
+        let v = SdmxVersion::new(String::from("3.0.0-beta.2")).unwrap();
         assert_eq!(VersionDisplay(Some(&v)).to_string(), "3.0.0-beta.2");
         assert_eq!(VersionDisplay(None).to_string(), "<unversioned>");
     }
@@ -1726,7 +1729,7 @@ mod tests {
                 "{lexeme}"
             );
         }
-        assert_eq!(VersionRef::new("*".into()).unwrap(), VersionRef::Any);
+        assert_eq!(VersionRef::new(String::from("*")).unwrap(), VersionRef::Any);
     }
 
     #[test]
@@ -1771,7 +1774,7 @@ mod tests {
         ] {
             assert!(SdmxTimeRange::new(lexeme.into()).is_ok(), "{lexeme:?} should be accepted");
         }
-        let range = SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap();
+        let range = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
         assert_eq!((range.start(), range.duration()), ("2010-01-01", "P2M"));
     }
 
@@ -1804,18 +1807,18 @@ mod tests {
     #[test]
     fn observational_classifies_both_members() {
         use alloc::string::ToString;
-        let standard = ObservationalTimePeriod::new("2024-Q4".into()).unwrap();
+        let standard = ObservationalTimePeriod::new(String::from("2024-Q4")).unwrap();
         assert!(
             matches!(&standard, ObservationalTimePeriod::Standard(p) if p.kind() == SdmxTimePeriodKind::ReportingQuarter)
         );
-        let range = ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap();
+        let range = ObservationalTimePeriod::new(String::from("2010-01-01/P2M")).unwrap();
         assert!(matches!(&range, ObservationalTimePeriod::Range(_)));
         for value in [standard, range] {
             assert_eq!(value.to_string(), value.as_str());
             assert_eq!(value, value.as_str().parse::<ObservationalTimePeriod>().unwrap());
         }
         assert!(matches!(
-            ObservationalTimePeriod::new("banana".into()),
+            ObservationalTimePeriod::new(String::from("banana")),
             Err(Error::InvalidObservationalTimePeriod(_))
         ));
     }
@@ -1860,7 +1863,7 @@ mod tests {
         // Day-of-month is range-checked `1..=31` for every month, so `2024-02-30` classifies
         // as a Gregorian day: calendar arithmetic is deliberately not re-implemented (the
         // `SdmxTimeRange` design note), a boundary this locks against a well-meaning refactor.
-        let parsed = SdmxTimePeriod::new("2024-02-30".into()).unwrap();
+        let parsed = SdmxTimePeriod::new(String::from("2024-02-30")).unwrap();
         assert_eq!(parsed.kind(), SdmxTimePeriodKind::GregorianDay);
     }
 
@@ -1869,10 +1872,10 @@ mod tests {
         // `BaseReportPeriodType` pins the reporting year at exactly four digits (`\d{4}`),
         // unlike the unbounded `xs:gYear` that `is_year` admits, so a five-digit reporting
         // year is not a reporting period and is rejected outright.
-        assert!(SdmxTimePeriod::new("20241-A1".into()).is_err());
+        assert!(SdmxTimePeriod::new(String::from("20241-A1")).is_err());
         // Contrast: the four-digit form is a reporting year.
         assert_eq!(
-            SdmxTimePeriod::new("2024-A1".into()).unwrap().kind(),
+            SdmxTimePeriod::new(String::from("2024-A1")).unwrap().kind(),
             SdmxTimePeriodKind::ReportingYear
         );
     }
@@ -1880,7 +1883,7 @@ mod tests {
     #[test]
     fn date_time_rejects_leap_second() {
         // `xs:dateTime` seconds are `0..=59`: a leap-second `60` is rejected.
-        assert!(SdmxTimePeriod::new("2024-05-01T09:30:60".into()).is_err());
+        assert!(SdmxTimePeriod::new(String::from("2024-05-01T09:30:60")).is_err());
     }
 
     #[test]
@@ -1953,7 +1956,7 @@ mod tests {
         // `Raw = String` (`String::deserialize` then `Self::new(s)`), and postcard encodes a
         // newtype identically to that one field, so serialising a `String` carrying a
         // grammar-invalid lexeme decodes into new(), which rejects it.
-        let decimal = SdmxDecimal::new("-3.14".into()).unwrap();
+        let decimal = SdmxDecimal::new(String::from("-3.14")).unwrap();
         assert_eq!(decimal.as_str(), "-3.14");
         crate::test_support::round_trip(&decimal);
         let bad = String::from("banana");
@@ -1961,7 +1964,7 @@ mod tests {
             postcard::from_bytes::<SdmxDecimal>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
 
-        let integer = SdmxInteger::new("-7".into()).unwrap();
+        let integer = SdmxInteger::new(String::from("-7")).unwrap();
         assert_eq!(integer.as_str(), "-7");
         crate::test_support::round_trip(&integer);
         let bad = String::from("2.5");
@@ -1969,7 +1972,7 @@ mod tests {
             postcard::from_bytes::<SdmxInteger>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
 
-        let version = SdmxVersion::new("1.0.0-rc.1".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.0.0-rc.1")).unwrap();
         assert_eq!(version.extension(), Some("rc.1"));
         crate::test_support::round_trip(&version);
         let bad = String::from("01.0.0");
@@ -1977,14 +1980,14 @@ mod tests {
             postcard::from_bytes::<SdmxVersion>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
 
-        let reference = VersionRef::new("2+.3.1".into()).unwrap();
+        let reference = VersionRef::new(String::from("2+.3.1")).unwrap();
         assert!(matches!(reference, VersionRef::Latest { at: WildcardPosition::Major, .. }));
         crate::test_support::round_trip(&reference);
         crate::test_support::round_trip(&VersionRef::Any);
         let bad = String::from("1.*");
         assert!(postcard::from_bytes::<VersionRef>(&postcard::to_allocvec(&bad).unwrap()).is_err());
 
-        let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
+        let period = SdmxTimePeriod::new(String::from("2024-Q4")).unwrap();
         assert_eq!(period.kind(), SdmxTimePeriodKind::ReportingQuarter);
         crate::test_support::round_trip(&period);
         let bad = String::from("2024-Q5");
@@ -1992,11 +1995,15 @@ mod tests {
             postcard::from_bytes::<SdmxTimePeriod>(&postcard::to_allocvec(&bad).unwrap()).is_err()
         );
 
-        crate::test_support::round_trip(&SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap());
         crate::test_support::round_trip(
-            &ObservationalTimePeriod::new("2010-01-01/P2M".into()).unwrap(),
+            &SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap(),
         );
-        crate::test_support::round_trip(&ObservationalTimePeriod::new("2024-Q4".into()).unwrap());
+        crate::test_support::round_trip(
+            &ObservationalTimePeriod::new(String::from("2010-01-01/P2M")).unwrap(),
+        );
+        crate::test_support::round_trip(
+            &ObservationalTimePeriod::new(String::from("2024-Q4")).unwrap(),
+        );
         let bad = String::from("2010-01-01/P");
         assert!(
             postcard::from_bytes::<ObservationalTimePeriod>(&postcard::to_allocvec(&bad).unwrap())
@@ -2008,10 +2015,10 @@ mod tests {
     fn serialize_round_trips_the_raw_lexeme() {
         // The projection shape is deliberately not pinned (D-0068); each newtype serialises through
         // its raw lexeme and reconstructs an equal value.
-        crate::test_support::round_trip(&SdmxVersion::new("2.1".into()).unwrap());
-        crate::test_support::round_trip(&SdmxDecimal::new("0.001".into()).unwrap());
-        crate::test_support::round_trip(&SdmxInteger::new("-7".into()).unwrap());
-        crate::test_support::round_trip(&SdmxTimePeriod::new("2024-Q4".into()).unwrap());
+        crate::test_support::round_trip(&SdmxVersion::new(String::from("2.1")).unwrap());
+        crate::test_support::round_trip(&SdmxDecimal::new(String::from("0.001")).unwrap());
+        crate::test_support::round_trip(&SdmxInteger::new(String::from("-7")).unwrap());
+        crate::test_support::round_trip(&SdmxTimePeriod::new(String::from("2024-Q4")).unwrap());
     }
 
     #[test]
@@ -2061,13 +2068,13 @@ mod tests {
 
     #[test]
     fn lexical_newtype_into_inner_and_from() {
-        let d = SdmxDecimal::new("1.5".to_string()).unwrap();
+        let d = SdmxDecimal::new(String::from("1.5")).unwrap();
         assert_eq!(d.clone().into_inner(), "1.5");
         assert_eq!(String::from(d), "1.5");
-        let i = SdmxInteger::new("42".to_string()).unwrap();
+        let i = SdmxInteger::new(String::from("42")).unwrap();
         assert_eq!(i.clone().into_inner(), "42");
         assert_eq!(String::from(i), "42");
-        let r = SdmxTimeRange::new("2010-01-01/P2M".to_string()).unwrap();
+        let r = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
         assert_eq!(r.clone().into_inner(), "2010-01-01/P2M");
         assert_eq!(String::from(r.clone()), "2010-01-01/P2M");
         // The unwrapped string reconstructs the same value through the constructor.
@@ -2078,23 +2085,23 @@ mod tests {
     fn raw_backed_newtypes_compare_to_literals_by_identity() {
         // `PartialEq<str>`/`PartialEq<&str>` are string identity with the stored lexeme,
         // never a normalised or numeric view (D-0027 lossless-distinct).
-        let decimal = SdmxDecimal::new("1.0".into()).unwrap();
+        let decimal = SdmxDecimal::new(String::from("1.0")).unwrap();
         assert!(decimal == *"1.0");
         assert!(decimal == "1.0");
         assert!(decimal != "1.00"); // numerically equal, lexically distinct
-        let integer = SdmxInteger::new("7".into()).unwrap();
+        let integer = SdmxInteger::new(String::from("7")).unwrap();
         assert!(integer == *"7");
         assert!(integer == "7");
         assert!(integer != "+7");
-        let period = SdmxTimePeriod::new("2024-Q4".into()).unwrap();
+        let period = SdmxTimePeriod::new(String::from("2024-Q4")).unwrap();
         assert!(period == *"2024-Q4");
         assert!(period == "2024-Q4");
         assert!(period != "2024-Q4Z"); // stated timezone is part of the lexeme
-        let range = SdmxTimeRange::new("2010-01-01/P2M".into()).unwrap();
+        let range = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
         assert!(range == *"2010-01-01/P2M");
         assert!(range == "2010-01-01/P2M");
         assert!(range != "2010-01-01/P60D"); // equivalent span, distinct lexeme
-        let observational = ObservationalTimePeriod::new("2024-Q4".into()).unwrap();
+        let observational = ObservationalTimePeriod::new(String::from("2024-Q4")).unwrap();
         assert!(observational == *"2024-Q4");
         assert!(observational == "2024-Q4");
         assert!(observational != "2010-01-01/P2M"); // the other member's grammar

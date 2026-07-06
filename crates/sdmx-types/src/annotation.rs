@@ -42,8 +42,8 @@ use crate::localised::LocalisedString;
 ///
 /// // All fields are public, so you can construct one directly.
 /// let url = AnnotationUrl {
-///     url: "https://example.com/guidelines".to_string(),
-///     lang: Some("en".to_string()),
+///     url: String::from("https://example.com/guidelines"),
+///     lang: Some(String::from("en")),
 /// };
 /// assert_eq!(url.lang.as_deref(), Some("en"));
 /// ```
@@ -94,11 +94,11 @@ pub struct AnnotationUrl {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let note = Annotation {
-///     id: Some("note-1".to_string()),
-///     annotation_type: Some("source".to_string()),
-///     annotation_title: Some("Data source".to_string()),
+///     id: Some(String::from("note-1")),
+///     annotation_type: Some(String::from("source")),
+///     annotation_title: Some(String::from("Data source")),
 ///     annotation_urls: vec![AnnotationUrl {
-///         url: "https://example.com/source".to_string(),
+///         url: String::from("https://example.com/source"),
 ///         lang: None,
 ///     }],
 ///     annotation_value: None,
@@ -156,10 +156,10 @@ pub struct Annotation {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let link = Link {
-///     rel: "metadata".to_string(),
-///     url: "https://example.com/report".to_string(),
+///     rel: String::from("metadata"),
+///     url: String::from("https://example.com/report"),
 ///     urn: None,
-///     link_type: Some("PDF".to_string()),
+///     link_type: Some(String::from("PDF")),
 /// };
 /// assert_eq!(link.rel.as_str(), "metadata");
 /// ```
@@ -207,7 +207,8 @@ mod tests {
         assert!(note.texts.is_none());
 
         // Struct-update sets only the stated field; the rest fall back to the default.
-        let with_value = Annotation { annotation_value: Some("x".into()), ..Default::default() };
+        let with_value =
+            Annotation { annotation_value: Some(String::from("x")), ..Default::default() };
         assert_eq!(with_value.annotation_value.as_deref(), Some("x"));
         assert!(with_value.id.is_none());
     }

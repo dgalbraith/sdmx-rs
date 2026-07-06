@@ -169,8 +169,8 @@ fn parse_item(
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = DsdReference {
-///     agency: "SDMX".to_string(),
-///     id: "ECB_EXR1".to_string(),
+///     agency: String::from("SDMX"),
+///     id: String::from("ECB_EXR1"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=SDMX:ECB_EXR1(1.0.0)";
@@ -212,10 +212,10 @@ pub struct DsdReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS_FREQ".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS_FREQ"),
 ///     version: "1.0.0".parse()?,
-///     id: "FREQ".to_string(),
+///     id: String::from("FREQ"),
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=SDMX:CS_FREQ(1.0.0).FREQ";
 /// assert_eq!(reference.to_string(), urn);
@@ -256,8 +256,8 @@ pub struct ConceptReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = CodelistReference {
-///     agency: "SDMX".to_string(),
-///     id: "CL_FREQ".to_string(),
+///     agency: String::from("SDMX"),
+///     id: String::from("CL_FREQ"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=SDMX:CL_FREQ(1.0.0)";
@@ -297,8 +297,8 @@ pub struct CodelistReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = ValueListReference {
-///     agency: "SDMX".to_string(),
-///     id: "VL_CURRENCY".to_string(),
+///     agency: String::from("SDMX"),
+///     id: String::from("VL_CURRENCY"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.codelist.ValueList=SDMX:VL_CURRENCY(1.0.0)";
@@ -339,8 +339,8 @@ pub struct ValueListReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = DataflowReference {
-///     agency: "SDMX".to_string(),
-///     id: "EXR".to_string(),
+///     agency: String::from("SDMX"),
+///     id: String::from("EXR"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=SDMX:EXR(1.0.0)";
@@ -381,8 +381,8 @@ pub struct DataflowReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = ProvisionAgreementReference {
-///     agency: "SDMX".to_string(),
-///     id: "PA_EXR".to_string(),
+///     agency: String::from("SDMX"),
+///     id: String::from("PA_EXR"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.registry.ProvisionAgreement=SDMX:PA_EXR(1.0.0)";
@@ -425,10 +425,10 @@ pub struct ProvisionAgreementReference {
 ///
 /// // All fields are public, so you can construct one directly.
 /// let reference = DataProviderReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "DATA_PROVIDERS".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("DATA_PROVIDERS"),
 ///     version: "1.0.0".parse()?,
-///     id: "ECB".to_string(),
+///     id: String::from("ECB"),
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.base.DataProvider=SDMX:DATA_PROVIDERS(1.0.0).ECB";
 /// assert_eq!(reference.to_string(), urn);
@@ -599,20 +599,20 @@ mod tests {
     #[test]
     fn constraint_attachment_references_round_trip_through_serde() {
         let dataflow = DataflowReference {
-            agency: "ECB".into(),
-            id: "EXR".into(),
+            agency: String::from("ECB"),
+            id: String::from("EXR"),
             version: "1.0.0".parse().unwrap(),
         };
         let agreement = ProvisionAgreementReference {
-            agency: "ECB".into(),
-            id: "PA_EXR".into(),
+            agency: String::from("ECB"),
+            id: String::from("PA_EXR"),
             version: "1.0.0".parse().unwrap(),
         };
         let provider = DataProviderReference {
-            agency: "SDMX".into(),
-            scheme_id: "DATA_PROVIDERS".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("DATA_PROVIDERS"),
             version: "1.0.0".parse().unwrap(),
-            id: "ECB".into(),
+            id: String::from("ECB"),
         };
         crate::test_support::round_trip(&dataflow);
         crate::test_support::round_trip(&agreement);
@@ -647,16 +647,16 @@ mod tests {
         // Display renders the fields verbatim (D-0073), so the round-trip is guaranteed only
         // when they are grammar-valid. An off-grammar agency renders but does not parse back.
         let off_grammar_agency = CodelistReference {
-            agency: "SDMX AGENCY".into(), // space is outside the agency NCName grammar
-            id: "CL_FREQ".into(),
+            agency: String::from("SDMX AGENCY"), // space is outside the agency NCName grammar
+            id: String::from("CL_FREQ"),
             version: "1.0.0".parse().unwrap(),
         };
         assert!(off_grammar_agency.to_string().parse::<CodelistReference>().is_err());
         // `VersionRef::Any` is the design's own lint value: no reference class admits the bare
         // `*` version (D-0073), so it renders (`(*)`) but FromStr rejects it.
         let any_version = CodelistReference {
-            agency: "SDMX".into(),
-            id: "CL_FREQ".into(),
+            agency: String::from("SDMX"),
+            id: String::from("CL_FREQ"),
             version: VersionRef::Any,
         };
         assert!(any_version.to_string().parse::<CodelistReference>().is_err());

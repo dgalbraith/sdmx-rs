@@ -81,11 +81,11 @@ pub trait SchemeItem: IdentifiableArtefact {}
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Frequency".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Frequency"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("FREQ"), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -93,14 +93,14 @@ pub trait SchemeItem: IdentifiableArtefact {}
 ///     None,
 /// );
 /// let metadata =
-///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 ///
 /// let mut scheme: ItemScheme<Code> = ItemScheme::new(metadata, None);
 /// let code_names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Annual".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Annual"),
 /// }])?;
-/// let code_id = IdentifiableMetadata::new("A".to_string(), None, None, Vec::new(), Vec::new())?;
+/// let code_id = IdentifiableMetadata::new(String::from("A"), None, None, Vec::new(), Vec::new())?;
 /// scheme
 ///     .push(Code { metadata: NameableMetadata::new(code_id, code_names, None), parent_id: None });
 /// assert_eq!(scheme.get("A").map(IdentifiableArtefact::id), Some("A"));
@@ -213,7 +213,10 @@ impl<I: SchemeItem> MaintainableArtefact for ItemScheme<I> {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{string::ToString, vec};
+    use alloc::{
+        string::{String, ToString},
+        vec,
+    };
 
     use super::*;
     use crate::{
@@ -224,8 +227,8 @@ mod tests {
 
     fn metadata(id: &str) -> MaintainableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let identifiable =
@@ -236,12 +239,13 @@ mod tests {
             None,
             None,
         );
-        MaintainableMetadata::new(versionable, "SDMX".into(), None, None, None, None).unwrap()
+        MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)
+            .unwrap()
     }
 
     fn code(id: &str) -> Code {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
+            language: Some(String::from("en")),
             text: id.to_string(),
         }])
         .unwrap();
@@ -279,38 +283,38 @@ mod tests {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
 
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "How often".into(),
+            language: Some(String::from("en")),
+            text: String::from("How often"),
         }])
         .unwrap();
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(
-            "CL_FREQ".into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            String::from("CL_FREQ"),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -323,11 +327,11 @@ mod tests {
         );
         let metadata = MaintainableMetadata::new(
             versionable,
-            "ESTAT".into(),
+            String::from("ESTAT"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let scheme: ItemScheme<Code> = ItemScheme::new(metadata, None);

@@ -56,8 +56,13 @@ use crate::{
 /// use sdmx_types::ComponentMetadata;
 ///
 /// // A stated id is validated as an NCName.
-/// let meta =
-///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
+/// let meta = ComponentMetadata::new(
+///     Some(String::from("OBS_VALUE")),
+///     None,
+///     None,
+///     Vec::new(),
+///     Vec::new(),
+/// )?;
 /// assert_eq!(meta.stated_id(), Some("OBS_VALUE"));
 ///
 /// // An absent id is allowed: the component inherits its concept's identity.
@@ -176,14 +181,20 @@ mod tests {
     fn new_validates_stated_id_as_ncname() {
         // A stated id must be a valid NCName.
         assert!(
-            ComponentMetadata::new(Some("OBS_VALUE".into()), None, None, Vec::new(), Vec::new())
-                .is_ok()
+            ComponentMetadata::new(
+                Some(String::from("OBS_VALUE")),
+                None,
+                None,
+                Vec::new(),
+                Vec::new()
+            )
+            .is_ok()
         );
         // A dotted id is not an NCName at the component tier.
         assert_eq!(
-            ComponentMetadata::new(Some("a.b".into()), None, None, Vec::new(), Vec::new())
+            ComponentMetadata::new(Some(String::from("a.b")), None, None, Vec::new(), Vec::new())
                 .unwrap_err(),
-            Error::InvalidNcNameIdentifier("a.b".into())
+            Error::InvalidNcNameIdentifier(String::from("a.b"))
         );
     }
 
@@ -197,9 +208,9 @@ mod tests {
     #[test]
     fn deserialize_round_trips_and_enforces_the_id_tier() {
         let meta = ComponentMetadata::new(
-            Some("FREQ".into()),
+            Some(String::from("FREQ")),
             None,
-            Some("urn:sdmx:freq".into()),
+            Some(String::from("urn:sdmx:freq")),
             Vec::new(),
             Vec::new(),
         )

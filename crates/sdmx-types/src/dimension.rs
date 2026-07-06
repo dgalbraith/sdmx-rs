@@ -62,12 +62,12 @@ use crate::{
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Dimension, IdentifiableArtefact};
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?;
+///     ComponentMetadata::new(Some(String::from("FREQ")), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS_FREQ".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS_FREQ"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "FREQ".to_string(),
+///     id: String::from("FREQ"),
 /// };
 /// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
 /// assert_eq!(dimension.id(), "FREQ");
@@ -198,10 +198,10 @@ impl<'de> serde::Deserialize<'de> for Dimension {
 ///
 /// let metadata = ComponentMetadata::new(None, None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS_TIME".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS_TIME"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "TIME_PERIOD".to_string(),
+///     id: String::from("TIME_PERIOD"),
 /// };
 /// // `TextFormat` derives `Default`, so only the facets that matter need naming.
 /// let representation = Representation {
@@ -300,15 +300,15 @@ impl<'de> serde::Deserialize<'de> for TimeDimension {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::String, vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
         ConceptReference {
-            agency: "SDMX".into(),
-            scheme_id: "CS_FREQ".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("CS_FREQ"),
             version: "1.0.0".parse().unwrap(),
             id: id.into(),
         }
@@ -363,8 +363,8 @@ mod tests {
             choice: RepresentationChoice::Enumeration {
                 enumeration: crate::representation::EnumerationReference::ValueList(
                     crate::reference::ValueListReference {
-                        agency: "SDMX".into(),
-                        id: "VL".into(),
+                        agency: String::from("SDMX"),
+                        id: String::from("VL"),
                         version: "1.0.0".parse().unwrap(),
                     },
                 ),
@@ -376,7 +376,7 @@ mod tests {
         assert_eq!(
             Dimension::new(metadata(Some("FREQ")), concept("FREQ"), Some(value_list), None)
                 .unwrap_err(),
-            Error::ValueListEnumerationNotAllowed("Dimension".into())
+            Error::ValueListEnumerationNotAllowed(String::from("Dimension"))
         );
     }
 
@@ -411,8 +411,8 @@ mod tests {
             choice: RepresentationChoice::Enumeration {
                 enumeration: crate::representation::EnumerationReference::ValueList(
                     crate::reference::ValueListReference {
-                        agency: "SDMX".into(),
-                        id: "VL".into(),
+                        agency: String::from("SDMX"),
+                        id: String::from("VL"),
                         version: "1.0.0".parse().unwrap(),
                     },
                 ),
@@ -448,7 +448,10 @@ mod tests {
         assert_eq!(
             TimeDimension::new(metadata(Some("OBS_TIME")), concept("TIME"), time_text_format())
                 .unwrap_err(),
-            Error::FixedAttributeMismatch { attribute: "id".into(), value: "OBS_TIME".into() }
+            Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("OBS_TIME")
+            }
         );
     }
 
@@ -462,8 +465,8 @@ mod tests {
         assert_eq!(
             TimeDimension::new(metadata(None), concept("TIME"), bad).unwrap_err(),
             Error::InvalidTextTypeForComponent {
-                component: "TimeDimension".into(),
-                text_type: "String".into()
+                component: String::from("TimeDimension"),
+                text_type: String::from("String")
             }
         );
     }
@@ -497,26 +500,26 @@ mod tests {
     fn full_metadata(id: Option<&str>) -> ComponentMetadata {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         ComponentMetadata::new(
             id.map(Into::into),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )

@@ -702,8 +702,8 @@ mod tests {
         assert_eq!(
             validate_basic_representation("Concept", Some(&repr)),
             Err(Error::InvalidTextTypeForComponent {
-                component: "Concept".into(),
-                text_type: "KeyValues".into()
+                component: String::from("Concept"),
+                text_type: String::from("KeyValues")
             })
         );
     }
@@ -716,8 +716,8 @@ mod tests {
         let repr = Representation {
             choice: RepresentationChoice::Enumeration {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
-                    agency: "SDMX".into(),
-                    id: "CL_FREQ".into(),
+                    agency: String::from("SDMX"),
+                    id: String::from("CL_FREQ"),
                     version: "1.0.0".parse().unwrap(),
                 }),
                 format: Some(EnumerationFormat {
@@ -737,8 +737,8 @@ mod tests {
     #[test]
     fn basic_representation_holds_enumeration_format_to_code_subset() {
         let codelist = CodelistReference {
-            agency: "SDMX".into(),
-            id: "CL_FREQ".into(),
+            agency: String::from("SDMX"),
+            id: String::from("CL_FREQ"),
             version: "1.0.0".parse().unwrap(),
         };
         let format = EnumerationFormat {
@@ -767,8 +767,8 @@ mod tests {
         assert_eq!(
             validate_basic_representation("Concept", Some(&repr)),
             Err(Error::InvalidTextTypeForComponent {
-                component: "Concept".into(),
-                text_type: "XHTML".into()
+                component: String::from("Concept"),
+                text_type: String::from("XHTML")
             })
         );
     }
@@ -819,8 +819,8 @@ mod tests {
         Representation {
             choice: RepresentationChoice::Enumeration {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
-                    agency: "SDMX".into(),
-                    id: "CL_FREQ".into(),
+                    agency: String::from("SDMX"),
+                    id: String::from("CL_FREQ"),
                     version: "1.0.0".parse().unwrap(),
                 }),
                 format: None,
@@ -844,8 +844,8 @@ mod tests {
         let repr = Representation {
             choice: RepresentationChoice::Enumeration {
                 enumeration: EnumerationReference::ValueList(ValueListReference {
-                    agency: "SDMX".into(),
-                    id: "VL_CURRENCY".into(),
+                    agency: String::from("SDMX"),
+                    id: String::from("VL_CURRENCY"),
                     version: "1.0.0".parse().unwrap(),
                 }),
                 format: None,
@@ -855,7 +855,7 @@ mod tests {
         };
         assert_eq!(
             validate_dimension_representation(Some(&repr)),
-            Err(Error::ValueListEnumerationNotAllowed("Dimension".into()))
+            Err(Error::ValueListEnumerationNotAllowed(String::from("Dimension")))
         );
     }
 
@@ -866,8 +866,8 @@ mod tests {
         let repr = Representation {
             choice: RepresentationChoice::Enumeration {
                 enumeration: EnumerationReference::Codelist(CodelistReference {
-                    agency: "SDMX".into(),
-                    id: "CL_FREQ".into(),
+                    agency: String::from("SDMX"),
+                    id: String::from("CL_FREQ"),
                     version: "1.0.0".parse().unwrap(),
                 }),
                 format: Some(EnumerationFormat {
@@ -892,8 +892,8 @@ mod tests {
         assert_eq!(
             validate_dimension_representation(Some(&repr)),
             Err(Error::InvalidTextTypeForComponent {
-                component: "Dimension".into(),
-                text_type: "DateTime".into()
+                component: String::from("Dimension"),
+                text_type: String::from("DateTime")
             })
         );
     }
@@ -904,8 +904,8 @@ mod tests {
         assert_eq!(
             validate_dimension_representation(Some(&text_format(Some(DataType::XHTML)))),
             Err(Error::InvalidTextTypeForComponent {
-                component: "Dimension".into(),
-                text_type: "XHTML".into()
+                component: String::from("Dimension"),
+                text_type: String::from("XHTML")
             })
         );
     }
@@ -920,8 +920,8 @@ mod tests {
         assert_eq!(
             validate_dimension_representation(Some(&multi_lingual)),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "Dimension".into(),
-                facet: "isMultiLingual".into()
+                component: String::from("Dimension"),
+                facet: String::from("isMultiLingual")
             })
         );
 
@@ -931,8 +931,8 @@ mod tests {
         assert_eq!(
             validate_dimension_representation(Some(&min_bounded)),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "Dimension".into(),
-                facet: "minOccurs".into()
+                component: String::from("Dimension"),
+                facet: String::from("minOccurs")
             })
         );
         let mut bounded = codelist_enumeration();
@@ -940,8 +940,8 @@ mod tests {
         assert_eq!(
             validate_dimension_representation(Some(&bounded)),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "Dimension".into(),
-                facet: "maxOccurs".into()
+                component: String::from("Dimension"),
+                facet: String::from("maxOccurs")
             })
         );
     }
@@ -961,8 +961,9 @@ mod tests {
         let mut repr = text_format(Some(DataType::ObservationalTimePeriod));
         if let RepresentationChoice::TextFormat(text_format) = &mut repr.choice {
             text_format.start_time =
-                Some(SdmxTimePeriod::new("2024-05-01T09:30:00".into()).unwrap());
-            text_format.end_time = Some(SdmxTimePeriod::new("2024-05-01T09:30:00".into()).unwrap());
+                Some(SdmxTimePeriod::new(String::from("2024-05-01T09:30:00")).unwrap());
+            text_format.end_time =
+                Some(SdmxTimePeriod::new(String::from("2024-05-01T09:30:00")).unwrap());
         }
         assert!(validate_time_representation(&repr).is_ok());
     }
@@ -976,8 +977,8 @@ mod tests {
         assert_eq!(
             validate_time_representation(&min_bounded),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "TimeDimension".into(),
-                facet: "minOccurs".into()
+                component: String::from("TimeDimension"),
+                facet: String::from("minOccurs")
             })
         );
         let mut max_bounded = text_format(Some(DataType::ObservationalTimePeriod));
@@ -985,8 +986,8 @@ mod tests {
         assert_eq!(
             validate_time_representation(&max_bounded),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "TimeDimension".into(),
-                facet: "maxOccurs".into()
+                component: String::from("TimeDimension"),
+                facet: String::from("maxOccurs")
             })
         );
     }
@@ -995,7 +996,7 @@ mod tests {
     fn time_representation_rejects_enumeration() {
         assert_eq!(
             validate_time_representation(&codelist_enumeration()),
-            Err(Error::EnumerationNotAllowed("TimeDimension".into()))
+            Err(Error::EnumerationNotAllowed(String::from("TimeDimension")))
         );
     }
 
@@ -1004,8 +1005,8 @@ mod tests {
         assert_eq!(
             validate_time_representation(&text_format(Some(DataType::String))),
             Err(Error::InvalidTextTypeForComponent {
-                component: "TimeDimension".into(),
-                text_type: "String".into()
+                component: String::from("TimeDimension"),
+                text_type: String::from("String")
             })
         );
     }
@@ -1014,13 +1015,13 @@ mod tests {
     fn time_representation_rejects_a_prohibited_facet() {
         let mut repr = text_format(Some(DataType::ObservationalTimePeriod));
         if let RepresentationChoice::TextFormat(text_format) = &mut repr.choice {
-            text_format.pattern = Some("[0-9]+".into());
+            text_format.pattern = Some(String::from("[0-9]+"));
         }
         assert_eq!(
             validate_time_representation(&repr),
             Err(Error::ProhibitedRepresentationFacet {
-                component: "TimeDimension".into(),
-                facet: "pattern".into()
+                component: String::from("TimeDimension"),
+                facet: String::from("pattern")
             })
         );
     }
