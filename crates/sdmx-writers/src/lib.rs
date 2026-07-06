@@ -35,7 +35,11 @@ extern crate alloc;
 mod tests {
     use core::hint;
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn crate_compiles_in_no_std_mode() {
         // Smoke test: verify the serialisation crate exports are accessible in no_std
         // context.
@@ -43,6 +47,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn writer_interfaces_compile() {
         // Structural smoke test ensuring writer module compilation.
         // This test catches breaking changes to public writer interfaces early.

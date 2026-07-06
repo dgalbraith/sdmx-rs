@@ -1580,9 +1580,13 @@ fn scan_duration_components(part: &str, units: &[char], fraction_unit: Option<ch
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+
     use super::*;
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn decimal_accepts_and_rejects() {
         for ok in ["0", "-1.5", "+42", "3.14159", ".5", "5.", "-0.0"] {
             assert!(SdmxDecimal::new(ok.into()).is_ok(), "{ok:?} should be a valid xs:decimal");
@@ -1593,6 +1597,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn integer_accepts_and_rejects() {
         for ok in ["0", "-7", "+1234"] {
             assert!(SdmxInteger::new(ok.into()).is_ok(), "{ok:?} should be a valid xs:integer");
@@ -1614,6 +1619,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn version_semantic_and_legacy() {
         let semantic = SdmxVersion::new(String::from("1.2.3")).unwrap();
         assert_eq!(
@@ -1764,6 +1770,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn time_range_accepts_date_and_datetime_starts() {
         for lexeme in [
             "2010-01-01/P2M",
@@ -1887,6 +1894,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn time_period_rejects_out_of_range_and_malformed() {
         for bad in [
             "",

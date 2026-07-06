@@ -28,6 +28,10 @@ where
 /// but the offset is data — the preserved datum is the XSD `dateTime` value (instant plus
 /// stated numeric offset) — so datetime-bearing round-trips assert this tuple, never bare
 /// `Eq`, and a projection change that normalised the offset would fail here.
+///
+/// Used only by the metadata property tests, which are wasm-excluded (`mod prop`), so this
+/// helper carries the same target gate to stay dead-code-clean under `wasm-pack test`.
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn with_stated_offset(
     value: Option<&chrono::DateTime<chrono::FixedOffset>>,
 ) -> (Option<&chrono::DateTime<chrono::FixedOffset>>, Option<chrono::FixedOffset>) {
