@@ -49,15 +49,15 @@ verify-minimal:
 
 # Run the complete verification quality gate in parallel (CI equivalent)
 [parallel]
-verify: verify-rust verify-scripts verify-docs verify-security verify-infra verify-maintenance
+verify: verify-rust verify-wasm verify-scripts verify-docs verify-security verify-infra verify-maintenance
     @./scripts/lib/log.sh log_ok "verify: all verification phases passed"
 
 # Run all verification gates sequentially (useful for detailed tracing/debugging)
-verify-linear: verify-rust verify-scripts verify-docs verify-security verify-infra verify-maintenance
+verify-linear: verify-rust verify-wasm verify-scripts verify-docs verify-security verify-infra verify-maintenance
     @./scripts/lib/log.sh log_ok "verify: all verification phases passed"
 
-# Verify Rust codebase formatting, clippy, public + internal docs build, wasm target, semver, and test coverage
-verify-rust: check-format clippy check-conventions check-wasm docs docs-internal semver-check coverage-gate release-dry-run
+# Verify Rust codebase formatting, clippy, public + internal docs build, semver, and test coverage
+verify-rust: check-format clippy check-conventions docs docs-internal semver-check coverage-gate release-dry-run
     @./scripts/lib/log.sh log_ok "verify-rust: all gates passed"
 
 # Verify repository shell script linting and testing
@@ -232,6 +232,7 @@ test-help:
     @echo "Unit and integration tests:"
     @echo "  just test                   # Run all workspace unit and doc tests"
     @echo "  just test-scripts           # Run BATS tests for shell scripts"
+    @echo "  just test-wasm              # Execute the no_std crates' WASM subset under Node/V8"
     @echo ""
     @echo "Code coverage:"
     @echo "  just coverage               # Generate interactive HTML coverage report (local)"
@@ -288,7 +289,7 @@ audit-help:
     @echo ""
     @echo "Portability & Compliance checks:"
     @echo "  just semver-check           # Verify semantic versioning API compliance"
-    @echo "  just check-wasm             # Verify no_std compatibility for WASM target"
+    @echo "  just check-wasm             # Verify the no_std crates compile for the WASM target"
     @echo "  just msrv-features          # Verify MSRV (declared in rust-toolchain.toml) across feature combinations"
     @echo "  just nix-check              # Validate Nix Flake schema and evaluation"
     @echo "  just bloat [target]         # Profile compile size for a build target"
@@ -323,11 +324,21 @@ semver-check:
 
 # Verify no_std crates compile for wasm32; also checks parsers-only native target and test harness (--no-run)
 check-wasm:
-    cargo check -p sdmx-types -p sdmx-parsers -p sdmx-writers --target wasm32-unknown-unknown --locked --quiet
-    cargo check -p sdmx-rs --target wasm32-unknown-unknown --no-default-features --locked --quiet
-    cargo check -p sdmx-rs --target wasm32-unknown-unknown --no-default-features --features parsers --locked --quiet
-    cargo check -p sdmx-rs --no-default-features --features parsers --locked --quiet
-    cargo test -p sdmx-rs --no-default-features --features parsers --no-run --locked --quiet
+    @./scripts/lib/log.sh log_section "Checking the workspace compiles for the WASM target..."
+    @cargo check -p sdmx-types -p sdmx-parsers -p sdmx-writers --target wasm32-unknown-unknown --locked --quiet
+    @cargo check -p sdmx-rs --target wasm32-unknown-unknown --no-default-features --locked --quiet
+    @cargo check -p sdmx-rs --target wasm32-unknown-unknown --no-default-features --features parsers --locked --quiet
+    @cargo check -p sdmx-rs --no-default-features --features parsers --locked --quiet
+    @cargo test -p sdmx-rs --no-default-features --features parsers --no-run --locked --quiet
+    @./scripts/lib/log.sh log_ok "check-wasm: workspace compiles for the WASM target"
+
+# Verify the wasm target end-to-end: compile check plus headless Node/V8 test execution
+verify-wasm: check-wasm test-wasm
+    @./scripts/lib/log.sh log_ok "verify-wasm: all gates passed"
+
+# Execute the no_std crates' wasm test subset under Node/V8 (wasm-pack + nodejs)
+test-wasm:
+    @./scripts/run-wasm-tests.sh
 
 # Verify MSRV compatibility across feature combinations (no-default + all-features); manual/scheduled check only
 msrv-features:

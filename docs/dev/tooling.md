@@ -85,7 +85,8 @@ just verify-minimal
 just verify
 
 # Modular sub-gates (run automatically locally via pre-push hooks based on changed paths)
-just verify-rust            # Rust codebase checks: clippy, nextest, wasm, and semver
+just verify-rust            # Rust codebase checks: clippy, nextest, and semver
+just verify-wasm            # WASM target: compile check plus Node/V8 test execution
 just verify-scripts         # Repository scripts/CI: shellcheck, actionlint, and BATS tests
 just verify-docs            # Markdown documents: ledger structures and active link check
 just verify-security        # Security & supply chain: secret scan, advisories/licenses, unused deps
@@ -160,7 +161,8 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 |------------------------------|:----------:|--------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
 | `just verify`                | Local & CI | **Primary CI quality gate.** Runs all quality checks in parallel.                                                        | Multiple [1]                                   |
 | `just verify-linear`         | Local      | Runs all quality checks sequentially; useful for detailed tracing/debugging.                                             | Multiple [1]                                   |
-| `just verify-rust`           | Local & CI | Checks formatting, runs clippy, builds docs, checks WASM, checks semver, enforces coverage floors, and dry-runs release. | Multiple [2]                                   |
+| `just verify-rust`           | Local & CI | Checks formatting, runs clippy, builds docs, checks semver, enforces coverage floors, and dry-runs release.              | Multiple [2]                                   |
+| `just verify-wasm`           | Local & CI | Compiles the `no_std` crates for the WASM target and executes their test subset under Node/V8.                           | `wasm-pack`, `node`                            |
 | `just verify-scripts`        | Local & CI | Lints shell scripts, validates shebangs, runs BATS tests, and checks test manifests.                                     | `shellcheck`, `bats`, scripts                  |
 | `just verify-docs`           | Local & CI | Validates Markdown style, verifies document ledgers, and checks links.                                                   | `markdownlint`, `lychee`, `doc-engine.sh`      |
 | `just verify-security`       | Local & CI | Scans git history for secrets and audits dependency advisories/licenses.                                                 | `gitleaks`, `cargo-deny`, `cargo-machete`      |
@@ -177,8 +179,8 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just check-maintenance`     | Local & CI | (Supports `verify-maintenance`) Validates that project maintenance tasks are up-to-date and not past their deadlines.    | `scripts/check-maintenance.sh`                 |
 | `just check-scaffolding`     | Local & CI | (Supports `verify-maintenance`) Validates that ignored dependencies are properly scaffolded and documented.              | `scripts/check-scaffolding.sh`                 |
 
-[1] invokes `rustfmt`, `clippy`, `rustdoc`, `gitleaks`, `cargo-deny`, `cargo-machete`, `cargo-semver-checks`, `cargo-llvm-cov`, `cargo-release`, `taplo`, `markdownlint`, `shellcheck` and `bats` along with the custom scripts `check-scaffolding.sh`, `check-maintenance.sh`, `check-shebangs.sh` and `doc-engine.sh`.
-[2] invokes `cargo check`, `clippy`, `nextest`, `llvm-cov` and`cargo-release`.
+[1] invokes `rustfmt`, `clippy`, `rustdoc`, `gitleaks`, `cargo-deny`, `cargo-machete`, `cargo-semver-checks`, `cargo-llvm-cov`, `cargo-release`, `taplo`, `markdownlint`, `shellcheck`, `wasm-pack`, `nodejs` and `bats` along with the custom scripts `check-scaffolding.sh`, `check-maintenance.sh`, `check-shebangs.sh` and `doc-engine.sh`.
+[2] invokes `clippy`, `nextest`, `llvm-cov` and`cargo-release`.
 
 ### 3. Code Quality, Formatting & Linting
 
@@ -205,6 +207,7 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just test-help`              | Local      | **Testing and coverage guide.** Displays testing and coverage commands.                                                                      | `just`           |
 | `just test`                   | Local & CI | Executes all unit and documentation tests in the workspace.                                                                                  | `cargo-nextest`  |
 | `just test-scripts`           | Local & CI | Runs the BATS integration test suite validating shell scripts and the doc engine.                                                            | `bats`           |
+| `just test-wasm`              | Local & CI | Executes the `no_std` crates' WASM test subset under Node/V8 via `wasm-pack test --node`.                                                    | `wasm-pack`      |
 | `just coverage`               | Local      | Evaluates test coverage and opens an interactive HTML report in your browser.                                                                | `cargo-llvm-cov` |
 | `just test-coverage-headless` | Local      | Standard coverage gate: one workspace run, replayed per crate; enforces Codecov-matching per-crate floors and emits `lcov.info`.             | `cargo-llvm-cov` |
 | `just coverage-gate`          | Local & CI | The coverage gate as wired into `verify`: identical to `test-coverage-headless` but suppresses the per-file table (noise in a full run).     | `cargo-llvm-cov` |
@@ -222,7 +225,7 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just outdated`      | Local      | Lists outdated crate versions in the workspace. Part of local `audit-all` but excluded from CI's `verify` pipeline [3]. | `cargo-outdated`                                |
 | `just audit-safety`  | Local      | Scans the facade and dependency tree for `unsafe` code blocks [4].                                                      | `cargo-geiger`                                  |
 | `just semver-check`  | Local & CI | Verifies semantic versioning compliance across workspace.                                                               | `cargo-semver-checks`                           |
-| `just check-wasm`    | Local & CI | Verifies all `no_std` workspace crates compile cleanly for the `wasm32-unknown-unknown` target.                         | `cargo check`                                   |
+| `just check-wasm`    | Local & CI | (Supports `verify-wasm`) Verifies all `no_std` workspace crates compile cleanly for the `wasm32-unknown-unknown` target.| `cargo check`                                   |
 | `just msrv-features` | Local      | Verifies MSRV compatibility with no-default and all-features combinations (manual/scheduled check).                     | `cargo check`                                   |
 | `just nix-check`     | Local & CI | Validates that the Nix Flake schema, inputs, and outputs evaluate cleanly.                                              | `nix flake check`                               |
 | `just bloat [TARGET]` | Local     | Profiles binary/library compile size and lists the largest functions. Defaults to `wasm32-unknown-unknown` if omitted.  | `cargo-bloat`                                   |
