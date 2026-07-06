@@ -224,7 +224,7 @@ mod tests {
     #[test]
     fn duplicate_ids_and_unrestricted_ids_are_held_verbatim() {
         // The fourth id tier is unrestricted, and ids carry no uniqueness constraint, so a symbol
-        // id and a duplicate are both stored faithfully.
+        // id and a duplicate are both stored verbatim.
         let value_list = ValueList {
             metadata: metadata("VL_CUR"),
             items: vec![value_item("¥"), value_item("¥"), value_item("")],

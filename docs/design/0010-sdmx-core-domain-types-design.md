@@ -88,7 +88,7 @@ classDiagram
 SDMX metadata contains multilingual text (e.g. Names and Descriptions). We define:
 
 - `LocalisedString` as an **ordered list** of `LocalisedText` entries in wire order. Each entry is a named carrier of a `language` and a `text`, where `language` is the spec's `xml:lang` (= `xs:language`) tag (e.g. `"en"`, `"fr"`), stored as `Option<String>`, because `TextType` declares `xml:lang` with `default="en"`: an absent tag and a stated `"en"` are different documents, and the default is an effective view (D-0052/D-0059). See D-0016/D-0051/D-0059.
-- **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order is wire information no keyed map preserves (a `BTreeMap` sorts), and so are the duplicate identities the schema actually permits (`ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, cube-region selection ids; official samples exhibit them). Most in-scope schemes *do* carry an `xs:unique` on their explicit `@id` (codes, concepts, agencies, explicit DSD component/group ids), so a duplicate there is schema-invalid rather than wire to preserve, but order-faithfulness alone already dictates `Vec`. Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
+- **Every wire collection is stored as an ordered `Vec` in wire order** (D-0051 / ADR-0023): element order is wire information no keyed map preserves (a `BTreeMap` sorts), and so are the duplicate identities the schema actually permits (`ValueItem` ids, concept-inherited DSD component ids, `LocalisedString` languages, cube-region selection ids; official samples exhibit them). Most in-scope schemes *do* carry an `xs:unique` on their explicit `@id` (codes, concepts, agencies, explicit DSD component/group ids), so a duplicate there is schema-invalid rather than wire to preserve, but wire-order preservation alone already dictates `Vec`. Identity lookups (`get(id)`, `get(lang)`) are first-match Layer-2 views; duplicate identities are catalogued lints, never silent collapses.
 - Determinism is **wire-order-out**: serialising a parsed document reproduces the received order, and programmatic insertion order is itself deterministic. (The earlier `BTreeMap`-everywhere policy bought determinism by sorting — itself a normalisation — at the cost of destroying order and duplicates; superseded, D-0006 → D-0051.)
 
 #### 3. Generic ItemScheme Framework
@@ -2407,7 +2407,7 @@ pub enum AvailabilityConstraintAttachment {
 // regions express a union). It is also not unconstrained on direction: `DataConstraint_CubeRegionInclusion`
 // (and the availability twin) is an `xs:unique` on the region `@include` (SDMXStructure.xsd 3.1:586/603),
 // so two regions with the same STATED direction are schema-invalid. `new()` does not re-check this (the
-// store is a faithful superset). The residual coherence concern a lint (catalogued, not built, D-0031)
+// store is a lossless superset). The residual coherence concern a lint (catalogued, not built, D-0031)
 // may flag is the both-`@include`-absent pair, whose equality under the `default="true"` value is
 // validator-dependent.
 // Bespoke newtype (cf. D-0034 rationale): distinct domain identity + a named error.

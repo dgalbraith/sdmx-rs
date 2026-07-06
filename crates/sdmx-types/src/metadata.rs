@@ -14,7 +14,7 @@
 Composition for storage (§5.2 / §5.4): the abstract artefact hierarchy is realised as nesting
 structs rather than inheritance, the same content factored once and reused by every concrete domain
 type. `Serialize` is derived (it reads fields directly), so the stored statedness round-trips
-faithfully; only `Deserialize` is hand-written, to route construction through the validated `new()`.
+losslessly; only `Deserialize` is hand-written, to route construction through the validated `new()`.
 
 Two-layer model: the store is a precise image of the wire (every XSD-defaulted attribute is an
 `Option`, preserving absent-versus-stated), and the trait accessors are the effective views that
