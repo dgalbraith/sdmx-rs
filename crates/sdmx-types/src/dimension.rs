@@ -61,7 +61,8 @@ use crate::{
 /// ```
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Dimension, IdentifiableArtefact};
 ///
-/// let metadata = ComponentMetadata::new(Some("FREQ".to_string()), None, None, vec![], vec![])?;
+/// let metadata =
+///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_FREQ".to_string(),
@@ -195,7 +196,7 @@ impl<'de> serde::Deserialize<'de> for Dimension {
 ///     RepresentationChoice, TextFormat, TimeDimension,
 /// };
 ///
-/// let metadata = ComponentMetadata::new(None, None, None, vec![], vec![])?;
+/// let metadata = ComponentMetadata::new(None, None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_TIME".to_string(),
@@ -299,7 +300,7 @@ impl<'de> serde::Deserialize<'de> for TimeDimension {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
@@ -314,7 +315,7 @@ mod tests {
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {
-        ComponentMetadata::new(id.map(Into::into), None, None, vec![], vec![]).unwrap()
+        ComponentMetadata::new(id.map(Into::into), None, None, Vec::new(), Vec::new()).unwrap()
     }
 
     fn time_text_format() -> Representation {

@@ -59,7 +59,7 @@ use crate::{
 /// };
 ///
 /// let dimension = Dimension::new(
-///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, vec![], vec![])?,
+///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?,
 ///     ConceptReference {
 ///         agency: "SDMX".to_string(),
 ///         scheme_id: "CS".to_string(),
@@ -69,14 +69,15 @@ use crate::{
 ///     None,
 ///     None,
 /// )?;
-/// let dimension_list = DimensionList::new(None, vec![dimension], None, vec![], vec![], None)?;
+/// let dimension_list =
+///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None)?;
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
 ///     language: Some("en".to_string()),
 ///     text: "Exchange rates".to_string(),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("ECB_EXR".to_string(), None, None, vec![], vec![])?;
+///     IdentifiableMetadata::new("ECB_EXR".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let metadata = MaintainableMetadata::new(
 ///     VersionableMetadata::new(
 ///         NameableMetadata::new(identifiable, names, None),
@@ -94,7 +95,7 @@ use crate::{
 /// let dsd = DataStructureDefinition {
 ///     metadata,
 ///     dimension_list,
-///     groups: vec![],
+///     groups: Vec::new(),
 ///     attribute_list: None,
 ///     measure_list: None,
 ///     evolving_structure: None,
@@ -214,7 +215,7 @@ mod tests {
     }
 
     fn component_metadata(id: &str) -> ComponentMetadata {
-        ComponentMetadata::new(Some(id.into()), None, None, vec![], vec![]).unwrap()
+        ComponentMetadata::new(Some(id.into()), None, None, Vec::new(), Vec::new()).unwrap()
     }
 
     fn dimension(id: &str) -> Dimension {
@@ -254,7 +255,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         MaintainableMetadata::new(
             VersionableMetadata::new(
                 NameableMetadata::new(identifiable, names, None),
@@ -277,8 +278,8 @@ mod tests {
             None,
             vec![dimension("FREQ"), dimension("CURRENCY")],
             Some(time_dimension()),
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -295,8 +296,8 @@ mod tests {
                 )
                 .unwrap(),
             )],
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -306,14 +307,20 @@ mod tests {
                 Measure::new(component_metadata("OBS_VALUE"), concept("OBS_VALUE"), None, None)
                     .unwrap(),
             ],
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
         let group = Group {
-            metadata: IdentifiableMetadata::new("SIBLING".into(), None, None, vec![], vec![])
-                .unwrap(),
+            metadata: IdentifiableMetadata::new(
+                "SIBLING".into(),
+                None,
+                None,
+                Vec::new(),
+                Vec::new(),
+            )
+            .unwrap(),
             dimensions: GroupDimensions::new(vec!["CURRENCY".into()]).unwrap(),
         };
         DataStructureDefinition {
@@ -385,11 +392,12 @@ mod tests {
     #[test]
     fn artefact_hierarchy_forwards_every_accessor() {
         let dimension_list =
-            DimensionList::new(None, vec![dimension("FREQ")], None, vec![], vec![], None).unwrap();
+            DimensionList::new(None, vec![dimension("FREQ")], None, Vec::new(), Vec::new(), None)
+                .unwrap();
         let dsd = DataStructureDefinition {
             metadata: full_maintainable("ECB_EXR", "ECB"),
             dimension_list,
-            groups: vec![],
+            groups: Vec::new(),
             attribute_list: None,
             measure_list: None,
             evolving_structure: None,

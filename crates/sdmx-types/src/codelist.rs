@@ -249,7 +249,8 @@ pub struct CodelistExtension {
 ///     language: Some("en".to_string()),
 ///     text: "Annual".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("A".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("A".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let code = Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None };
 /// assert_eq!(code.id(), "A");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -334,7 +335,7 @@ impl SchemeItem for Code {}
 ///     text: "Frequency".to_string(),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, vec![], vec![])?;
+///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -485,7 +486,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, None),
             None,
@@ -502,7 +503,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
     }
 
@@ -623,7 +624,7 @@ mod tests {
 
     #[test]
     fn member_values_rejects_empty() {
-        assert_eq!(MemberValues::new(vec![]).unwrap_err(), Error::EmptyMemberValues);
+        assert_eq!(MemberValues::new(Vec::new()).unwrap_err(), Error::EmptyMemberValues);
         let ok = MemberValues::new(vec![MemberValue { value: "A".into(), cascade: None }]).unwrap();
         assert_eq!(ok.as_slice().len(), 1);
     }
@@ -674,7 +675,7 @@ mod tests {
 
     #[test]
     fn member_values_try_from_rejects_empty() {
-        assert_eq!(MemberValues::try_from(vec![]).unwrap_err(), Error::EmptyMemberValues);
+        assert_eq!(MemberValues::try_from(Vec::new()).unwrap_err(), Error::EmptyMemberValues);
     }
 
     #[test]

@@ -70,7 +70,8 @@ use crate::{
 ///     language: Some("en".to_string()),
 ///     text: "Frequency".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let concept = Concept::new(NameableMetadata::new(identifiable, names, None), None, None)?;
 /// assert_eq!(concept.id(), "FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -184,7 +185,8 @@ impl<'de> serde::Deserialize<'de> for Concept {
 ///     language: Some("en".to_string()),
 ///     text: "Concepts".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("CS_X".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("CS_X".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -313,7 +315,7 @@ impl<'de> serde::Deserialize<'de> for ConceptScheme {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{vec, vec::Vec};
 
     use super::*;
     use crate::{
@@ -329,7 +331,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         NameableMetadata::new(identifiable, names, None)
     }
 

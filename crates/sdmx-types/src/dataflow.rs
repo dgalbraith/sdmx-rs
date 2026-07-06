@@ -133,7 +133,7 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 ///     text: "Exchange rates".to_string(),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("ECB_EXR_FLOW".to_string(), None, None, vec![], vec![])?;
+///     IdentifiableMetadata::new("ECB_EXR_FLOW".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let metadata = MaintainableMetadata::new(
 ///     VersionableMetadata::new(
 ///         NameableMetadata::new(identifiable, names, None),
@@ -246,7 +246,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         MaintainableMetadata::new(
             VersionableMetadata::new(
                 NameableMetadata::new(identifiable, names, None),
@@ -444,7 +444,7 @@ mod tests {
     #[test]
     fn dimension_constraint_try_from_rejects_empty() {
         assert_eq!(
-            DimensionConstraint::try_from(vec![]).unwrap_err(),
+            DimensionConstraint::try_from(Vec::new()).unwrap_err(),
             Error::EmptyDimensionConstraint
         );
     }

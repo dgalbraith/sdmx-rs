@@ -47,7 +47,7 @@ use crate::{
 /// use sdmx_types::{ComponentMetadata, ConceptReference, IdentifiableArtefact, Measure};
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, vec![], vec![])?;
+///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
@@ -152,7 +152,7 @@ impl<'de> serde::Deserialize<'de> for Measure {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
@@ -167,7 +167,7 @@ mod tests {
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {
-        ComponentMetadata::new(id.map(Into::into), None, None, vec![], vec![]).unwrap()
+        ComponentMetadata::new(id.map(Into::into), None, None, Vec::new(), Vec::new()).unwrap()
     }
 
     fn text_format(text_type: DataType) -> Representation {

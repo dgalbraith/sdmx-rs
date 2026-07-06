@@ -117,8 +117,9 @@ pub struct Contact {
 ///     language: Some("en".to_string()),
 ///     text: "Eurostat".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("ESTAT".to_string(), None, None, vec![], vec![])?;
-/// let agency = Agency::new(NameableMetadata::new(identifiable, names, None), vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("ESTAT".to_string(), None, None, Vec::new(), Vec::new())?;
+/// let agency = Agency::new(NameableMetadata::new(identifiable, names, None), Vec::new())?;
 /// assert_eq!(agency.id(), "ESTAT");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -216,7 +217,8 @@ impl<'de> serde::Deserialize<'de> for Agency {
 ///         language: Some("en".to_string()),
 ///         text: "Agencies".to_string(),
 ///     }])?;
-///     let identifiable = IdentifiableMetadata::new(id.to_string(), None, None, vec![], vec![])?;
+///     let identifiable =
+///         IdentifiableMetadata::new(id.to_string(), None, None, Vec::new(), Vec::new())?;
 ///     let versionable = VersionableMetadata::new(
 ///         NameableMetadata::new(identifiable, names, None),
 ///         None,
@@ -364,7 +366,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         NameableMetadata::new(identifiable, names, None)
     }
 
@@ -382,9 +384,9 @@ mod tests {
 
     #[test]
     fn agency_new_validates_id_as_ncname() {
-        assert!(Agency::new(nameable("ESTAT"), vec![]).is_ok());
+        assert!(Agency::new(nameable("ESTAT"), Vec::new()).is_ok());
         assert_eq!(
-            Agency::new(nameable("1ESTAT"), vec![]).unwrap_err(),
+            Agency::new(nameable("1ESTAT"), Vec::new()).unwrap_err(),
             Error::InvalidNcNameIdentifier("1ESTAT".into())
         );
     }
@@ -424,7 +426,7 @@ mod tests {
     fn agency_new_enforces_ncname_id() {
         // The validated-item NCName tightening is Agency::new's (composite over the nested nameable
         // id): a leading-digit id passes IDType but fails NCName.
-        assert!(Agency::new(nameable("9ESTAT"), vec![]).is_err());
+        assert!(Agency::new(nameable("9ESTAT"), Vec::new()).is_err());
     }
 
     #[test]
@@ -454,7 +456,7 @@ mod tests {
     #[test]
     fn agency_scheme_forwards_item_access() {
         let mut scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
-        scheme.push(Agency::new(nameable("ESTAT"), vec![]).unwrap());
+        scheme.push(Agency::new(nameable("ESTAT"), Vec::new()).unwrap());
         assert_eq!(scheme.get("ESTAT").map(IdentifiableArtefact::id), Some("ESTAT"));
         assert_eq!(scheme.iter().count(), 1);
         assert_eq!(scheme.agency(), "SDMX");
@@ -463,7 +465,7 @@ mod tests {
     #[test]
     fn agency_scheme_deserialize_round_trips() {
         let mut scheme = AgencyScheme::new(scheme_metadata("AGENCIES"), None).unwrap();
-        scheme.push(Agency::new(nameable("ESTAT"), vec![]).unwrap());
+        scheme.push(Agency::new(nameable("ESTAT"), Vec::new()).unwrap());
         crate::test_support::round_trip(&scheme);
     }
 
@@ -564,7 +566,7 @@ mod tests {
         assert!(scheme.is_partial());
 
         // The Agency carrier forwards its identifiable and nameable accessors to its metadata.
-        let agency = Agency::new(full_nameable("ESTAT"), vec![]).unwrap();
+        let agency = Agency::new(full_nameable("ESTAT"), Vec::new()).unwrap();
         assert_eq!(agency.id(), "ESTAT");
         assert_eq!(agency.urn(), Some("urn:x"));
         assert_eq!(agency.uri(), Some("uri"));

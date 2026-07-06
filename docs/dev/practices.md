@@ -373,6 +373,18 @@ crates/sdmx-parsers/src/
   impl From<XmlElement> for ConstraintModel { }
   ```
 
+### Collection Construction
+
+- **Empty vectors use `Vec::new()`; reserve `vec![...]` for non-empty literals.** Both forms compile identically for the empty case, so keeping the `vec!` macro for elements-bearing literals keeps it meaningful: its presence always signals content.
+  ```rust
+  // Good
+  let components = Vec::new();
+  let codes = vec![code_a, code_b];
+
+  // Avoid
+  let components = vec![];
+  ```
+
 ### Error Handling
 
 All crates use `thiserror` for error types. See ADR-0006 for detailed conventions and [RFC 430 — Error Handling](https://rust-lang.github.io/api-guidelines/errors.html).

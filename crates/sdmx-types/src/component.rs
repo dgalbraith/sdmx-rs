@@ -56,11 +56,12 @@ use crate::{
 /// use sdmx_types::ComponentMetadata;
 ///
 /// // A stated id is validated as an NCName.
-/// let meta = ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, vec![], vec![])?;
+/// let meta =
+///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
 /// assert_eq!(meta.stated_id(), Some("OBS_VALUE"));
 ///
 /// // An absent id is allowed: the component inherits its concept's identity.
-/// let inherited = ComponentMetadata::new(None, None, None, vec![], vec![])?;
+/// let inherited = ComponentMetadata::new(None, None, None, Vec::new(), Vec::new())?;
 /// assert_eq!(inherited.stated_id(), None);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -169,19 +170,19 @@ pub enum Usage {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
-
     use super::*;
 
     #[test]
     fn new_validates_stated_id_as_ncname() {
         // A stated id must be a valid NCName.
         assert!(
-            ComponentMetadata::new(Some("OBS_VALUE".into()), None, None, vec![], vec![]).is_ok()
+            ComponentMetadata::new(Some("OBS_VALUE".into()), None, None, Vec::new(), Vec::new())
+                .is_ok()
         );
         // A dotted id is not an NCName at the component tier.
         assert_eq!(
-            ComponentMetadata::new(Some("a.b".into()), None, None, vec![], vec![]).unwrap_err(),
+            ComponentMetadata::new(Some("a.b".into()), None, None, Vec::new(), Vec::new())
+                .unwrap_err(),
             Error::InvalidNcNameIdentifier("a.b".into())
         );
     }
@@ -189,7 +190,7 @@ mod tests {
     #[test]
     fn absent_id_skips_validation_and_reads_as_none() {
         // None means inherited identity: nothing to validate, stated_id() reports the absence.
-        let meta = ComponentMetadata::new(None, None, None, vec![], vec![]).unwrap();
+        let meta = ComponentMetadata::new(None, None, None, Vec::new(), Vec::new()).unwrap();
         assert_eq!(meta.stated_id(), None);
     }
 
@@ -199,8 +200,8 @@ mod tests {
             Some("FREQ".into()),
             None,
             Some("urn:sdmx:freq".into()),
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
         )
         .unwrap();
         crate::test_support::round_trip(&meta);

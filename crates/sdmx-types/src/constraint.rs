@@ -173,7 +173,7 @@ pub struct SimpleComponentValue {
 /// assert_eq!(values.as_slice().len(), 1);
 ///
 /// // An empty selection is mechanically schema-invalid.
-/// assert!(CubeKeyValues::new(vec![]).is_err());
+/// assert!(CubeKeyValues::new(Vec::new()).is_err());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
@@ -502,7 +502,7 @@ pub enum KeyValueSelection {
 The content model of `ComponentValueSetType`; the node type is [`ComponentValueSet`]. The choice is
 optional, so `Empty` is a real, distinct no-values state, not "all values". With `Values` non-empty
 by construction (D-0038), `Empty` is the sole no-values state, mirroring the wire exactly (a
-value-less `<Component>` versus a chosen `Value+` arm), so the old `Values(vec![])`-duplicates-`Empty`
+value-less `<Component>` versus a chosen `Value+` arm), so the old `Values(Vec::new())`-duplicates-`Empty`
 ambiguity is unrepresentable. Derived `Deserialize` (it composes already-valid pieces, §7).
 
 Decisions: D-0026, D-0038.
@@ -645,9 +645,9 @@ impl ComponentValueSet {
 /// };
 /// let region = CubeRegion {
 ///     key_values: vec![key],
-///     components: vec![],
+///     components: Vec::new(),
 ///     include: None,
-///     annotations: vec![],
+///     annotations: Vec::new(),
 /// };
 /// assert_eq!(region.key_values.len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
@@ -1200,9 +1200,9 @@ impl<'de> serde::Deserialize<'de> for DataKeys {
 /// };
 /// let key = DataKey {
 ///     key_values: vec![key_value],
-///     components: vec![],
+///     components: Vec::new(),
 ///     include: FixedInclude::new(None)?,
-///     annotations: vec![],
+///     annotations: Vec::new(),
 ///     valid_from: None,
 ///     valid_to: None,
 /// };
@@ -1210,7 +1210,7 @@ impl<'de> serde::Deserialize<'de> for DataKeys {
 /// assert_eq!(key_set.keys.as_slice().len(), 1);
 ///
 /// // A key set must hold at least one key.
-/// assert!(DataKeys::new(vec![]).is_err());
+/// assert!(DataKeys::new(Vec::new()).is_err());
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[cfg_attr(
@@ -1910,7 +1910,8 @@ pub struct AvailabilityConstraint {
 ///     language: Some("en".to_string()),
 ///     text: "Allowed".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("CR_EXR".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("CR_EXR".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -1924,8 +1925,8 @@ pub struct AvailabilityConstraint {
 ///     role: None,
 ///     attachment: None,
 ///     release_calendar: None,
-///     key_sets: vec![],
-///     regions: CubeRegions::new(vec![])?,
+///     key_sets: Vec::new(),
+///     regions: CubeRegions::new(Vec::new())?,
 /// });
 /// assert!(matches!(data, ConstraintModel::Data(_)));
 ///
@@ -1937,12 +1938,12 @@ pub struct AvailabilityConstraint {
 ///         version: "1.0.0".parse().unwrap(),
 ///     }),
 ///     region: CubeRegion {
-///         key_values: vec![],
-///         components: vec![],
+///         key_values: Vec::new(),
+///         components: Vec::new(),
 ///         include: None,
-///         annotations: vec![],
+///         annotations: Vec::new(),
 ///     },
-///     annotations: vec![],
+///     annotations: Vec::new(),
 ///     series_count: Some(42),
 ///     obs_count: None,
 /// });
@@ -2012,7 +2013,7 @@ mod tests {
 
     #[test]
     fn cube_key_values_rejects_empty() {
-        assert_eq!(CubeKeyValues::new(vec![]).unwrap_err(), Error::EmptyCubeKeyValues);
+        assert_eq!(CubeKeyValues::new(Vec::new()).unwrap_err(), Error::EmptyCubeKeyValues);
         let value = CubeKeyValue {
             value: "A".to_string(),
             cascade: None,
@@ -2025,7 +2026,7 @@ mod tests {
     #[test]
     fn simple_component_values_rejects_empty() {
         assert_eq!(
-            SimpleComponentValues::new(vec![]).unwrap_err(),
+            SimpleComponentValues::new(Vec::new()).unwrap_err(),
             Error::EmptySimpleComponentValues
         );
         let value = SimpleComponentValue {
@@ -2112,10 +2113,10 @@ mod tests {
         );
         assert!(
             CubeRegion {
-                key_values: vec![],
-                components: vec![],
+                key_values: Vec::new(),
+                components: Vec::new(),
                 include: None,
-                annotations: vec![]
+                annotations: Vec::new()
             }
             .effective_is_included()
         );
@@ -2135,10 +2136,10 @@ mod tests {
         // A stated `false` is honoured (one representative carrier).
         assert!(
             !CubeRegion {
-                key_values: vec![],
-                components: vec![],
+                key_values: Vec::new(),
+                components: Vec::new(),
                 include: Some(false),
-                annotations: vec![],
+                annotations: Vec::new(),
             }
             .effective_is_included()
         );
@@ -2269,7 +2270,7 @@ mod tests {
                 remove_prefix: None,
             }],
             include: Some(true),
-            annotations: vec![],
+            annotations: Vec::new(),
         };
         let bytes = postcard::to_allocvec(&region).unwrap();
         let restored: CubeRegion = postcard::from_bytes(&bytes).unwrap();
@@ -2282,10 +2283,10 @@ mod tests {
     #[test]
     fn cube_region_annotations_empty_maps_absent() {
         let region = CubeRegion {
-            key_values: vec![],
-            components: vec![],
+            key_values: Vec::new(),
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         };
         assert!(region.annotations.is_empty());
         crate::test_support::round_trip(&region);
@@ -2294,12 +2295,12 @@ mod tests {
     #[test]
     fn cube_regions_rejects_more_than_two() {
         let region = || CubeRegion {
-            key_values: vec![],
-            components: vec![],
+            key_values: Vec::new(),
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         };
-        assert!(CubeRegions::new(vec![]).unwrap().as_slice().is_empty());
+        assert!(CubeRegions::new(Vec::new()).unwrap().as_slice().is_empty());
         assert_eq!(CubeRegions::new(vec![region(), region()]).unwrap().as_slice().len(), 2);
         assert_eq!(
             CubeRegions::new(vec![region(), region(), region()]).unwrap_err(),
@@ -2310,10 +2311,10 @@ mod tests {
     #[test]
     fn cube_regions_deserialize_rejects_more_than_two_on_the_wire() {
         let region = || CubeRegion {
-            key_values: vec![],
-            components: vec![],
+            key_values: Vec::new(),
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         };
         // `CubeRegions` is transparent over `Vec<CubeRegion>`; deserialize routes through `new()`,
         // which caps the count at two. postcard is positional, so a three-element inner vector
@@ -2334,14 +2335,17 @@ mod tests {
 
     #[test]
     fn data_component_values_rejects_empty() {
-        assert_eq!(DataComponentValues::new(vec![]).unwrap_err(), Error::EmptyDataComponentValues);
+        assert_eq!(
+            DataComponentValues::new(Vec::new()).unwrap_err(),
+            Error::EmptyDataComponentValues
+        );
         let value = DataComponentValue { value: "EUR".to_string(), cascade: None, lang: None };
         assert_eq!(DataComponentValues::new(vec![value]).unwrap().as_slice().len(), 1);
     }
 
     #[test]
     fn simple_key_values_rejects_empty() {
-        assert_eq!(SimpleKeyValues::new(vec![]).unwrap_err(), Error::EmptySimpleKeyValues);
+        assert_eq!(SimpleKeyValues::new(Vec::new()).unwrap_err(), Error::EmptySimpleKeyValues);
         let ok = SimpleKeyValues::new(vec!["A".to_string()]).unwrap();
         assert_eq!(ok.as_slice().len(), 1);
         // The wire path rejects an empty list too: transparent over `Vec<String>`, routed through
@@ -2363,12 +2367,12 @@ mod tests {
 
     #[test]
     fn data_keys_rejects_empty() {
-        assert_eq!(DataKeys::new(vec![]).unwrap_err(), Error::EmptyDataKeys);
+        assert_eq!(DataKeys::new(Vec::new()).unwrap_err(), Error::EmptyDataKeys);
         let key = DataKey {
             key_values: vec![data_key_value("FREQ", "A")],
-            components: vec![],
+            components: Vec::new(),
             include: FixedInclude::new(None).unwrap(),
-            annotations: vec![],
+            annotations: Vec::new(),
             valid_from: None,
             valid_to: None,
         };
@@ -2419,7 +2423,7 @@ mod tests {
                 remove_prefix: None,
             }],
             include: FixedInclude::new(Some(true)).unwrap(),
-            annotations: vec![],
+            annotations: Vec::new(),
             valid_from: Some(SdmxTimePeriod::new("2020".to_string()).unwrap()),
             valid_to: None,
         };
@@ -2444,9 +2448,9 @@ mod tests {
         let set = DataKeySet {
             keys: DataKeys::new(vec![DataKey {
                 key_values: vec![data_key_value("FREQ", "A")],
-                components: vec![],
+                components: Vec::new(),
                 include: FixedInclude::new(None).unwrap(),
-                annotations: vec![],
+                annotations: Vec::new(),
                 valid_from: None,
                 valid_to: None,
             }])
@@ -2563,13 +2567,13 @@ mod tests {
 
     #[test]
     fn attachment_ref_newtypes_reject_empty_and_expose_their_slice() {
-        assert_eq!(DataStructureRefs::new(vec![]).unwrap_err(), Error::EmptyDataStructureRefs);
-        assert_eq!(DataflowRefs::new(vec![]).unwrap_err(), Error::EmptyDataflowRefs);
+        assert_eq!(DataStructureRefs::new(Vec::new()).unwrap_err(), Error::EmptyDataStructureRefs);
+        assert_eq!(DataflowRefs::new(Vec::new()).unwrap_err(), Error::EmptyDataflowRefs);
         assert_eq!(
-            ProvisionAgreementRefs::new(vec![]).unwrap_err(),
+            ProvisionAgreementRefs::new(Vec::new()).unwrap_err(),
             Error::EmptyProvisionAgreementRefs
         );
-        assert_eq!(SimpleDataSources::new(vec![]).unwrap_err(), Error::EmptySimpleDataSources);
+        assert_eq!(SimpleDataSources::new(Vec::new()).unwrap_err(), Error::EmptySimpleDataSources);
 
         assert_eq!(DataStructureRefs::new(vec![dsd_ref("ECB_EXR1")]).unwrap().as_slice().len(), 1);
         assert_eq!(DataflowRefs::new(vec![dataflow_ref("EXR")]).unwrap().as_slice().len(), 1);
@@ -2666,7 +2670,7 @@ mod tests {
             DataConstraintAttachment::ProvisionAgreement {
                 refs: ProvisionAgreementRefs::new(vec![agreement_ref("PA_EXR")]).unwrap(),
                 // The queryable companions are empty when absent (always so on 3.1 wire).
-                queryable: vec![],
+                queryable: Vec::new(),
             },
         ];
         for attachment in arms {
@@ -2711,7 +2715,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.to_string(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.to_string(), None, None, Vec::new(), Vec::new()).unwrap();
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, None),
             None,
@@ -2725,9 +2729,9 @@ mod tests {
         DataKeySet {
             keys: DataKeys::new(vec![DataKey {
                 key_values: vec![data_key_value("FREQ", "A")],
-                components: vec![],
+                components: Vec::new(),
                 include: FixedInclude::new(None).unwrap(),
-                annotations: vec![],
+                annotations: Vec::new(),
                 valid_from: None,
                 valid_to: None,
             }])
@@ -2739,9 +2743,9 @@ mod tests {
     fn cube_region() -> CubeRegion {
         CubeRegion {
             key_values: vec![cube_key("FREQ", "A")],
-            components: vec![],
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         }
     }
 
@@ -2754,7 +2758,7 @@ mod tests {
             id: Some("a1".to_string()),
             annotation_type: None,
             annotation_title: None,
-            annotation_urls: vec![],
+            annotation_urls: Vec::new(),
             annotation_value: None,
             texts: None,
         };
@@ -2802,8 +2806,8 @@ mod tests {
             role: None,
             attachment: None,
             release_calendar: None,
-            key_sets: vec![],
-            regions: CubeRegions::new(vec![]).unwrap(),
+            key_sets: Vec::new(),
+            regions: CubeRegions::new(Vec::new()).unwrap(),
         };
 
         // Every forwarded accessor resolves through the metadata leaf.
@@ -2859,10 +2863,10 @@ mod tests {
             key_sets,
             regions: CubeRegions::new(regions).unwrap(),
         };
-        let key_set_only = with(vec![data_key_set()], vec![]);
-        let region_only = with(vec![], vec![cube_region()]);
+        let key_set_only = with(vec![data_key_set()], Vec::new());
+        let region_only = with(Vec::new(), vec![cube_region()]);
         let both = with(vec![data_key_set()], vec![cube_region(), cube_region()]);
-        let neither = with(vec![], vec![]);
+        let neither = with(Vec::new(), Vec::new());
         for constraint in [key_set_only, region_only, both, neither] {
             crate::test_support::round_trip(&constraint);
         }
@@ -2906,7 +2910,7 @@ mod tests {
         let constraint = AvailabilityConstraint {
             attachment: AvailabilityConstraintAttachment::Dataflow(dataflow_ref("EXR")),
             region: cube_region(),
-            annotations: vec![],
+            annotations: Vec::new(),
             series_count: Some(42),
             obs_count: Some(-1),
         };
@@ -2920,13 +2924,13 @@ mod tests {
             role: Some(ConstraintRole::Allowed),
             attachment: None,
             release_calendar: None,
-            key_sets: vec![],
-            regions: CubeRegions::new(vec![]).unwrap(),
+            key_sets: Vec::new(),
+            regions: CubeRegions::new(Vec::new()).unwrap(),
         });
         let availability = ConstraintModel::Availability(AvailabilityConstraint {
             attachment: AvailabilityConstraintAttachment::Dataflow(dataflow_ref("EXR")),
             region: cube_region(),
-            annotations: vec![],
+            annotations: Vec::new(),
             series_count: None,
             obs_count: None,
         });
@@ -2937,13 +2941,13 @@ mod tests {
 
     #[test]
     fn cube_key_values_try_from_rejects_empty() {
-        assert_eq!(CubeKeyValues::try_from(vec![]).unwrap_err(), Error::EmptyCubeKeyValues);
+        assert_eq!(CubeKeyValues::try_from(Vec::new()).unwrap_err(), Error::EmptyCubeKeyValues);
     }
 
     #[test]
     fn simple_component_values_try_from_rejects_empty() {
         assert_eq!(
-            SimpleComponentValues::try_from(vec![]).unwrap_err(),
+            SimpleComponentValues::try_from(Vec::new()).unwrap_err(),
             Error::EmptySimpleComponentValues
         );
     }
@@ -2951,52 +2955,58 @@ mod tests {
     #[test]
     fn data_component_values_try_from_rejects_empty() {
         assert_eq!(
-            DataComponentValues::try_from(vec![]).unwrap_err(),
+            DataComponentValues::try_from(Vec::new()).unwrap_err(),
             Error::EmptyDataComponentValues
         );
     }
 
     #[test]
     fn simple_key_values_try_from_rejects_empty() {
-        assert_eq!(SimpleKeyValues::try_from(vec![]).unwrap_err(), Error::EmptySimpleKeyValues);
+        assert_eq!(SimpleKeyValues::try_from(Vec::new()).unwrap_err(), Error::EmptySimpleKeyValues);
     }
 
     #[test]
     fn data_keys_try_from_rejects_empty() {
-        assert_eq!(DataKeys::try_from(vec![]).unwrap_err(), Error::EmptyDataKeys);
+        assert_eq!(DataKeys::try_from(Vec::new()).unwrap_err(), Error::EmptyDataKeys);
     }
 
     #[test]
     fn data_structure_refs_try_from_rejects_empty() {
-        assert_eq!(DataStructureRefs::try_from(vec![]).unwrap_err(), Error::EmptyDataStructureRefs);
+        assert_eq!(
+            DataStructureRefs::try_from(Vec::new()).unwrap_err(),
+            Error::EmptyDataStructureRefs
+        );
     }
 
     #[test]
     fn dataflow_refs_try_from_rejects_empty() {
-        assert_eq!(DataflowRefs::try_from(vec![]).unwrap_err(), Error::EmptyDataflowRefs);
+        assert_eq!(DataflowRefs::try_from(Vec::new()).unwrap_err(), Error::EmptyDataflowRefs);
     }
 
     #[test]
     fn provision_agreement_refs_try_from_rejects_empty() {
         assert_eq!(
-            ProvisionAgreementRefs::try_from(vec![]).unwrap_err(),
+            ProvisionAgreementRefs::try_from(Vec::new()).unwrap_err(),
             Error::EmptyProvisionAgreementRefs
         );
     }
 
     #[test]
     fn simple_data_sources_try_from_rejects_empty() {
-        assert_eq!(SimpleDataSources::try_from(vec![]).unwrap_err(), Error::EmptySimpleDataSources);
+        assert_eq!(
+            SimpleDataSources::try_from(Vec::new()).unwrap_err(),
+            Error::EmptySimpleDataSources
+        );
     }
 
     #[test]
     fn cube_regions_try_from_rejects_more_than_two() {
         // CubeRegions permits empty; its boundary is the >2 cap, so it is exercised there.
         let region = || CubeRegion {
-            key_values: vec![],
-            components: vec![],
+            key_values: Vec::new(),
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         };
         assert_eq!(
             CubeRegions::try_from(vec![region(), region(), region()]).unwrap_err(),
@@ -3026,10 +3036,10 @@ mod tests {
         assert_eq!(Vec::from(SimpleComponentValues::new(scv.clone()).unwrap()), scv);
 
         let cr = vec![CubeRegion {
-            key_values: vec![],
-            components: vec![],
+            key_values: Vec::new(),
+            components: Vec::new(),
             include: None,
-            annotations: vec![],
+            annotations: Vec::new(),
         }];
         assert_eq!(CubeRegions::new(cr.clone()).unwrap().into_inner(), cr);
         assert_eq!(Vec::from(CubeRegions::new(cr.clone()).unwrap()), cr);
@@ -3044,9 +3054,9 @@ mod tests {
 
         let dk = vec![DataKey {
             key_values: vec![data_key_value("FREQ", "A")],
-            components: vec![],
+            components: Vec::new(),
             include: FixedInclude::new(None).unwrap(),
-            annotations: vec![],
+            annotations: Vec::new(),
             valid_from: None,
             valid_to: None,
         }];
