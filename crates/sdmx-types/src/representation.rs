@@ -17,7 +17,7 @@ The store is the SUPERSET of every position's shape (§5.6.1, D-0028/D-0048); th
 mechanical restrictions live on the component constructors (the D-0023 owns-its-own-check pattern),
 exposed here only as the `DataType` subset predicates and `validate_basic_representation`. This
 replaces the earlier ad-hoc coded-only `codelist` field on components: a representation models both
-the coded and uncoded cases faithfully.
+the coded and uncoded cases exactly.
 
 `TextFormat`, `EnumerationFormat`, `Representation`, and the enums are invariant-free pub-field
 carriers (derived `Deserialize`); only the position validators carry logic, and they are free

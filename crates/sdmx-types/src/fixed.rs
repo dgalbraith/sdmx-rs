@@ -2,7 +2,7 @@
 //!
 //! The `include` attribute on `DataKey`/`DataKeyValue` is declared `use="optional" fixed="true"`,
 //! the only `fixed="true"` attribute in SDMX 3.0 and 3.1: its sole schema-valid stated value is
-//! `true`, but it may also be omitted. [`FixedInclude`] stores that statedness faithfully (`None`
+//! `true`, but it may also be omitted. [`FixedInclude`] stores that statedness exactly (`None`
 //! when omitted, `Some(true)` when stated) while making a stated `false`, a mechanical schema
 //! mismatch an XSD validator would reject, unconstructible. The general fixed-value case (a
 //! constructor that has the attribute name in context, such as the `AGENCIES` scheme id) uses the
