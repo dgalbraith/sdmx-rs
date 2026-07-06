@@ -353,7 +353,7 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 /// };
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, vec![], vec![])?;
+///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
@@ -552,7 +552,7 @@ mod tests {
     }
 
     fn metadata(id: Option<&str>) -> ComponentMetadata {
-        ComponentMetadata::new(id.map(Into::into), None, None, vec![], vec![]).unwrap()
+        ComponentMetadata::new(id.map(Into::into), None, None, Vec::new(), Vec::new()).unwrap()
     }
 
     fn basic_attribute(usage: Option<Usage>) -> Attribute {
@@ -875,7 +875,7 @@ mod tests {
         let usage = MetadataAttributeUsage {
             metadata_attribute_ref: "CONTACT".into(),
             relationship: AttributeRelationship::Dataflow,
-            annotations: vec![],
+            annotations: Vec::new(),
             link: None,
         };
         let member = AttributeListMember::MetadataAttributeUsage(usage);
@@ -887,13 +887,16 @@ mod tests {
 
     #[test]
     fn dimension_ids_try_from_rejects_empty() {
-        assert_eq!(DimensionIds::try_from(vec![]).unwrap_err(), Error::EmptyAttributeDimensions);
+        assert_eq!(
+            DimensionIds::try_from(Vec::new()).unwrap_err(),
+            Error::EmptyAttributeDimensions
+        );
     }
 
     #[test]
     fn measure_relationship_try_from_rejects_empty() {
         assert_eq!(
-            MeasureRelationship::try_from(vec![]).unwrap_err(),
+            MeasureRelationship::try_from(Vec::new()).unwrap_err(),
             Error::EmptyMeasureRelationship
         );
     }

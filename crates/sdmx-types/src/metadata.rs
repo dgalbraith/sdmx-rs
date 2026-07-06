@@ -57,7 +57,8 @@ use crate::{
 /// ```
 /// use sdmx_types::{IdentifiableArtefact, IdentifiableMetadata};
 ///
-/// let meta = IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, vec![], vec![])?;
+/// let meta =
+///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
 /// assert_eq!(meta.id(), "CL_FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -320,7 +321,8 @@ impl<'de> serde::Deserialize<'de> for VersionableMetadata {
 ///     language: Some("en".to_string()),
 ///     text: "Frequency".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let nameable = NameableMetadata::new(identifiable, names, None);
 /// let versionable = VersionableMetadata::new(nameable, None, None, None);
 /// let maintainable =
@@ -472,7 +474,7 @@ mod tests {
     }
 
     fn identifiable(id: &str) -> Result<IdentifiableMetadata, Error> {
-        IdentifiableMetadata::new(id.into(), None, None, vec![], vec![])
+        IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new())
     }
 
     #[test]

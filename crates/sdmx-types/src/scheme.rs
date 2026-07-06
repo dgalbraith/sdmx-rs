@@ -84,7 +84,8 @@ pub trait SchemeItem: IdentifiableArtefact {}
 ///     language: Some("en".to_string()),
 ///     text: "Frequency".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("FREQ".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -99,7 +100,7 @@ pub trait SchemeItem: IdentifiableArtefact {}
 ///     language: Some("en".to_string()),
 ///     text: "Annual".to_string(),
 /// }])?;
-/// let code_id = IdentifiableMetadata::new("A".to_string(), None, None, vec![], vec![])?;
+/// let code_id = IdentifiableMetadata::new("A".to_string(), None, None, Vec::new(), Vec::new())?;
 /// scheme
 ///     .push(Code { metadata: NameableMetadata::new(code_id, code_names, None), parent_id: None });
 /// assert_eq!(scheme.get("A").map(IdentifiableArtefact::id), Some("A"));
@@ -228,7 +229,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, None),
             None,
@@ -245,7 +246,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
     }
 

@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn rejects_empty_entry_list() {
-        assert_eq!(LocalisedString::new(vec![]), Err(Error::EmptyLocalisation));
+        assert_eq!(LocalisedString::new(Vec::new()), Err(Error::EmptyLocalisation));
     }
 
     #[test]
@@ -292,7 +292,7 @@ mod tests {
 
     #[test]
     fn localised_string_try_from_rejects_empty() {
-        assert_eq!(LocalisedString::try_from(vec![]).unwrap_err(), Error::EmptyLocalisation);
+        assert_eq!(LocalisedString::try_from(Vec::new()).unwrap_err(), Error::EmptyLocalisation);
     }
 
     #[test]

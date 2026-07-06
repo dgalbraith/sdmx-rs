@@ -133,7 +133,7 @@ pub use crate::{
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::vec;
+    use alloc::{vec, vec::Vec};
 
     use super::*;
 
@@ -147,7 +147,8 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new("CL_CURRENCY".into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new("CL_CURRENCY".into(), None, None, Vec::new(), Vec::new())
+                .unwrap();
         let nameable = NameableMetadata::new(identifiable, names, None);
         assert_eq!(nameable.id(), "CL_CURRENCY");
         assert_eq!(nameable.names().first(), "Currency");

@@ -91,7 +91,8 @@ pub struct ValueItem {
 ///     language: Some("en".to_string()),
 ///     text: "Currencies".to_string(),
 /// }])?;
-/// let identifiable = IdentifiableMetadata::new("VL_CUR".to_string(), None, None, vec![], vec![])?;
+/// let identifiable =
+///     IdentifiableMetadata::new("VL_CUR".to_string(), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -107,7 +108,7 @@ pub struct ValueItem {
 ///         id: "EUR".to_string(),
 ///         names: None,
 ///         descriptions: None,
-///         annotations: vec![],
+///         annotations: Vec::new(),
 ///     }],
 /// };
 /// assert_eq!(value_list.agency(), "SDMX");
@@ -197,7 +198,7 @@ mod tests {
         }])
         .unwrap();
         let identifiable =
-            IdentifiableMetadata::new(id.into(), None, None, vec![], vec![]).unwrap();
+            IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, None),
             None,
@@ -208,12 +209,12 @@ mod tests {
     }
 
     fn value_item(id: &str) -> ValueItem {
-        ValueItem { id: id.into(), names: None, descriptions: None, annotations: vec![] }
+        ValueItem { id: id.into(), names: None, descriptions: None, annotations: Vec::new() }
     }
 
     #[test]
     fn empty_value_list_is_valid_and_delegates() {
-        let value_list = ValueList { metadata: metadata("VL_X"), items: vec![] };
+        let value_list = ValueList { metadata: metadata("VL_X"), items: Vec::new() };
         assert_eq!(value_list.id(), "VL_X");
         assert_eq!(value_list.agency(), "SDMX");
         assert!(value_list.items.is_empty());
@@ -292,7 +293,7 @@ mod tests {
             Some("https://structure".into()),
         )
         .unwrap();
-        let value_list = ValueList { metadata, items: vec![] };
+        let value_list = ValueList { metadata, items: Vec::new() };
 
         assert_eq!(value_list.id(), "VL_CUR");
         assert_eq!(value_list.urn(), Some("urn:x"));

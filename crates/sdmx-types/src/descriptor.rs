@@ -127,7 +127,13 @@ impl<'de> serde::Deserialize<'de> for GroupDimensions {
 /// use sdmx_types::{Group, GroupDimensions, IdentifiableArtefact, IdentifiableMetadata};
 ///
 /// let group = Group {
-///     metadata: IdentifiableMetadata::new("SIBLING".to_string(), None, None, vec![], vec![])?,
+///     metadata: IdentifiableMetadata::new(
+///         "SIBLING".to_string(),
+///         None,
+///         None,
+///         Vec::new(),
+///         Vec::new(),
+///     )?,
 ///     dimensions: GroupDimensions::new(vec!["FREQ".to_string(), "CURRENCY".to_string()])?,
 /// };
 /// assert_eq!(group.id(), "SIBLING");
@@ -185,7 +191,8 @@ impl IdentifiableArtefact for Group {
 /// ```
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Dimension, DimensionList};
 ///
-/// let metadata = ComponentMetadata::new(Some("FREQ".to_string()), None, None, vec![], vec![])?;
+/// let metadata =
+///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS_FREQ".to_string(),
@@ -194,7 +201,8 @@ impl IdentifiableArtefact for Group {
 /// };
 /// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
 /// // A `None` id defaults to the fixed `DimensionDescriptor`.
-/// let dimension_list = DimensionList::new(None, vec![dimension], None, vec![], vec![], None)?;
+/// let dimension_list =
+///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None)?;
 /// assert_eq!(dimension_list.dimensions().len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -312,7 +320,7 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 /// };
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, vec![], vec![])?;
+///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
@@ -324,8 +332,8 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 /// let attribute_list = AttributeList::new(
 ///     None,
 ///     vec![AttributeListMember::Attribute(attribute)],
-///     vec![],
-///     vec![],
+///     Vec::new(),
+///     Vec::new(),
 ///     None,
 /// )?;
 /// assert_eq!(attribute_list.members().len(), 1);
@@ -446,7 +454,7 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Measure, MeasureList};
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, vec![], vec![])?;
+///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
 ///     agency: "SDMX".to_string(),
 ///     scheme_id: "CS".to_string(),
@@ -454,7 +462,7 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 ///     id: "OBS_VALUE".to_string(),
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
-/// let measure_list = MeasureList::new(None, vec![measure], vec![], vec![], None)?;
+/// let measure_list = MeasureList::new(None, vec![measure], Vec::new(), Vec::new(), None)?;
 /// assert_eq!(measure_list.measures().len(), 1);
 /// assert!(measure_list.get("OBS_VALUE").is_some());
 /// # Ok::<(), sdmx_types::Error>(())
@@ -561,7 +569,7 @@ mod tests {
     }
 
     fn component_metadata(id: &str) -> ComponentMetadata {
-        ComponentMetadata::new(Some(id.into()), None, None, vec![], vec![]).unwrap()
+        ComponentMetadata::new(Some(id.into()), None, None, Vec::new(), Vec::new()).unwrap()
     }
 
     fn dimension(id: &str) -> Dimension {
@@ -686,8 +694,8 @@ mod tests {
             Some("DimensionDescriptor".into()),
             vec![dimension("FREQ"), dimension("CURRENCY")],
             Some(time_dimension()),
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -710,8 +718,8 @@ mod tests {
                 Some("Wrong".into()),
                 vec![dimension("FREQ")],
                 None,
-                vec![],
-                vec![],
+                Vec::new(),
+                Vec::new(),
                 None
             )
             .unwrap_err(),
@@ -719,7 +727,7 @@ mod tests {
         );
         // An empty dimension list is rejected.
         assert_eq!(
-            DimensionList::new(None, vec![], None, vec![], vec![], None).unwrap_err(),
+            DimensionList::new(None, Vec::new(), None, Vec::new(), Vec::new(), None).unwrap_err(),
             Error::EmptyDimensionList
         );
     }
@@ -727,7 +735,8 @@ mod tests {
     #[test]
     fn dimension_list_push_and_deserialize() {
         let mut list =
-            DimensionList::new(None, vec![dimension("FREQ")], None, vec![], vec![], None).unwrap();
+            DimensionList::new(None, vec![dimension("FREQ")], None, Vec::new(), Vec::new(), None)
+                .unwrap();
         list.push(dimension("CURRENCY"));
         assert_eq!(list.dimensions().len(), 2);
         crate::test_support::round_trip(&list);
@@ -771,8 +780,8 @@ mod tests {
             None,
             vec![dimension("FREQ"), dimension("FREQ")],
             None,
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -787,7 +796,7 @@ mod tests {
         let usage = MetadataAttributeUsage {
             metadata_attribute_ref: "CONTACT".into(),
             relationship: AttributeRelationship::Dataflow,
-            annotations: vec![],
+            annotations: Vec::new(),
             link: None,
         };
         let list = AttributeList::new(
@@ -796,8 +805,8 @@ mod tests {
                 AttributeListMember::Attribute(attribute("OBS_STATUS")),
                 AttributeListMember::MetadataAttributeUsage(usage),
             ],
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -809,11 +818,12 @@ mod tests {
         assert!(list.get("MISSING").is_none());
 
         assert_eq!(
-            AttributeList::new(Some("Wrong".into()), vec![], vec![], vec![], None).unwrap_err(),
+            AttributeList::new(Some("Wrong".into()), Vec::new(), Vec::new(), Vec::new(), None)
+                .unwrap_err(),
             Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
         );
         assert_eq!(
-            AttributeList::new(None, vec![], vec![], vec![], None).unwrap_err(),
+            AttributeList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
             Error::EmptyAttributeList
         );
     }
@@ -823,8 +833,8 @@ mod tests {
         let mut list = AttributeList::new(
             None,
             vec![AttributeListMember::Attribute(attribute("OBS_STATUS"))],
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -867,8 +877,8 @@ mod tests {
         let list = MeasureList::new(
             Some("MeasureDescriptor".into()),
             vec![measure("OBS_VALUE"), measure("LOWER_BOUND")],
-            vec![],
-            vec![],
+            Vec::new(),
+            Vec::new(),
             None,
         )
         .unwrap();
@@ -880,11 +890,12 @@ mod tests {
         assert!(list.get("MISSING").is_none());
 
         assert_eq!(
-            MeasureList::new(Some("Wrong".into()), vec![], vec![], vec![], None).unwrap_err(),
+            MeasureList::new(Some("Wrong".into()), Vec::new(), Vec::new(), Vec::new(), None)
+                .unwrap_err(),
             Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
         );
         assert_eq!(
-            MeasureList::new(None, vec![], vec![], vec![], None).unwrap_err(),
+            MeasureList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
             Error::EmptyMeasureList
         );
     }
@@ -892,7 +903,8 @@ mod tests {
     #[test]
     fn measure_list_push_and_deserialize() {
         let mut list =
-            MeasureList::new(None, vec![measure("OBS_VALUE")], vec![], vec![], None).unwrap();
+            MeasureList::new(None, vec![measure("OBS_VALUE")], Vec::new(), Vec::new(), None)
+                .unwrap();
         list.push(measure("LOWER_BOUND"));
         assert_eq!(list.iter().count(), 2);
         crate::test_support::round_trip(&list);
@@ -925,7 +937,7 @@ mod tests {
 
     #[test]
     fn group_dimensions_try_from_rejects_empty() {
-        assert_eq!(GroupDimensions::try_from(vec![]).unwrap_err(), Error::EmptyGroupDimensions);
+        assert_eq!(GroupDimensions::try_from(Vec::new()).unwrap_err(), Error::EmptyGroupDimensions);
     }
 
     #[test]
