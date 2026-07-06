@@ -385,6 +385,18 @@ crates/sdmx-parsers/src/
   let components = vec![];
   ```
 
+## Fixture Construction
+
+- **Test fixtures build validated types through their constructors (`new()` / `parse()`), never by struct literal.** A constructor-routed fixture is a value the type actually admits and stays coupled to the invariants as they change: tighten a rule and every affected fixture fails loudly, where a literal would keep compiling with a now-illegal value. The invariant-free pub-field carriers (`LocalisedText`, `DimensionRef`, `TextFormat`, ...) have no constructor and are legitimately literal-built. A fixture that deliberately needs a state the constructor forbids (exercising a defensive backstop, for example) stays literal with a one-line comment naming the intent, so the bypass reads as deliberate. This split is a semantic judgement no check script can enforce; this documented convention is the only defense against regression.
+  ```rust
+  // Good: routed through the validating constructor
+  let agency = Agency::new(metadata("SDMX"), Vec::new()).unwrap();
+  // Good: an invariant-free carrier has no constructor to route through
+  let text = LocalisedText { language: Some("en".to_string()), text: "Frequency".to_string() };
+
+  // Avoid: a literal of a validated type bypasses its invariants
+  let agency = Agency { metadata: metadata("SDMX"), contacts: Vec::new() };
+
 ### Error Handling
 
 All crates use `thiserror` for error types. See ADR-0006 for detailed conventions and [RFC 430 — Error Handling](https://rust-lang.github.io/api-guidelines/errors.html).
