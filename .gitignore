@@ -343,6 +343,7 @@
 
 # Verification gates & checkers
 !/scripts/check-changelog.sh
+!/scripts/check-conventions.sh
 !/scripts/check-decision-refs.sh
 !/scripts/check-local-links.sh
 !/scripts/check-maintenance.sh

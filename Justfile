@@ -57,7 +57,7 @@ verify-linear: verify-rust verify-scripts verify-docs verify-security verify-inf
     @./scripts/lib/log.sh log_ok "verify: all verification phases passed"
 
 # Verify Rust codebase formatting, clippy, public + internal docs build, wasm target, semver, and test coverage
-verify-rust: check-format clippy check-wasm docs docs-internal semver-check coverage-gate release-dry-run
+verify-rust: check-format clippy check-conventions check-wasm docs docs-internal semver-check coverage-gate release-dry-run
     @./scripts/lib/log.sh log_ok "verify-rust: all gates passed"
 
 # Verify repository shell script linting and testing
@@ -185,6 +185,10 @@ check:
 # Run strict clippy static analysis under warnings-as-errors and pedantic lints
 clippy:
     cargo clippy --workspace --all-targets --locked -- -D warnings
+
+# Enforce greppable source conventions (typed None, empty vec) that no clippy lint covers, across crate source
+check-conventions:
+    @./scripts/check-conventions.sh
 
 # Generate workspace documentation and verify all public items carry doc comments without warnings
 docs:
