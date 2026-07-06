@@ -133,7 +133,7 @@ pub use crate::{
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::String, vec, vec::Vec};
 
     use super::*;
 
@@ -142,13 +142,18 @@ mod tests {
         // Smoke test over the re-exported foundation API: a validated identifier, a localised
         // name, and the trait hierarchy are all reachable from the crate root.
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Currency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Currency"),
         }])
         .unwrap();
-        let identifiable =
-            IdentifiableMetadata::new("CL_CURRENCY".into(), None, None, Vec::new(), Vec::new())
-                .unwrap();
+        let identifiable = IdentifiableMetadata::new(
+            String::from("CL_CURRENCY"),
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+        )
+        .unwrap();
         let nameable = NameableMetadata::new(identifiable, names, None);
         assert_eq!(nameable.id(), "CL_CURRENCY");
         assert_eq!(nameable.names().first(), "Currency");

@@ -58,7 +58,7 @@ use crate::{
 /// use sdmx_types::{IdentifiableArtefact, IdentifiableMetadata};
 ///
 /// let meta =
-///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("CL_FREQ"), None, None, Vec::new(), Vec::new())?;
 /// assert_eq!(meta.id(), "CL_FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -318,15 +318,15 @@ impl<'de> serde::Deserialize<'de> for VersionableMetadata {
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Frequency".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Frequency"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("FREQ"), None, None, Vec::new(), Vec::new())?;
 /// let nameable = NameableMetadata::new(identifiable, names, None);
 /// let versionable = VersionableMetadata::new(nameable, None, None, None);
 /// let maintainable =
-///     MaintainableMetadata::new(versionable, "ESTAT".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("ESTAT"), None, None, None, None)?;
 /// assert_eq!(maintainable.agency(), "ESTAT");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -467,8 +467,8 @@ mod tests {
 
     fn names() -> LocalisedString {
         LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap()
     }
@@ -481,7 +481,7 @@ mod tests {
     fn identifiable_validates_id_tier() {
         assert!(identifiable("FREQ").is_ok());
         assert!(identifiable("EUR$").is_ok()); // IDType permits $
-        assert_eq!(identifiable("a.b").unwrap_err(), Error::InvalidIdentifier("a.b".into()));
+        assert_eq!(identifiable("a.b").unwrap_err(), Error::InvalidIdentifier(String::from("a.b")));
     }
 
     #[test]
@@ -489,12 +489,13 @@ mod tests {
         let nameable = NameableMetadata::new(identifiable("FREQ").unwrap(), names(), None);
         let versionable = VersionableMetadata::new(
             nameable,
-            Some(SdmxVersion::new("1.0.0".into()).unwrap()),
+            Some(SdmxVersion::new(String::from("1.0.0")).unwrap()),
             None,
             None,
         );
         let maintainable =
-            MaintainableMetadata::new(versionable, "ESTAT".into(), None, None, None, None).unwrap();
+            MaintainableMetadata::new(versionable, String::from("ESTAT"), None, None, None, None)
+                .unwrap();
 
         // Accessors delegate down to the identifiable leaf and across the hierarchy.
         assert_eq!(maintainable.id(), "FREQ");
@@ -518,7 +519,7 @@ mod tests {
         assert!(
             MaintainableMetadata::new(
                 versionable.clone(),
-                "ORG.SUB".into(),
+                String::from("ORG.SUB"),
                 None,
                 None,
                 None,
@@ -528,9 +529,9 @@ mod tests {
         );
         // A leading-digit agency id is not.
         assert_eq!(
-            MaintainableMetadata::new(versionable, "1ORG".into(), None, None, None, None)
+            MaintainableMetadata::new(versionable, String::from("1ORG"), None, None, None, None)
                 .unwrap_err(),
-            Error::InvalidAgencyIdentifier("1ORG".into())
+            Error::InvalidAgencyIdentifier(String::from("1ORG"))
         );
     }
 
@@ -544,7 +545,8 @@ mod tests {
         );
         // Absent statedness -> effective false; stored None is preserved for the writer path.
         let m =
-            MaintainableMetadata::new(versionable, "ESTAT".into(), None, None, None, None).unwrap();
+            MaintainableMetadata::new(versionable, String::from("ESTAT"), None, None, None, None)
+                .unwrap();
         assert!(!m.is_partial_language());
         assert!(!m.is_external_reference());
     }
@@ -554,35 +556,35 @@ mod tests {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
 
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://x".into(),
-                lang: Some("en".into()),
+                url: String::from("https://x"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example/cl".into(),
+            rel: String::from("self"),
+            url: String::from("https://example/cl"),
             urn: None,
             link_type: None,
         };
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "How often".into(),
+            language: Some(String::from("en")),
+            text: String::from("How often"),
         }])
         .unwrap();
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
 
         // Build the full chain with every optional field populated.
         let identifiable = IdentifiableMetadata::new(
-            "FREQ".into(),
-            Some("urn:x".into()),
-            Some("urn:sdmx:freq".into()),
+            String::from("FREQ"),
+            Some(String::from("urn:x")),
+            Some(String::from("urn:sdmx:freq")),
             vec![annotation],
             vec![link],
         )
@@ -592,11 +594,11 @@ mod tests {
             VersionableMetadata::new(nameable.clone(), Some(version), Some(valid_from), None);
         let maintainable = MaintainableMetadata::new(
             versionable.clone(),
-            "ESTAT".into(),
+            String::from("ESTAT"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
 
@@ -653,13 +655,19 @@ mod tests {
     fn deserialize_round_trips_through_the_chain() {
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable("FREQ").unwrap(), names(), None),
-            Some(SdmxVersion::new("1.0.0".into()).unwrap()),
+            Some(SdmxVersion::new(String::from("1.0.0")).unwrap()),
             None,
             None,
         );
-        let maintainable =
-            MaintainableMetadata::new(versionable, "ESTAT".into(), Some(false), None, None, None)
-                .unwrap();
+        let maintainable = MaintainableMetadata::new(
+            versionable,
+            String::from("ESTAT"),
+            Some(false),
+            None,
+            None,
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&maintainable);
     }
 

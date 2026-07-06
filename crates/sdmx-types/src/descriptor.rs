@@ -128,13 +128,13 @@ impl<'de> serde::Deserialize<'de> for GroupDimensions {
 ///
 /// let group = Group {
 ///     metadata: IdentifiableMetadata::new(
-///         "SIBLING".to_string(),
+///         String::from("SIBLING"),
 ///         None,
 ///         None,
 ///         Vec::new(),
 ///         Vec::new(),
 ///     )?,
-///     dimensions: GroupDimensions::new(vec!["FREQ".to_string(), "CURRENCY".to_string()])?,
+///     dimensions: GroupDimensions::new(vec![String::from("FREQ"), String::from("CURRENCY")])?,
 /// };
 /// assert_eq!(group.id(), "SIBLING");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -192,12 +192,12 @@ impl IdentifiableArtefact for Group {
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Dimension, DimensionList};
 ///
 /// let metadata =
-///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?;
+///     ComponentMetadata::new(Some(String::from("FREQ")), None, None, Vec::new(), Vec::new())?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS_FREQ".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS_FREQ"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "FREQ".to_string(),
+///     id: String::from("FREQ"),
 /// };
 /// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
 /// // A `None` id defaults to the fixed `DimensionDescriptor`.
@@ -319,13 +319,18 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 ///     ConceptReference,
 /// };
 ///
-/// let metadata =
-///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, Vec::new(), Vec::new())?;
+/// let metadata = ComponentMetadata::new(
+///     Some(String::from("OBS_STATUS")),
+///     None,
+///     None,
+///     Vec::new(),
+///     Vec::new(),
+/// )?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "OBS_STATUS".to_string(),
+///     id: String::from("OBS_STATUS"),
 /// };
 /// let attribute =
 ///     Attribute::new(metadata, concept, None, AttributeRelationship::Observation, None, None)?;
@@ -453,13 +458,18 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 /// ```
 /// use sdmx_types::{ComponentMetadata, ConceptReference, Measure, MeasureList};
 ///
-/// let metadata =
-///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
+/// let metadata = ComponentMetadata::new(
+///     Some(String::from("OBS_VALUE")),
+///     None,
+///     None,
+///     Vec::new(),
+///     Vec::new(),
+/// )?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "OBS_VALUE".to_string(),
+///     id: String::from("OBS_VALUE"),
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
 /// let measure_list = MeasureList::new(None, vec![measure], Vec::new(), Vec::new(), None)?;
@@ -548,7 +558,7 @@ impl<'de> serde::Deserialize<'de> for MeasureList {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{string::ToString, vec, vec::Vec};
+    use alloc::{vec, vec::Vec};
 
     use super::*;
     use crate::{
@@ -561,8 +571,8 @@ mod tests {
 
     fn concept(id: &str) -> ConceptReference {
         ConceptReference {
-            agency: "SDMX".into(),
-            scheme_id: "CS".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("CS"),
             version: "1.0.0".parse().unwrap(),
             id: id.into(),
         }
@@ -623,21 +633,21 @@ mod tests {
         IdentifiableMetadata::new(
             id.into(),
             None,
-            Some("urn:x".into()),
+            Some(String::from("urn:x")),
             vec![Annotation {
-                id: Some("a1".into()),
+                id: Some(String::from("a1")),
                 annotation_type: None,
                 annotation_title: None,
                 annotation_urls: vec![AnnotationUrl {
-                    url: "https://example.com".into(),
-                    lang: Some("en".into()),
+                    url: String::from("https://example.com"),
+                    lang: Some(String::from("en")),
                 }],
                 annotation_value: None,
                 texts: None,
             }],
             vec![Link {
-                rel: "self".into(),
-                url: "https://example.com/x".into(),
+                rel: String::from("self"),
+                url: String::from("https://example.com/x"),
                 urn: None,
                 link_type: None,
             }],
@@ -649,7 +659,7 @@ mod tests {
 
     #[test]
     fn group_dimensions_reject_empty() {
-        assert_eq!(GroupDimensions::new(vec!["FREQ".into()]).unwrap().as_slice().len(), 1);
+        assert_eq!(GroupDimensions::new(vec![String::from("FREQ")]).unwrap().as_slice().len(), 1);
         assert_eq!(GroupDimensions::new(Vec::new()).unwrap_err(), Error::EmptyGroupDimensions);
     }
 
@@ -664,7 +674,7 @@ mod tests {
             postcard::from_bytes::<GroupDimensions>(&postcard::to_allocvec(&empty).unwrap())
                 .is_err()
         );
-        let dimensions = GroupDimensions::new(vec!["FREQ".into()]).unwrap();
+        let dimensions = GroupDimensions::new(vec![String::from("FREQ")]).unwrap();
         assert_eq!(dimensions.as_slice().len(), 1);
         crate::test_support::round_trip(&dimensions);
     }
@@ -673,7 +683,8 @@ mod tests {
     fn group_forwards_identifiable_and_round_trips() {
         let group = Group {
             metadata: group_metadata("SIBLING"),
-            dimensions: GroupDimensions::new(vec!["FREQ".into(), "CURRENCY".into()]).unwrap(),
+            dimensions: GroupDimensions::new(vec![String::from("FREQ"), String::from("CURRENCY")])
+                .unwrap(),
         };
         // IdentifiableArtefact delegates every accessor to the metadata leaf.
         assert_eq!(group.id(), "SIBLING");
@@ -691,7 +702,7 @@ mod tests {
     fn dimension_list_validates_fixed_id_and_non_empty_with_lookup() {
         // The stated fixed `DimensionDescriptor` id passes, and the list keeps wire order.
         let list = DimensionList::new(
-            Some("DimensionDescriptor".into()),
+            Some(String::from("DimensionDescriptor")),
             vec![dimension("FREQ"), dimension("CURRENCY")],
             Some(time_dimension()),
             Vec::new(),
@@ -715,7 +726,7 @@ mod tests {
         // A mismatched fixed id is rejected.
         assert_eq!(
             DimensionList::new(
-                Some("Wrong".into()),
+                Some(String::from("Wrong")),
                 vec![dimension("FREQ")],
                 None,
                 Vec::new(),
@@ -723,7 +734,10 @@ mod tests {
                 None
             )
             .unwrap_err(),
-            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
+            Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("Wrong")
+            }
         );
         // An empty dimension list is rejected.
         assert_eq!(
@@ -794,13 +808,13 @@ mod tests {
     #[test]
     fn attribute_list_validates_fixed_id_and_non_empty_with_filtered_views() {
         let usage = MetadataAttributeUsage {
-            metadata_attribute_ref: "CONTACT".into(),
+            metadata_attribute_ref: String::from("CONTACT"),
             relationship: AttributeRelationship::Dataflow,
             annotations: Vec::new(),
             link: None,
         };
         let list = AttributeList::new(
-            Some("AttributeDescriptor".into()),
+            Some(String::from("AttributeDescriptor")),
             vec![
                 AttributeListMember::Attribute(attribute("OBS_STATUS")),
                 AttributeListMember::MetadataAttributeUsage(usage),
@@ -818,9 +832,18 @@ mod tests {
         assert!(list.get("MISSING").is_none());
 
         assert_eq!(
-            AttributeList::new(Some("Wrong".into()), Vec::new(), Vec::new(), Vec::new(), None)
-                .unwrap_err(),
-            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
+            AttributeList::new(
+                Some(String::from("Wrong")),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                None
+            )
+            .unwrap_err(),
+            Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("Wrong")
+            }
         );
         assert_eq!(
             AttributeList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
@@ -875,7 +898,7 @@ mod tests {
     #[test]
     fn measure_list_validates_fixed_id_and_non_empty_with_lookup() {
         let list = MeasureList::new(
-            Some("MeasureDescriptor".into()),
+            Some(String::from("MeasureDescriptor")),
             vec![measure("OBS_VALUE"), measure("LOWER_BOUND")],
             Vec::new(),
             Vec::new(),
@@ -890,9 +913,12 @@ mod tests {
         assert!(list.get("MISSING").is_none());
 
         assert_eq!(
-            MeasureList::new(Some("Wrong".into()), Vec::new(), Vec::new(), Vec::new(), None)
+            MeasureList::new(Some(String::from("Wrong")), Vec::new(), Vec::new(), Vec::new(), None)
                 .unwrap_err(),
-            Error::FixedAttributeMismatch { attribute: "id".into(), value: "Wrong".into() }
+            Error::FixedAttributeMismatch {
+                attribute: String::from("id"),
+                value: String::from("Wrong")
+            }
         );
         assert_eq!(
             MeasureList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
@@ -942,7 +968,7 @@ mod tests {
 
     #[test]
     fn group_dimensions_into_inner_and_from() {
-        let v = vec!["FREQ".to_string()];
+        let v = vec![String::from("FREQ")];
         assert_eq!(GroupDimensions::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(GroupDimensions::new(v.clone()).unwrap()), v);
     }

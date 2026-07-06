@@ -7,15 +7,19 @@
 # Some house conventions are cross-file consistency choices that no clippy
 # lint covers: a typed None is written `None::<T>`, never `Option::<T>::None`
 # or `Option::None`; an empty vector is `Vec::new()`, never empty `vec![]`
-# (the `vec!` macro is reserved for element-bearing literals). Both spellings
-# in each pair compile to the same thing, so the drift is silent. This gate
-# greps crates/*/src for each anti-pattern and fails with the offending
-# file:line and the canonical form to use.
+# (the `vec!` macro is reserved for element-bearing literals); a string
+# literal becomes a `String` through `String::from("x")`, never literal
+# `.to_string()`/`.into()` (the crate defines no `From<&str>`, so a literal
+# `.into()` can only target `String`; `.to_string()` stays correct on
+# non-literal receivers, which the literal-anchored patterns do not match).
+# The spellings in each pair compile to the same thing, so the drift is
+# silent. This gate greps crates/*/src for each anti-pattern and fails with
+# the offending file:line and the canonical form to use.
 #
 # Scope: crates/*/src. Only greppable, semantically unambiguous conventions
-# belong here. Target-dependent choices (e.g. `String::from` versus `.into()`,
-# whose correctness depends on whether the target is `String` or a newtype)
-# cannot be grepped and are out of scope.
+# belong here. Semantic judgements (e.g. whether a test fixture may bypass a
+# validating constructor) cannot be grepped and are out of scope; those live
+# as documented conventions in docs/dev/practices.md.
 #
 # Adding a rule: append one `check_rule` call with a human name, an ERE
 # anti-pattern, and the canonical form. Each call is self-contained.
@@ -65,6 +69,12 @@ if [ -d crates ]; then
 
     # Empty vector: `Vec::new()`, never empty `vec![]` (reserve `vec!` for elements).
     check_rule "empty vec![]" '(^|[^[:alnum:]_])vec!\[[[:space:]]*\]' 'Vec::new()'
+
+    # String from a literal: `String::from("x")`, never literal `.to_string()`
+    # or `.into()`. The literal-anchored patterns leave non-literal receivers
+    # (Display rendering such as `version.to_string()`) unmatched.
+    check_rule "string-literal .to_string()" '"([^"\\]|\\.)*"\.to_string\(\)' 'String::from("...")'
+    check_rule "string-literal .into()" '"([^"\\]|\\.)*"\.into\(\)' 'String::from("...")'
 fi
 
 if [ -s "$tmp_fail" ]; then

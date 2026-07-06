@@ -27,6 +27,8 @@ Decisions: D-0039, D-0052.
 "#
 )]
 
+use alloc::string::String;
+
 use crate::error::{Error, to_de_error};
 
 /// The statedness of the `fixed="true"` `include` attribute: `None` (omitted) or `Some(true)`
@@ -74,8 +76,8 @@ impl FixedInclude {
     pub fn new(stated: Option<bool>) -> Result<Self, Error> {
         if stated == Some(false) {
             return Err(Error::FixedAttributeMismatch {
-                attribute: "include".into(),
-                value: "false".into(),
+                attribute: String::from("include"),
+                value: String::from("false"),
             });
         }
         Ok(Self(stated))
@@ -117,8 +119,8 @@ mod tests {
         assert_eq!(
             FixedInclude::new(Some(false)),
             Err(Error::FixedAttributeMismatch {
-                attribute: "include".into(),
-                value: "false".into()
+                attribute: String::from("include"),
+                value: String::from("false")
             })
         );
     }

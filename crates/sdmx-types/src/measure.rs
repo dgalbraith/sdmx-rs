@@ -46,13 +46,18 @@ use crate::{
 /// ```
 /// use sdmx_types::{ComponentMetadata, ConceptReference, IdentifiableArtefact, Measure};
 ///
-/// let metadata =
-///     ComponentMetadata::new(Some("OBS_VALUE".to_string()), None, None, Vec::new(), Vec::new())?;
+/// let metadata = ComponentMetadata::new(
+///     Some(String::from("OBS_VALUE")),
+///     None,
+///     None,
+///     Vec::new(),
+///     Vec::new(),
+/// )?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "OBS_VALUE".to_string(),
+///     id: String::from("OBS_VALUE"),
 /// };
 /// let measure = Measure::new(metadata, concept, None, None)?;
 /// assert_eq!(measure.id(), "OBS_VALUE");
@@ -152,15 +157,15 @@ impl<'de> serde::Deserialize<'de> for Measure {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{vec, vec::Vec};
+    use alloc::{string::String, vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
         ConceptReference {
-            agency: "SDMX".into(),
-            scheme_id: "CS".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("CS"),
             version: "1.0.0".parse().unwrap(),
             id: id.into(),
         }
@@ -218,8 +223,8 @@ mod tests {
             )
             .unwrap_err(),
             Error::InvalidTextTypeForComponent {
-                component: "Measure".into(),
-                text_type: "KeyValues".into()
+                component: String::from("Measure"),
+                text_type: String::from("KeyValues")
             }
         );
         // A Basic textType (and a measure can be coded/typed, D-0028) is accepted.
@@ -269,23 +274,23 @@ mod tests {
     fn measure_forwards_identifiable_accessors() {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
         let full = ComponentMetadata::new(
-            Some("OBS_VALUE".into()),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("OBS_VALUE")),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![Annotation {
-                id: Some("a1".into()),
+                id: Some(String::from("a1")),
                 annotation_type: None,
                 annotation_title: None,
                 annotation_urls: vec![AnnotationUrl {
-                    url: "https://example.com".into(),
-                    lang: Some("en".into()),
+                    url: String::from("https://example.com"),
+                    lang: Some(String::from("en")),
                 }],
                 annotation_value: None,
                 texts: None,
             }],
             vec![Link {
-                rel: "self".into(),
-                url: "https://example.com/x".into(),
+                rel: String::from("self"),
+                url: String::from("https://example.com/x"),
                 urn: None,
                 link_type: None,
             }],

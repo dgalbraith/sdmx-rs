@@ -67,11 +67,11 @@ use crate::{
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Frequency".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Frequency"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("FREQ"), None, None, Vec::new(), Vec::new())?;
 /// let concept = Concept::new(NameableMetadata::new(identifiable, names, None), None, None)?;
 /// assert_eq!(concept.id(), "FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -182,11 +182,11 @@ impl<'de> serde::Deserialize<'de> for Concept {
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Concepts".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Concepts"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("CS_X".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("CS_X"), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -194,7 +194,7 @@ impl<'de> serde::Deserialize<'de> for Concept {
 ///     None,
 /// );
 /// let metadata =
-///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 ///
 /// let scheme = ConceptScheme::new(metadata, None)?;
 /// assert_eq!(scheme.agency(), "SDMX");
@@ -326,8 +326,8 @@ mod tests {
 
     fn nameable(id: &str) -> NameableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let identifiable =
@@ -338,7 +338,7 @@ mod tests {
     fn scheme_metadata(id: &str) -> MaintainableMetadata {
         MaintainableMetadata::new(
             VersionableMetadata::new(nameable(id), None, None, None),
-            "SDMX".into(),
+            String::from("SDMX"),
             None,
             None,
             None,
@@ -377,7 +377,7 @@ mod tests {
         // A leading-digit id is a valid IDType but not an NCNameIDType.
         assert_eq!(
             Concept::new(nameable("1FREQ"), None, None).unwrap_err(),
-            Error::InvalidNcNameIdentifier("1FREQ".into())
+            Error::InvalidNcNameIdentifier(String::from("1FREQ"))
         );
     }
 
@@ -389,8 +389,8 @@ mod tests {
             Concept::new(nameable("FREQ"), None, Some(text_format(DataType::KeyValues)))
                 .unwrap_err(),
             Error::InvalidTextTypeForComponent {
-                component: "Concept".into(),
-                text_type: "KeyValues".into()
+                component: String::from("Concept"),
+                text_type: String::from("KeyValues")
             }
         );
     }
@@ -399,7 +399,7 @@ mod tests {
     fn concept_exposes_parent_and_core_representation() {
         let concept = Concept::new(
             nameable("FREQ"),
-            Some("PARENT".into()),
+            Some(String::from("PARENT")),
             Some(text_format(DataType::String)),
         )
         .unwrap();
@@ -411,7 +411,7 @@ mod tests {
     fn concept_deserialize_round_trips() {
         let concept = Concept::new(
             nameable("FREQ"),
-            Some("PARENT".into()),
+            Some(String::from("PARENT")),
             Some(text_format(DataType::String)),
         )
         .unwrap();
@@ -445,7 +445,7 @@ mod tests {
         // A leading-digit id passes IDType but fails the NCName tightening.
         assert_eq!(
             ConceptScheme::new(scheme_metadata("9CS"), None).unwrap_err(),
-            Error::InvalidNcNameIdentifier("9CS".into())
+            Error::InvalidNcNameIdentifier(String::from("9CS"))
         );
 
         let mut scheme = ConceptScheme::new(scheme_metadata("CS_X"), None).unwrap();
@@ -481,36 +481,36 @@ mod tests {
     fn full_nameable(id: &str) -> NameableMetadata {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "How often".into(),
+            language: Some(String::from("en")),
+            text: String::from("How often"),
         }])
         .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -520,15 +520,15 @@ mod tests {
 
     #[test]
     fn delegation_matrix_forwards_every_accessor() {
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let metadata = MaintainableMetadata::new(
             VersionableMetadata::new(full_nameable("CS_X"), Some(version), Some(valid_from), None),
-            "ESTAT".into(),
+            String::from("ESTAT"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let scheme = ConceptScheme::new(metadata, Some(true)).unwrap();

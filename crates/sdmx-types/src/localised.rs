@@ -88,8 +88,8 @@ pub struct LocalisedText {
 /// use sdmx_types::{LocalisedString, LocalisedText};
 ///
 /// let names = LocalisedString::new(vec![
-///     LocalisedText { language: Some("en".to_string()), text: "Currency".to_string() },
-///     LocalisedText { language: Some("fr".to_string()), text: "Monnaie".to_string() },
+///     LocalisedText { language: Some(String::from("en")), text: String::from("Currency") },
+///     LocalisedText { language: Some(String::from("fr")), text: String::from("Monnaie") },
 /// ])?;
 /// assert_eq!(names.get("fr"), Some("Monnaie"));
 /// assert_eq!(names.first(), "Currency");
@@ -211,7 +211,7 @@ impl<'de> serde::Deserialize<'de> for LocalisedString {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{string::ToString, vec};
+    use alloc::vec;
 
     use super::*;
 
@@ -297,7 +297,7 @@ mod tests {
 
     #[test]
     fn localised_string_into_inner_and_from() {
-        let v = vec![LocalisedText { language: None, text: "T".to_string() }];
+        let v = vec![LocalisedText { language: None, text: String::from("T") }];
         assert_eq!(LocalisedString::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(LocalisedString::new(v.clone()).unwrap()), v);
     }

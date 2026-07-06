@@ -59,12 +59,12 @@ use crate::{
 /// };
 ///
 /// let dimension = Dimension::new(
-///     ComponentMetadata::new(Some("FREQ".to_string()), None, None, Vec::new(), Vec::new())?,
+///     ComponentMetadata::new(Some(String::from("FREQ")), None, None, Vec::new(), Vec::new())?,
 ///     ConceptReference {
-///         agency: "SDMX".to_string(),
-///         scheme_id: "CS".to_string(),
+///         agency: String::from("SDMX"),
+///         scheme_id: String::from("CS"),
 ///         version: "1.0.0".parse().unwrap(),
-///         id: "FREQ".to_string(),
+///         id: String::from("FREQ"),
 ///     },
 ///     None,
 ///     None,
@@ -73,11 +73,11 @@ use crate::{
 ///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None)?;
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Exchange rates".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Exchange rates"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("ECB_EXR".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("ECB_EXR"), None, None, Vec::new(), Vec::new())?;
 /// let metadata = MaintainableMetadata::new(
 ///     VersionableMetadata::new(
 ///         NameableMetadata::new(identifiable, names, None),
@@ -85,7 +85,7 @@ use crate::{
 ///         None,
 ///         None,
 ///     ),
-///     "ECB".to_string(),
+///     String::from("ECB"),
 ///     None,
 ///     None,
 ///     None,
@@ -207,8 +207,8 @@ mod tests {
 
     fn concept(id: &str) -> ConceptReference {
         ConceptReference {
-            agency: "SDMX".into(),
-            scheme_id: "CS".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("CS"),
             version: "1.0.0".parse().unwrap(),
             id: id.into(),
         }
@@ -250,8 +250,8 @@ mod tests {
 
     fn maintainable(id: &str, agency: &str) -> MaintainableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Exchange rates".into(),
+            language: Some(String::from("en")),
+            text: String::from("Exchange rates"),
         }])
         .unwrap();
         let identifiable =
@@ -314,14 +314,14 @@ mod tests {
         .unwrap();
         let group = Group {
             metadata: IdentifiableMetadata::new(
-                "SIBLING".into(),
+                String::from("SIBLING"),
                 None,
                 None,
                 Vec::new(),
                 Vec::new(),
             )
             .unwrap(),
-            dimensions: GroupDimensions::new(vec!["CURRENCY".into()]).unwrap(),
+            dimensions: GroupDimensions::new(vec![String::from("CURRENCY")]).unwrap(),
         };
         DataStructureDefinition {
             metadata: maintainable("ECB_EXR", "ECB"),
@@ -337,38 +337,38 @@ mod tests {
     fn full_maintainable(id: &str, agency: &str) -> MaintainableMetadata {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Exchange rates".into(),
+            language: Some(String::from("en")),
+            text: String::from("Exchange rates"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "How often".into(),
+            language: Some(String::from("en")),
+            text: String::from("How often"),
         }])
         .unwrap();
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -383,8 +383,8 @@ mod tests {
             agency.into(),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap()
     }

@@ -246,11 +246,11 @@ pub struct CodelistExtension {
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Annual".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Annual"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("A".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("A"), None, None, Vec::new(), Vec::new())?;
 /// let code = Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None };
 /// assert_eq!(code.id(), "A");
 /// # Ok::<(), sdmx_types::Error>(())
@@ -331,11 +331,11 @@ impl SchemeItem for Code {}
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
-///     language: Some("en".to_string()),
-///     text: "Frequency".to_string(),
+///     language: Some(String::from("en")),
+///     text: String::from("Frequency"),
 /// }])?;
 /// let identifiable =
-///     IdentifiableMetadata::new("CL_FREQ".to_string(), None, None, Vec::new(), Vec::new())?;
+///     IdentifiableMetadata::new(String::from("CL_FREQ"), None, None, Vec::new(), Vec::new())?;
 /// let versionable = VersionableMetadata::new(
 ///     NameableMetadata::new(identifiable, names, None),
 ///     None,
@@ -343,7 +343,7 @@ impl SchemeItem for Code {}
 ///     None,
 /// );
 /// let metadata =
-///     MaintainableMetadata::new(versionable, "SDMX".to_string(), None, None, None, None)?;
+///     MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)?;
 ///
 /// let codelist = Codelist::new(metadata, None)?;
 /// assert_eq!(codelist.agency(), "SDMX");
@@ -481,8 +481,8 @@ mod tests {
 
     fn metadata(id: &str) -> MaintainableMetadata {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let identifiable =
@@ -493,12 +493,13 @@ mod tests {
             None,
             None,
         );
-        MaintainableMetadata::new(versionable, "SDMX".into(), None, None, None, None).unwrap()
+        MaintainableMetadata::new(versionable, String::from("SDMX"), None, None, None, None)
+            .unwrap()
     }
 
     fn code(id: &str) -> Code {
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
+            language: Some(String::from("en")),
             text: id.to_string(),
         }])
         .unwrap();
@@ -511,36 +512,36 @@ mod tests {
     fn full_nameable(id: &str) -> NameableMetadata {
         use crate::annotation::AnnotationUrl;
         let annotation = Annotation {
-            id: Some("a1".into()),
+            id: Some(String::from("a1")),
             annotation_type: None,
             annotation_title: None,
             annotation_urls: vec![AnnotationUrl {
-                url: "https://example.com".into(),
-                lang: Some("en".into()),
+                url: String::from("https://example.com"),
+                lang: Some(String::from("en")),
             }],
             annotation_value: None,
             texts: None,
         };
         let link = Link {
-            rel: "self".into(),
-            url: "https://example.com/x".into(),
+            rel: String::from("self"),
+            url: String::from("https://example.com/x"),
             urn: None,
             link_type: None,
         };
         let names = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "Frequency".into(),
+            language: Some(String::from("en")),
+            text: String::from("Frequency"),
         }])
         .unwrap();
         let descriptions = LocalisedString::new(vec![LocalisedText {
-            language: Some("en".into()),
-            text: "How often".into(),
+            language: Some(String::from("en")),
+            text: String::from("How often"),
         }])
         .unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![annotation],
             vec![link],
         )
@@ -550,7 +551,7 @@ mod tests {
 
     #[test]
     fn delegation_matrix_forwards_every_accessor() {
-        let version = SdmxVersion::new("1.2.3".into()).unwrap();
+        let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
         let versionable = VersionableMetadata::new(
             full_nameable("CL_FREQ"),
@@ -560,11 +561,11 @@ mod tests {
         );
         let metadata = MaintainableMetadata::new(
             versionable,
-            "ESTAT".into(),
+            String::from("ESTAT"),
             Some(true),
             Some(true),
-            Some("https://service".into()),
-            Some("https://structure".into()),
+            Some(String::from("https://service")),
+            Some(String::from("https://structure")),
         )
         .unwrap();
         let codelist = Codelist::new(metadata, Some(true)).unwrap();
@@ -590,7 +591,7 @@ mod tests {
         assert_eq!(codelist.structure_url(), Some("https://structure"));
 
         // The Code carrier forwards its identifiable and nameable accessors to its own metadata.
-        let carrier = Code { metadata: full_nameable("A"), parent_id: Some("ROOT".into()) };
+        let carrier = Code { metadata: full_nameable("A"), parent_id: Some(String::from("ROOT")) };
         assert_eq!(carrier.id(), "A");
         assert_eq!(carrier.urn(), Some("urn:x"));
         assert_eq!(carrier.uri(), Some("uri"));
@@ -607,7 +608,7 @@ mod tests {
         assert!(Codelist::new(metadata("CL_FREQ"), None).is_ok());
         assert_eq!(
             Codelist::new(metadata("9FREQ"), None).unwrap_err(),
-            Error::InvalidNcNameIdentifier("9FREQ".into())
+            Error::InvalidNcNameIdentifier(String::from("9FREQ"))
         );
     }
 
@@ -625,7 +626,8 @@ mod tests {
     #[test]
     fn member_values_rejects_empty() {
         assert_eq!(MemberValues::new(Vec::new()).unwrap_err(), Error::EmptyMemberValues);
-        let ok = MemberValues::new(vec![MemberValue { value: "A".into(), cascade: None }]).unwrap();
+        let ok = MemberValues::new(vec![MemberValue { value: String::from("A"), cascade: None }])
+            .unwrap();
         assert_eq!(ok.as_slice().len(), 1);
     }
 
@@ -633,18 +635,18 @@ mod tests {
     fn extension_round_trips_through_serde() {
         let extension = CodelistExtension {
             codelist: CodelistReference {
-                agency: "SDMX".into(),
-                id: "CL_BASE".into(),
+                agency: String::from("SDMX"),
+                id: String::from("CL_BASE"),
                 version: "1.0.0".parse().unwrap(),
             },
             selection: Some(CodeSelection::Inclusive(
                 MemberValues::new(vec![MemberValue {
-                    value: "A".into(),
+                    value: String::from("A"),
                     cascade: Some(Cascade::IncludeChildren),
                 }])
                 .unwrap(),
             )),
-            prefix: Some("X_".into()),
+            prefix: Some(String::from("X_")),
         };
         crate::test_support::round_trip(&extension);
     }
@@ -680,7 +682,7 @@ mod tests {
 
     #[test]
     fn member_values_into_inner_and_from() {
-        let v = vec![MemberValue { value: "V".to_string(), cascade: None }];
+        let v = vec![MemberValue { value: String::from("V"), cascade: None }];
         assert_eq!(MemberValues::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(MemberValues::new(v.clone()).unwrap()), v);
     }

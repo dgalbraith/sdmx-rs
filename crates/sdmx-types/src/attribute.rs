@@ -219,9 +219,9 @@ impl<'de> serde::Deserialize<'de> for DimensionIds {
 ///
 /// // Dataflow and Observation are unit variants; the data-carrying variants validate their input.
 /// let _whole_dataflow = AttributeRelationship::Dataflow;
-/// let group = AttributeRelationship::group("SIBLING".to_string())?;
+/// let group = AttributeRelationship::group(String::from("SIBLING"))?;
 /// let dimensions = AttributeRelationship::dimensions(vec![DimensionRef {
-///     id: "FREQ".to_string(),
+///     id: String::from("FREQ"),
 ///     optional: None,
 /// }])?;
 /// assert!(matches!(group, AttributeRelationship::Group(_)));
@@ -352,13 +352,18 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 ///     Attribute, AttributeRelationship, ComponentMetadata, ConceptReference, IdentifiableArtefact,
 /// };
 ///
-/// let metadata =
-///     ComponentMetadata::new(Some("OBS_STATUS".to_string()), None, None, Vec::new(), Vec::new())?;
+/// let metadata = ComponentMetadata::new(
+///     Some(String::from("OBS_STATUS")),
+///     None,
+///     None,
+///     Vec::new(),
+///     Vec::new(),
+/// )?;
 /// let concept = ConceptReference {
-///     agency: "SDMX".to_string(),
-///     scheme_id: "CS".to_string(),
+///     agency: String::from("SDMX"),
+///     scheme_id: String::from("CS"),
 ///     version: "1.0.0".parse().unwrap(),
-///     id: "OBS_STATUS".to_string(),
+///     id: String::from("OBS_STATUS"),
 /// };
 /// let attribute =
 ///     Attribute::new(metadata, concept, None, AttributeRelationship::Observation, None, None)?;
@@ -537,15 +542,15 @@ pub enum AttributeListMember {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
-    use alloc::{string::ToString, vec, vec::Vec};
+    use alloc::{vec, vec::Vec};
 
     use super::*;
     use crate::representation::{DataType, RepresentationChoice, TextFormat};
 
     fn concept(id: &str) -> ConceptReference {
         ConceptReference {
-            agency: "SDMX".into(),
-            scheme_id: "CS".into(),
+            agency: String::from("SDMX"),
+            scheme_id: String::from("CS"),
             version: "1.0.0".parse().unwrap(),
             id: id.into(),
         }
@@ -569,19 +574,21 @@ mod tests {
 
     #[test]
     fn group_id_rejects_empty() {
-        assert_eq!(GroupId::new("G1".into()).unwrap().as_str(), "G1");
+        assert_eq!(GroupId::new(String::from("G1")).unwrap().as_str(), "G1");
         assert_eq!(GroupId::new(String::new()).unwrap_err(), Error::EmptyGroupId);
     }
 
     #[test]
     fn dimension_ref_effective_is_optional_defaults_false() {
-        assert!(!DimensionRef { id: "FREQ".into(), optional: None }.effective_is_optional());
-        assert!(DimensionRef { id: "FREQ".into(), optional: Some(true) }.effective_is_optional());
+        assert!(!DimensionRef { id: String::from("FREQ"), optional: None }.effective_is_optional());
+        assert!(
+            DimensionRef { id: String::from("FREQ"), optional: Some(true) }.effective_is_optional()
+        );
     }
 
     #[test]
     fn dimension_ids_reject_empty() {
-        let refs = vec![DimensionRef { id: "FREQ".into(), optional: None }];
+        let refs = vec![DimensionRef { id: String::from("FREQ"), optional: None }];
         assert_eq!(DimensionIds::new(refs).unwrap().as_slice().len(), 1);
         assert_eq!(DimensionIds::new(Vec::new()).unwrap_err(), Error::EmptyAttributeDimensions);
 
@@ -596,13 +603,13 @@ mod tests {
     #[test]
     fn relationship_ergonomic_constructors_enforce_non_empty() {
         assert!(matches!(
-            AttributeRelationship::group("G1".into()).unwrap(),
+            AttributeRelationship::group(String::from("G1")).unwrap(),
             AttributeRelationship::Group(_)
         ));
         assert_eq!(AttributeRelationship::group(String::new()).unwrap_err(), Error::EmptyGroupId);
         assert!(matches!(
             AttributeRelationship::dimensions(vec![DimensionRef {
-                id: "FREQ".into(),
+                id: String::from("FREQ"),
                 optional: None
             }])
             .unwrap(),
@@ -616,7 +623,10 @@ mod tests {
 
     #[test]
     fn measure_relationship_rejects_empty() {
-        assert_eq!(MeasureRelationship::new(vec!["OBS_VALUE".into()]).unwrap().as_slice().len(), 1);
+        assert_eq!(
+            MeasureRelationship::new(vec![String::from("OBS_VALUE")]).unwrap().as_slice().len(),
+            1
+        );
         assert_eq!(
             MeasureRelationship::new(Vec::new()).unwrap_err(),
             Error::EmptyMeasureRelationship
@@ -631,7 +641,7 @@ mod tests {
         // one round-trips.
         let empty = String::new();
         assert!(postcard::from_bytes::<GroupId>(&postcard::to_allocvec(&empty).unwrap()).is_err());
-        let group_id = GroupId::new("G1".into()).unwrap();
+        let group_id = GroupId::new(String::from("G1")).unwrap();
         assert_eq!(group_id.as_str(), "G1");
         crate::test_support::round_trip(&group_id);
     }
@@ -642,7 +652,7 @@ mod tests {
         // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
         // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
         // which rejects it, while a non-empty one round-trips.
-        let relationship = MeasureRelationship::new(vec!["OBS_VALUE".into()]).unwrap();
+        let relationship = MeasureRelationship::new(vec![String::from("OBS_VALUE")]).unwrap();
         assert_eq!(relationship.as_slice().len(), 1);
         crate::test_support::round_trip(&relationship);
         let empty: Vec<String> = Vec::new();
@@ -657,7 +667,7 @@ mod tests {
         // The derived enum Deserialize delegates to the newtypes' custom impls; confirm the success
         // side, that a valid Dimensions relationship reconstructs (not only that empty is rejected).
         let relationship = AttributeRelationship::dimensions(vec![DimensionRef {
-            id: "FREQ".into(),
+            id: String::from("FREQ"),
             optional: Some(true),
         }])
         .unwrap();
@@ -717,8 +727,8 @@ mod tests {
             )
             .unwrap_err(),
             Error::InvalidTextTypeForComponent {
-                component: "Attribute".into(),
-                text_type: "KeyValues".into()
+                component: String::from("Attribute"),
+                text_type: String::from("KeyValues")
             }
         );
     }
@@ -738,7 +748,7 @@ mod tests {
     #[test]
     fn attribute_exposes_relationship_and_measure_relationship() {
         let relationship = AttributeRelationship::dimensions(vec![DimensionRef {
-            id: "FREQ".into(),
+            id: String::from("FREQ"),
             optional: None,
         }])
         .unwrap();
@@ -747,7 +757,7 @@ mod tests {
             concept("OBS_STATUS"),
             None,
             relationship,
-            Some(MeasureRelationship::new(vec!["OBS_VALUE".into()]).unwrap()),
+            Some(MeasureRelationship::new(vec![String::from("OBS_VALUE")]).unwrap()),
             None,
         )
         .unwrap();
@@ -833,23 +843,23 @@ mod tests {
     fn attribute_forwards_identifiable_accessors() {
         use crate::annotation::{Annotation, AnnotationUrl, Link};
         let full = ComponentMetadata::new(
-            Some("OBS_STATUS".into()),
-            Some("uri".into()),
-            Some("urn:x".into()),
+            Some(String::from("OBS_STATUS")),
+            Some(String::from("uri")),
+            Some(String::from("urn:x")),
             vec![Annotation {
-                id: Some("a1".into()),
+                id: Some(String::from("a1")),
                 annotation_type: None,
                 annotation_title: None,
                 annotation_urls: vec![AnnotationUrl {
-                    url: "https://example.com".into(),
-                    lang: Some("en".into()),
+                    url: String::from("https://example.com"),
+                    lang: Some(String::from("en")),
                 }],
                 annotation_value: None,
                 texts: None,
             }],
             vec![Link {
-                rel: "self".into(),
-                url: "https://example.com/x".into(),
+                rel: String::from("self"),
+                url: String::from("https://example.com/x"),
                 urn: None,
                 link_type: None,
             }],
@@ -873,7 +883,7 @@ mod tests {
     #[test]
     fn metadata_attribute_usage_and_list_member_round_trip() {
         let usage = MetadataAttributeUsage {
-            metadata_attribute_ref: "CONTACT".into(),
+            metadata_attribute_ref: String::from("CONTACT"),
             relationship: AttributeRelationship::Dataflow,
             annotations: Vec::new(),
             link: None,
@@ -903,13 +913,13 @@ mod tests {
 
     #[test]
     fn newtype_into_inner_and_from() {
-        let g = GroupId::new("G".to_string()).unwrap();
+        let g = GroupId::new(String::from("G")).unwrap();
         assert_eq!(g.clone().into_inner(), "G");
         assert_eq!(String::from(g), "G");
-        let refs = vec![DimensionRef { id: "D".to_string(), optional: None }];
+        let refs = vec![DimensionRef { id: String::from("D"), optional: None }];
         assert_eq!(DimensionIds::new(refs.clone()).unwrap().into_inner(), refs);
         assert_eq!(Vec::from(DimensionIds::new(refs.clone()).unwrap()), refs);
-        let m = vec!["M".to_string()];
+        let m = vec![String::from("M")];
         assert_eq!(MeasureRelationship::new(m.clone()).unwrap().into_inner(), m);
         assert_eq!(Vec::from(MeasureRelationship::new(m.clone()).unwrap()), m);
     }

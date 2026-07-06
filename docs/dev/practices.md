@@ -385,6 +385,19 @@ crates/sdmx-parsers/src/
   let components = vec![];
   ```
 
+### String Construction
+
+- **String literals become `String` through `String::from("x")`.** The literal-conversion forms compile identically; `String::from` names the constructed type as the leading token, matching `None::<T>` and `Vec::new()`, where `"x".to_string()` reaches the value through the `Display` machinery and `"x".into()` names no target at all. This applies in doc examples as in tests and implementation code. `.to_string()` remains correct on non-literal receivers, where it is Display rendering rather than literal conversion.
+  ```rust
+  // Good
+  let id = String::from("CL_FREQ");
+  let rendered = version.to_string(); // Display on a value, not a literal conversion
+
+  // Avoid
+  let id = "CL_FREQ".to_string();
+  let id: String = "CL_FREQ".into();
+  ```
+
 ## Fixture Construction
 
 - **Test fixtures build validated types through their constructors (`new()` / `parse()`), never by struct literal.** A constructor-routed fixture is a value the type actually admits and stays coupled to the invariants as they change: tighten a rule and every affected fixture fails loudly, where a literal would keep compiling with a now-illegal value. The invariant-free pub-field carriers (`LocalisedText`, `DimensionRef`, `TextFormat`, ...) have no constructor and are legitimately literal-built. A fixture that deliberately needs a state the constructor forbids (exercising a defensive backstop, for example) stays literal with a one-line comment naming the intent, so the bypass reads as deliberate. This split is a semantic judgement no check script can enforce; this documented convention is the only defense against regression.
