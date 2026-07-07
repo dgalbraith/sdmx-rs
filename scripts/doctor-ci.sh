@@ -73,7 +73,7 @@ verify_recipe=$(sed -n '/^verify:/,/^[a-z]/p' Justfile | head -1 || echo "")
 
 if [ -n "$verify_recipe" ]; then
     # Parse the dependencies from the verify recipe
-    # Format: verify: fmt-check clippy check-wasm doc deny machete check-scaffolding semver-check test-coverage-headless shellcheck verify-adr release-dry-run md-check
+    # Format: verify: fmt-check clippy verify-wasm doc deny machete check-scaffolding semver-check test-coverage-headless shellcheck verify-adr release-dry-run md-check
 
     verify_deps=$(sed -n '/^verify:/p' Justfile | sed 's/.*verify: //' | tr ' ' '\n' | grep -v '^$')
 
@@ -101,7 +101,7 @@ echo ""
 # Key checks to look for
 echo "Key Checks Status:"
 
-checks="fmt-check clippy check-wasm doc deny machete verify-adr md-check test release-dry-run"
+checks="fmt-check clippy verify-wasm doc deny machete verify-adr md-check test release-dry-run"
 
 for check in $checks; do
     if echo "$verify_deps" | grep -q "$check"; then

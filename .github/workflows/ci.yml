@@ -273,8 +273,8 @@ jobs:
       - name: Run Clippy Lints
         run: nix develop --command just clippy
 
-  check-wasm:
-    name: WASM Portability Check
+  verify-wasm:
+    name: WASM Verification
     runs-on: ubuntu-latest
     needs: [changes]
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
@@ -290,8 +290,8 @@ jobs:
 
       - uses: ./.github/actions/sccache-cache
 
-      - name: Run WASM Target Check
-        run: nix develop --command just check-wasm
+      - name: Run WASM Verification
+        run: nix develop --command just verify-wasm
 
   docs:
     name: Documentation Warnings Check
@@ -685,7 +685,7 @@ jobs:
         # every runner), so re-running it on macOS/Windows burns minutes for no
         # added signal. The native build+test above still run on all three OSes
         # (that is the matrix's purpose); the canonical full WASM gate lives in
-        # the Nix `check` job (`just check-wasm`).
+        # the dedicated `verify-wasm` job (`just verify-wasm`).
         if: runner.os == 'Linux'
         # Each package checked individually to mirror `just check-wasm` exactly.
         # Only sdmx-rs (the facade) uses --no-default-features; sdmx-types,
@@ -894,7 +894,7 @@ jobs:
       - check-formatting
       - clippy
       - test-matrix
-      - check-wasm
+      - verify-wasm
       - docs
       - docs-internal
       - check-security

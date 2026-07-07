@@ -19,7 +19,7 @@ These checks validate universal code quality and must pass unconditionally:
 | **semver-check**     | Semantic versioning compliance (PRs to main only)                                            | PRs targeting main           |    ✅ Yes    |
 | **check-security**   | Supply chain audit (deny + machete)                                                          | Rust/infra changes, schedule |    ✅ Yes    |
 | **check-secrets**    | Secret leak scan over full git history (`gitleaks`)                                          | All pushes & PRs             |    ✅ Yes    |
-| **check-wasm**       | WASM target portability                                                                      | Rust/infra changes, schedule |    ✅ Yes    |
+| **verify-wasm**      | WASM compile + headless test execution                                                       | Rust/infra changes, schedule |    ✅ Yes    |
 | **docs**             | Documentation generation and warnings                                                        | Rust/infra changes, schedule |    ✅ Yes    |
 | **docs-internal**    | Internal design_docs layer builds clean (verify-only)                                        | Rust/infra changes, schedule |    ✅ Yes    |
 | **coverage**         | Per-crate code coverage floors (`cargo-llvm-cov`)                                            | Rust/infra changes, schedule |    ✅ Yes    |
@@ -209,11 +209,11 @@ Scans the full git history for committed secrets (keys, tokens, private keys) wi
 **Runs on**: All pushes and PRs (unconditional; not path-filtered).
 **Purpose**: Block committed secrets from reaching or persisting on the remote (see [SECURITY.md § Secret Leak Prevention](../../SECURITY.md#secret-leak-prevention)).
 
-#### check-wasm
-Verifies that WASM-target crates compile without `std` and feature combinations work correctly.
+#### verify-wasm
+Verifies that the `no_std` crates compile for `wasm32-unknown-unknown` and that a representative test subset executes under Node/V8.
 
 **Runs on**: Rust code changes, infrastructure changes, or scheduled.
-**Purpose**: Enforce WASM portability (ADR-0005).
+**Purpose**: Enforce WASM portability and runtime parity (ADR-0007).
 
 #### docs
 Generates workspace documentation and enforces `missing_docs` linting.
@@ -414,12 +414,12 @@ the genuine **first** `1.0.0` publish (no 1.0 baseline can exist yet), set
 - Licenses: approve in `deny.toml` (rare) or remove dependency
 - Unused: remove from Cargo.toml or add to `[package.metadata.cargo-machete]` with comment
 
-### "check-wasm" failed
+### "verify-wasm" failed
 **Probable causes**:
-- Code uses `std` features in no_std crate
-- WASM target doesn't compile
+- Code uses `std` features in a `no_std` crate (compile failure)
+- A wasm-annotated test panics or diverges under Node/V8 (execution failure)
 
-**Fix**: Ensure crates with `#![no_std]` use only core/alloc APIs.
+**Fix**: For a compile failure, ensure `#![no_std]` crates use only core/alloc APIs. For an execution failure, reproduce locally with `wasm-pack test --node crates/<crate>`.
 
 ### "docs" failed
 **Probable causes**:
