@@ -396,6 +396,12 @@ editions = ["3.0", "3.1"]
 rust = ["Concept"]
 
 [[fragment]]
+symbol = "ISOConceptReferenceType"
+file = "schemas/SDMXStructureConcept.xsd"
+editions = ["3.0", "3.1"]
+rust = ["IsoConceptReference"]
+
+[[fragment]]
 symbol = "ConceptSchemeType"
 file = "schemas/SDMXStructureConcept.xsd"
 editions = ["3.0", "3.1"]

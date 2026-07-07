@@ -714,6 +714,8 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6.1 |
 | **Related**  | [D-0021](#d-0021), [D-0025](#d-0025), [D-0027](#d-0027), [D-0029](#d-0029), [D-0048](#d-0048) |
 
+> **`ISOConceptReference` cut closed 2026-07-07.** `Concept` now carries `iso_concept_reference: Option<IsoConceptReference>`, a pub-field carrier of the element's three mandatory strings. The `xs:duration` facet grammar is the sole remaining cut of consequence (4).
+>
 > **`ConceptRole` cut closed 2026-07-07; site list corrected.** `Dimension`, `Attribute`, and `Measure` now carry `concept_roles: Vec<ConceptReference>` (0..* in wire order, so a possibly-empty `Vec`, not an `Option`). Consequence (4) mis-states the sites as "dimensions/measures/concepts": the schema declares `ConceptRole` on dimensions, attributes, and measures only, and `TimeDimensionType`'s restriction drops it, so `TimeDimension` correctly omits it. `ISOConceptReference` and the `xs:duration` facet grammar remain cut.
 >
 > **Further amended by [D-0052](#d-0052)**: `text_type` is stored as `Option<DataType>` — the `String` default is an effective view (position-aware: the time tier defaults to `ObservationalTimePeriod`).

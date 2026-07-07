@@ -36,14 +36,14 @@ use crate::{
     DataStructureRefs, DataType, Dataflow, DataflowReference, DataflowRefs, Dimension,
     DimensionConstraint, DimensionList, DimensionRef, DsdReference, EnumerationFormat,
     EnumerationReference, FixedInclude, Group, GroupDimensions, IdentifiableMetadata,
-    KeyValueSelection, Link, LocalisedString, LocalisedText, MaintainableMetadata, MaxOccurs,
-    Measure, MeasureList, MeasureRelationship, MemberValue, MemberValues, MetadataAttributeUsage,
-    NameableMetadata, ObservationalTimePeriod, ProvisionAgreementReference, ProvisionAgreementRefs,
-    QueryableDataSource, ReleaseCalendar, Representation, RepresentationChoice, SdmxDecimal,
-    SdmxInteger, SdmxTimePeriod, SdmxVersion, SimpleComponentValue, SimpleComponentValues,
-    SimpleDataSources, SimpleKeyValues, TextFormat, TimeDimension, TimePeriodRange, TimeRange,
-    TimeRangeKind, Usage, ValueItem, ValueList, ValueListReference, VersionRef,
-    VersionableMetadata,
+    IsoConceptReference, KeyValueSelection, Link, LocalisedString, LocalisedText,
+    MaintainableMetadata, MaxOccurs, Measure, MeasureList, MeasureRelationship, MemberValue,
+    MemberValues, MetadataAttributeUsage, NameableMetadata, ObservationalTimePeriod,
+    ProvisionAgreementReference, ProvisionAgreementRefs, QueryableDataSource, ReleaseCalendar,
+    Representation, RepresentationChoice, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxVersion,
+    SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues, TextFormat,
+    TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage, ValueItem, ValueList,
+    ValueListReference, VersionRef, VersionableMetadata,
 };
 
 // ---------------------------------------------------------------------------
@@ -1164,15 +1164,27 @@ pub(crate) fn dataflow() -> impl Strategy<Value = Dataflow> {
 // Concept, organisation, and value-list schemes
 // ---------------------------------------------------------------------------
 
+/// An `IsoConceptReference` (three free-string children).
+fn iso_concept_reference() -> impl Strategy<Value = IsoConceptReference> {
+    (any::<String>(), any::<String>(), any::<String>()).prop_map(
+        |(concept_agency, concept_scheme_id, concept_id)| IsoConceptReference {
+            concept_agency,
+            concept_scheme_id,
+            concept_id,
+        },
+    )
+}
+
 /// A `Concept` over an `NCName` id with a Basic-position core representation.
 pub(crate) fn concept() -> impl Strategy<Value = Concept> {
     (
         nameable_metadata_from(ncname_lexeme()),
         proptest::option::of(id_type_lexeme()),
         proptest::option::of(basic_representation()),
+        proptest::option::of(iso_concept_reference()),
     )
-        .prop_map(|(metadata, parent_id, core_representation)| {
-            Concept::new(metadata, parent_id, core_representation)
+        .prop_map(|(metadata, parent_id, core_representation, iso_concept_reference)| {
+            Concept::new(metadata, parent_id, core_representation, iso_concept_reference)
                 .expect("strategy emits NCName ids and basic-valid representations")
         })
         .boxed()
