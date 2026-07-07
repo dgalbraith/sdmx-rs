@@ -446,6 +446,7 @@
 !/tests/bats/verify-ci-gate.bats
 
 # Diagnostics tests (doctor-*)
+!/tests/bats/doctor-ci.bats
 !/tests/bats/doctor-forge.bats
 !/tests/bats/doctor-registry.bats
 
