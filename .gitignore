@@ -404,6 +404,9 @@
 !/scripts/run-fuzz-check.sh
 !/scripts/run-wasm-tests.sh
 
+# Pre-push guard (git push hygiene; invoked by the pre-push hook)
+!/scripts/guard-main-push.sh
+
 # Core infrastructure support
 !/scripts/common.sh
 !/scripts/doc-engine.sh
@@ -515,6 +518,9 @@
 !/tests/bats/run-fmt.bats
 !/tests/bats/run-fuzz-check.bats
 !/tests/bats/run-wasm-tests.bats
+
+# Pre-push guard tests
+!/tests/bats/guard-main-push.bats
 
 
 # ==============================================================================

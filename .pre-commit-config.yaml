@@ -48,7 +48,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
 
-  # 5. Local Rust Quality Gate (Runs only on push when Rust/TOML files change)
+  # 5. Direct-Push Guard (pre-push): refuse a push to `main` that skipped the
+  #    staging CI round-trip. Runs first and cheaply (one `git ls-remote`) so an
+  #    accidental `git push origin main` is caught before the verify gates below
+  #    spend minutes on a push that must not land. This is an accident guard, not
+  #    a forge gate — the maintainer can override (SDMX_ALLOW_DIRECT_MAIN=1).
+  - repo: local
+    hooks:
+      - id: guard-main-push
+        name: guard-direct-push-to-main
+        entry: scripts/guard-main-push.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+  # 6. Local Rust Quality Gate (Runs only on push when Rust/TOML files change)
   - repo: local
     hooks:
       - id: verify-gate-rust
@@ -59,7 +74,7 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
-  # 6. Local Scripts Quality Gate (Runs only on push when script/bats files change)
+  # 7. Local Scripts Quality Gate (Runs only on push when script/bats files change)
   - repo: local
     hooks:
       - id: verify-gate-scripts
@@ -70,7 +85,7 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
-  # 7. Local Docs Quality Gate (runs on push when Markdown OR crate sources
+  # 8. Local Docs Quality Gate (runs on push when Markdown OR crate sources
   #    change: verify-docs reads .rs too, for decision-reference resolution
   #    (check-decision-refs) and the XSD-fragment cross-check)
   - repo: local
@@ -83,7 +98,7 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
-  # 8. Local Nix/Infra Quality Gate (Runs only on push when nix files change)
+  # 9. Local Nix/Infra Quality Gate (Runs only on push when nix files change)
   - repo: local
     hooks:
       - id: verify-gate-infra
