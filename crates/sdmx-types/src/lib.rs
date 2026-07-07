@@ -92,7 +92,7 @@ pub use crate::{
         Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
     },
     component::{ComponentMetadata, Usage},
-    concept::{Concept, ConceptScheme},
+    concept::{Concept, ConceptScheme, IsoConceptReference},
     constraint::{
         AvailabilityConstraint, AvailabilityConstraintAttachment, ComponentSelection,
         ComponentValueSet, ConstraintModel, ConstraintRole, CubeKeyValue, CubeKeyValues,

@@ -19,6 +19,10 @@ The `CoreRepresentation` is modelled with the same `Representation` type as comp
 its position rules are the Basic tier (D-0048): the same `validate_basic_representation` the
 attribute and measure constructors use.
 
+`IsoConceptReference` is an invariant-free pub-field carrier (§7) for the optional
+`ISOConceptReference` element: three mandatory, unconstrained `xs:string` children, so plain
+`String` fields and derived serde. `Option` on `Concept` models the element's presence.
+
 `ConceptScheme` follows `Codelist`'s wrapper shape: a private `scheme`, a fallible `new()` that
 re-validates the scheme id as `NCNameIDType`, and a custom `Deserialize` routing through it.
 
@@ -43,6 +47,31 @@ use crate::{
 };
 
 // ---------------------------------------------------------------------------
+// IsoConceptReference
+// ---------------------------------------------------------------------------
+
+/// A reference to an ISO 11179 concept.
+///
+/// ## Specification
+/// - **Type**: `ISOConceptReferenceType`
+/// - **Element**: `<ISOConceptReference>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ISOConceptReferenceType.md"))]
+///
+/// An invariant-free pub-field carrier: all three children are mandatory, unconstrained
+/// `xs:string`, so the fields are plain `String`s and the serde impls are derived. Carried on
+/// [`Concept`] as an optional slot; the `Option` there models the element's presence.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct IsoConceptReference {
+    /// The agency maintaining the referenced ISO 11179 concept scheme.
+    pub concept_agency: String,
+    /// The id of the referenced ISO 11179 concept scheme.
+    pub concept_scheme_id: String,
+    /// The id of the referenced ISO 11179 concept.
+    pub concept_id: String,
+}
+
+// ---------------------------------------------------------------------------
 // Concept
 // ---------------------------------------------------------------------------
 
@@ -56,7 +85,8 @@ use crate::{
 ///
 /// A validated item: its id is `NCNameIDType`, so [`new`](Self::new) re-validates it and is
 /// fallible, and the fields are private. The optional core representation declares the concept's
-/// default data type or enumeration, held to the Basic-tier position rules.
+/// default data type or enumeration, held to the Basic-tier position rules. The optional ISO 11179
+/// concept reference ([`IsoConceptReference`]) is carried verbatim.
 ///
 /// # Examples
 ///
@@ -72,7 +102,7 @@ use crate::{
 /// }])?;
 /// let identifiable =
 ///     IdentifiableMetadata::new(String::from("FREQ"), None, None, Vec::new(), Vec::new())?;
-/// let concept = Concept::new(NameableMetadata::new(identifiable, names, None), None, None)?;
+/// let concept = Concept::new(NameableMetadata::new(identifiable, names, None), None, None, None)?;
 /// assert_eq!(concept.id(), "FREQ");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -81,6 +111,7 @@ pub struct Concept {
     metadata: NameableMetadata,
     parent_id: Option<String>,
     core_representation: Option<Representation>,
+    iso_concept_reference: Option<IsoConceptReference>,
 }
 
 impl Concept {
@@ -96,10 +127,11 @@ impl Concept {
         metadata: NameableMetadata,
         parent_id: Option<String>,
         core_representation: Option<Representation>,
+        iso_concept_reference: Option<IsoConceptReference>,
     ) -> Result<Self, Error> {
         validate_ncname(metadata.id())?;
         validate_basic_representation("Concept", core_representation.as_ref())?;
-        Ok(Self { metadata, parent_id, core_representation })
+        Ok(Self { metadata, parent_id, core_representation, iso_concept_reference })
     }
 
     /// The id of the parent concept in a hierarchy, if any. A structural reference, not
@@ -113,6 +145,12 @@ impl Concept {
     #[must_use]
     pub const fn core_representation(&self) -> Option<&Representation> {
         self.core_representation.as_ref()
+    }
+
+    /// The concept's ISO 11179 concept reference, if any.
+    #[must_use]
+    pub const fn iso_concept_reference(&self) -> Option<&IsoConceptReference> {
+        self.iso_concept_reference.as_ref()
     }
 }
 
@@ -152,9 +190,11 @@ impl<'de> serde::Deserialize<'de> for Concept {
             metadata: NameableMetadata,
             parent_id: Option<String>,
             core_representation: Option<Representation>,
+            iso_concept_reference: Option<IsoConceptReference>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.metadata, raw.parent_id, raw.core_representation).map_err(to_de_error)
+        Self::new(raw.metadata, raw.parent_id, raw.core_representation, raw.iso_concept_reference)
+            .map_err(to_de_error)
     }
 }
 
@@ -347,6 +387,14 @@ mod tests {
         .unwrap()
     }
 
+    fn iso_reference() -> IsoConceptReference {
+        IsoConceptReference {
+            concept_agency: String::from("ISO"),
+            concept_scheme_id: String::from("11179"),
+            concept_id: String::from("FREQ"),
+        }
+    }
+
     fn text_format(text_type: DataType) -> Representation {
         Representation {
             choice: RepresentationChoice::TextFormat(TextFormat {
@@ -373,10 +421,10 @@ mod tests {
 
     #[test]
     fn concept_new_validates_id_as_ncname() {
-        assert!(Concept::new(nameable("FREQ"), None, None).is_ok());
+        assert!(Concept::new(nameable("FREQ"), None, None, None).is_ok());
         // A leading-digit id is a valid IDType but not an NCNameIDType.
         assert_eq!(
-            Concept::new(nameable("1FREQ"), None, None).unwrap_err(),
+            Concept::new(nameable("1FREQ"), None, None, None).unwrap_err(),
             Error::InvalidNcNameIdentifier(String::from("1FREQ"))
         );
     }
@@ -384,9 +432,11 @@ mod tests {
     #[test]
     fn concept_new_validates_core_representation_at_basic_tier() {
         // A Basic textType is fine; a reference/key type is outside the Basic subset.
-        assert!(Concept::new(nameable("FREQ"), None, Some(text_format(DataType::String))).is_ok());
+        assert!(
+            Concept::new(nameable("FREQ"), None, Some(text_format(DataType::String)), None).is_ok()
+        );
         assert_eq!(
-            Concept::new(nameable("FREQ"), None, Some(text_format(DataType::KeyValues)))
+            Concept::new(nameable("FREQ"), None, Some(text_format(DataType::KeyValues)), None)
                 .unwrap_err(),
             Error::InvalidTextTypeForComponent {
                 component: String::from("Concept"),
@@ -401,10 +451,13 @@ mod tests {
             nameable("FREQ"),
             Some(String::from("PARENT")),
             Some(text_format(DataType::String)),
+            Some(iso_reference()),
         )
         .unwrap();
         assert_eq!(concept.parent_id(), Some("PARENT"));
         assert!(concept.core_representation().is_some());
+        assert_eq!(concept.iso_concept_reference(), Some(&iso_reference()));
+        assert_eq!(concept.iso_concept_reference().unwrap().concept_scheme_id, "11179");
     }
 
     #[test]
@@ -413,6 +466,7 @@ mod tests {
             nameable("FREQ"),
             Some(String::from("PARENT")),
             Some(text_format(DataType::String)),
+            Some(iso_reference()),
         )
         .unwrap();
         crate::test_support::round_trip(&concept);
@@ -422,19 +476,26 @@ mod tests {
     fn concept_new_enforces_ncname_id() {
         // The NCName id tightening is Concept::new's (composite over the nested nameable id): a
         // leading-digit id passes IDType but fails NCName.
-        assert!(Concept::new(nameable("1FREQ"), None, None).is_err());
+        assert!(Concept::new(nameable("1FREQ"), None, None, None).is_err());
     }
 
     #[test]
     fn concept_deserialize_rejects_non_ncname_id() {
-        // Concept's Deserialize declares `Raw { metadata, parent_id, core_representation }` and
+        // Concept's Deserialize declares
+        // `Raw { metadata, parent_id, core_representation, iso_concept_reference }` and
         // routes through new(). postcard is positional, so a tuple of those field types carrying a
         // leading-digit id (valid IDType, so the nested metadata deserialises, but rejected by the
         // NCName tightening in Concept::new) proves the wire path re-runs the check.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
-        let ok = (nameable("FREQ"), None::<String>, None::<Representation>);
+        let ok =
+            (nameable("FREQ"), None::<String>, None::<Representation>, None::<IsoConceptReference>);
         assert!(postcard::from_bytes::<Concept>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
-        let raw = (nameable("1FREQ"), None::<String>, None::<Representation>);
+        let raw = (
+            nameable("1FREQ"),
+            None::<String>,
+            None::<Representation>,
+            None::<IsoConceptReference>,
+        );
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Concept>(&bytes).is_err());
     }
@@ -449,7 +510,7 @@ mod tests {
         );
 
         let mut scheme = ConceptScheme::new(scheme_metadata("CS_X"), None).unwrap();
-        scheme.push(Concept::new(nameable("FREQ"), None, None).unwrap());
+        scheme.push(Concept::new(nameable("FREQ"), None, None, None).unwrap());
         assert_eq!(scheme.get("FREQ").map(IdentifiableArtefact::id), Some("FREQ"));
         assert_eq!(scheme.iter().count(), 1);
     }
@@ -457,7 +518,7 @@ mod tests {
     #[test]
     fn concept_scheme_deserialize_round_trips() {
         let mut scheme = ConceptScheme::new(scheme_metadata("CS_X"), None).unwrap();
-        scheme.push(Concept::new(nameable("FREQ"), None, None).unwrap());
+        scheme.push(Concept::new(nameable("FREQ"), None, None, None).unwrap());
         crate::test_support::round_trip(&scheme);
     }
 
@@ -554,7 +615,7 @@ mod tests {
         assert!(scheme.is_partial());
 
         // The Concept carrier forwards its identifiable and nameable accessors to its metadata.
-        let concept = Concept::new(full_nameable("FREQ"), None, None).unwrap();
+        let concept = Concept::new(full_nameable("FREQ"), None, None, None).unwrap();
         assert_eq!(concept.id(), "FREQ");
         assert_eq!(concept.urn(), Some("urn:x"));
         assert_eq!(concept.uri(), Some("uri"));
