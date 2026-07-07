@@ -290,6 +290,7 @@ The `sdmx-types` contract-fragment pipeline keeps each type's verbatim XSD excer
 | `just doctor-monorepo`  | Local | Audits version string parity and package consistency across crates.                        | `scripts/doctor-monorepo.sh`  |
 | `just doctor-forge`     | Local | Validates forge (GitHub) governance configuration against the declared forge spec.         | `scripts/doctor-forge.sh`     |
 | `just doctor-registry`  | Local | Validates registry (crates.io) Trusted Publishing configuration against the registry spec. | `scripts/doctor-registry.sh`  |
+| `just doctor-provenance` | Local | Audits `main`'s signed commit and tag history as-of the maintainer allowlist (Tier 1) and flags merges that reached `main` by direct push (Tier 2). | `scripts/doctor-provenance.sh` |
 
 > [!NOTE]
 > **Bootstrap tools are runbook-only, by policy.** Routine maintainer operations
