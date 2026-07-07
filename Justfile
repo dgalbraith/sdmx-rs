@@ -507,6 +507,7 @@ doctor:
     @echo "Governance (forge & registry config vs. spec, read-only):"
     @echo "  just doctor-forge            # Live forge (GitHub) config vs. spec"
     @echo "  just doctor-registry         # Live registry (crates.io) TP config vs. spec"
+    @echo "  just doctor-provenance       # Main's signed history as-of the allowlist + CI round-trip"
     @echo ""
     @echo "Environment diagnostic (quick sanity check):"
     @echo "  just doctor-env              # Nix/direnv/toolchain/hooks overview"
@@ -575,6 +576,10 @@ doctor-forge:
 # Registry configuration diagnostics (read-only: live crates.io TP state vs. spec)
 doctor-registry:
     @./scripts/doctor-registry.sh
+
+# Repo-provenance audit (read-only: main's signed history as-of the allowlist + CI round-trip)
+doctor-provenance *ARGS:
+    @./scripts/doctor-provenance.sh {{ARGS}}
 
 # ============================================================================
 # 9. Maintenance

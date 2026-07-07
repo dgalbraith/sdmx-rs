@@ -362,14 +362,31 @@ GH_MOCK_VULN_ALERTS="${GH_MOCK_VULN_ALERTS:-on}"
 GH_MOCK_PRIVATE_VULN="${GH_MOCK_PRIVATE_VULN:-on}"
 GH_MOCK_AUTO_FIXES="${GH_MOCK_AUTO_FIXES:-false}"
 GH_MOCK_ALLOWED_ACTIONS="${GH_MOCK_ALLOWED_ACTIONS:-all}"
+GH_MOCK_STAGED_SHAS="${GH_MOCK_STAGED_SHAS:-}"
 EOF
     cat >> "$BATS_TEST_TMPDIR/bin/gh" << 'EOF'
+
+# gh applies a jq filter when -q/--jq is passed (to `--json` output or `api`).
+# Capture it once and route response bodies through emit() so the mock matches
+# real gh; previously --jq/-q was ignored and raw JSON was returned.
+_jq=""; _want=0
+for _a in "$@"; do
+    [ "$_want" = 1 ] && { _jq="$_a"; _want=0; continue; }
+    case "$_a" in --jq|-q) _want=1 ;; esac
+done
+emit() { if [ -n "$_jq" ]; then printf '%s' "$1" | jq -r "$_jq"; else printf '%s\n' "$1"; fi; }
 
 # gh auth status — gate for the online tier.
 if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
     [ "$AUTHED" = "1" ] && exit 0
     echo "not logged in" >&2
     exit 1
+fi
+
+# gh repo view --json <fields> [-q <jq>] — a canned repo object.
+if [ "$1" = "repo" ] && [ "$2" = "view" ]; then
+    emit '{"nameWithOwner":"owner/repo"}'
+    exit 0
 fi
 
 # gh api <endpoint> [flags...] — strip the leading 'api' and find the endpoint
@@ -399,6 +416,17 @@ if [ "$1" = "api" ]; then
         repos/*/automated-security-fixes)
             # enabled probe: JSON body with .enabled. Spec wants false (disabled).
             printf '{"enabled":%s}\n' "${GH_MOCK_AUTO_FIXES:-false}"; exit 0 ;;
+        repos/*/actions/runs*)
+            # CI workflow runs for a head_sha. Dynamic (not a fixture): a SHA in
+            # GH_MOCK_STAGED_SHAS gets a staging-* run plus a main run, otherwise
+            # only a main run. What a staging-* branch MEANS is the caller's
+            # concern, not the mock's.
+            _sha=$(printf '%s' "$endpoint" | sed -n 's/.*head_sha=\([0-9a-f]*\).*/\1/p')
+            case " ${GH_MOCK_STAGED_SHAS:-} " in
+                *" $_sha "*) emit '{"workflow_runs":[{"name":"Continuous Integration","head_branch":"staging-x"},{"name":"Continuous Integration","head_branch":"main"}]}' ;;
+                *)           emit '{"workflow_runs":[{"name":"Continuous Integration","head_branch":"main"}]}' ;;
+            esac
+            exit 0 ;;
     esac
 
     case "$endpoint" in
@@ -426,7 +454,7 @@ if [ "$1" = "api" ]; then
     esac
 
     if [ -f "$FORGE_FIXTURES/$fixture" ]; then
-        cat "$FORGE_FIXTURES/$fixture"
+        emit "$(cat "$FORGE_FIXTURES/$fixture")"
         exit 0
     fi
     # An absent fixture models a 404 (e.g. release environment not created).
