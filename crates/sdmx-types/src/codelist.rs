@@ -473,6 +473,9 @@ impl<'de> serde::Deserialize<'de> for Codelist {
 mod tests {
     use alloc::{string::ToString, vec};
 
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+
     use super::*;
     use crate::{
         localised::LocalisedText,
@@ -550,6 +553,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn delegation_matrix_forwards_every_accessor() {
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
         let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
@@ -652,6 +656,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn deserialize_round_trips_and_restores_items() {
         let mut codelist = Codelist::new(metadata("CL_FREQ"), None).unwrap();
         codelist.push(code("A"));

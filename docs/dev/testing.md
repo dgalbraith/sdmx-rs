@@ -780,19 +780,42 @@ This verifies:
 - Allocations are explicit (via `alloc::vec::Vec`, `alloc::string::String`)
 - Error handling doesn't rely on `std::panic`
 
-### WASM Compilation Check
+### WASM Compilation & Execution
 
-Integration tests require `std`, but crates must compile for WASM:
+The `no_std` crates are verified two ways on `wasm32-unknown-unknown`: they must **compile**, and a representative subset of their tests must **execute** in a real WASM engine (ADR-0007).
+
+Compilation confirms no `std` leaks into the library across feature combinations:
 
 ```bash
 just check-wasm
 ```
 
-This verifies:
-- `sdmx-types` compiles for `wasm32-unknown-unknown`
-- `sdmx-parsers` compiles for WASM
-- `sdmx-writers` compiles for WASM
-- Feature combinations work correctly
+It verifies `sdmx-types`, `sdmx-parsers`, and `sdmx-writers` compile for `wasm32-unknown-unknown`, plus the facade's WASM-safe feature combinations.
+
+Execution runs the tests under Node/V8 via `wasm-bindgen-test`, catching a runtime divergence between native and WASM (a target-specific panic, or behaviour that differs on the 32-bit target) that a compile check cannot:
+
+```bash
+wasm-pack test --node crates/sdmx-types
+```
+
+**Scope.** The three `no_std` leaf crates execute; `sdmx-rs` (facade) is compile-checked only, since it re-exports and its logic runs in the leaf crates; `sdmx-client` is native-only (async networking) and excluded; doc-tests are native-only, as `wasm-pack` does not run them.
+
+**Opting a test into WASM.** Dual-annotate: keep the native `#[test]` and add the WASM harness on the target only.
+
+```rust
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen_test::wasm_bindgen_test;
+
+#[test]
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+fn my_test() { /* ... */ }
+```
+
+**Choosing the subset.** For execution parity, not exhaustiveness: the assertions are platform-independent, so a representative spread of real logic (an alloc-heavy metadata spine, a serde round-trip, integer conversion, and the dense lexical scanners) run under V8 confirms the crate behaves identically and guards regressions, without annotating every test.
+
+**Two gotchas** from the WASM exclusion of the property suite:
+- The `proptest` modules (`mod prop`) are `#[cfg(not(target_arch = "wasm32"))]`: property assertions are platform-independent, so re-running them under WASM verifies nothing new.
+- A helper used *only* by those modules must carry the same target gate, or it is dead code under `wasm-pack` (e.g. `test_support::with_stated_offset`).
 
 ---
 

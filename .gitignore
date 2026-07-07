@@ -402,6 +402,7 @@
 !/scripts/run-bats.sh
 !/scripts/run-fmt.sh
 !/scripts/run-fuzz-check.sh
+!/scripts/run-wasm-tests.sh
 
 # Core infrastructure support
 !/scripts/common.sh
@@ -512,6 +513,7 @@
 !/tests/bats/run-bats.bats
 !/tests/bats/run-fmt.bats
 !/tests/bats/run-fuzz-check.bats
+!/tests/bats/run-wasm-tests.bats
 
 
 # ==============================================================================
