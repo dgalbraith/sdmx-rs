@@ -27,6 +27,8 @@ Decisions: D-0022, D-0028, D-0031, D-0048, D-0056, D-0057.
 "#
 )]
 
+use alloc::vec::Vec;
+
 use crate::{
     annotation::{Annotation, Link},
     artefact::IdentifiableArtefact,
@@ -54,7 +56,8 @@ use crate::{
 /// A validated component: [`new`](Self::new) holds the representation to the dimension position
 /// rules (codelist-only enumeration, the `Simple` `textType` subset, no `isMultiLingual` or
 /// representation-level `maxOccurs`), and the fields are private. The id is optional, inherited from
-/// the concept when absent.
+/// the concept when absent. `concept_roles` holds the zero-or-more concept references defining
+/// roles the dimension serves, in wire order.
 ///
 /// # Examples
 ///
@@ -69,7 +72,7 @@ use crate::{
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("FREQ"),
 /// };
-/// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
+/// let dimension = Dimension::new(metadata, concept, Vec::new(), None, Some(1))?;
 /// assert_eq!(dimension.id(), "FREQ");
 /// assert_eq!(dimension.effective_position(0), 1);
 /// # Ok::<(), sdmx_types::Error>(())
@@ -78,6 +81,7 @@ use crate::{
 pub struct Dimension {
     metadata: ComponentMetadata,
     concept: ConceptReference,
+    concept_roles: Vec<ConceptReference>,
     representation: Option<Representation>,
     position: Option<i32>,
 }
@@ -94,11 +98,12 @@ impl Dimension {
     pub fn new(
         metadata: ComponentMetadata,
         concept: ConceptReference,
+        concept_roles: Vec<ConceptReference>,
         representation: Option<Representation>,
         position: Option<i32>,
     ) -> Result<Self, Error> {
         validate_dimension_representation(representation.as_ref())?;
-        Ok(Self { metadata, concept, representation, position })
+        Ok(Self { metadata, concept, concept_roles, representation, position })
     }
 
     /// Stated: the id exactly as the wire carried it. `None` means the id was absent and the
@@ -112,6 +117,12 @@ impl Dimension {
     #[must_use]
     pub const fn concept(&self) -> &ConceptReference {
         &self.concept
+    }
+
+    /// The concepts defining roles this dimension serves, in wire order (possibly empty).
+    #[must_use]
+    pub fn concept_roles(&self) -> &[ConceptReference] {
+        &self.concept_roles
     }
 
     /// The dimension's local representation, if any. `None` means it inherits its concept's.
@@ -162,11 +173,13 @@ impl<'de> serde::Deserialize<'de> for Dimension {
         struct Raw {
             metadata: ComponentMetadata,
             concept: ConceptReference,
+            concept_roles: Vec<ConceptReference>,
             representation: Option<Representation>,
             position: Option<i32>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.metadata, raw.concept, raw.representation, raw.position).map_err(to_de_error)
+        Self::new(raw.metadata, raw.concept, raw.concept_roles, raw.representation, raw.position)
+            .map_err(to_de_error)
     }
 }
 
@@ -346,13 +359,15 @@ mod tests {
     fn dimension_id_is_stated_else_inherited_from_concept() {
         // A stated id is the effective id.
         let stated =
-            Dimension::new(metadata(Some("FREQ")), concept("CONCEPT_FREQ"), None, None).unwrap();
+            Dimension::new(metadata(Some("FREQ")), concept("CONCEPT_FREQ"), Vec::new(), None, None)
+                .unwrap();
         assert_eq!(stated.id(), "FREQ");
         assert_eq!(stated.stated_id(), Some("FREQ"));
 
         // An absent id inherits the concept's id as the effective identity.
         let inherited =
-            Dimension::new(metadata(None), concept("CONCEPT_FREQ"), None, None).unwrap();
+            Dimension::new(metadata(None), concept("CONCEPT_FREQ"), Vec::new(), None, None)
+                .unwrap();
         assert_eq!(inherited.id(), "CONCEPT_FREQ");
         assert_eq!(inherited.stated_id(), None);
     }
@@ -374,8 +389,14 @@ mod tests {
             max_occurs: None,
         };
         assert_eq!(
-            Dimension::new(metadata(Some("FREQ")), concept("FREQ"), Some(value_list), None)
-                .unwrap_err(),
+            Dimension::new(
+                metadata(Some("FREQ")),
+                concept("FREQ"),
+                Vec::new(),
+                Some(value_list),
+                None
+            )
+            .unwrap_err(),
             Error::ValueListEnumerationNotAllowed(String::from("Dimension"))
         );
     }
@@ -383,11 +404,14 @@ mod tests {
     #[test]
     fn dimension_effective_position_is_stated_else_one_based_index() {
         let stated =
-            Dimension::new(metadata(Some("FREQ")), concept("FREQ"), None, Some(5)).unwrap();
+            Dimension::new(metadata(Some("FREQ")), concept("FREQ"), Vec::new(), None, Some(5))
+                .unwrap();
         assert_eq!(stated.effective_position(0), 5);
         assert_eq!(stated.position(), Some(5));
 
-        let derived = Dimension::new(metadata(Some("FREQ")), concept("FREQ"), None, None).unwrap();
+        let derived =
+            Dimension::new(metadata(Some("FREQ")), concept("FREQ"), Vec::new(), None, None)
+                .unwrap();
         assert_eq!(derived.effective_position(0), 1); // first dimension -> position 1
         assert_eq!(derived.effective_position(3), 4);
         assert_eq!(derived.position(), None);
@@ -395,14 +419,21 @@ mod tests {
 
     #[test]
     fn dimension_deserialize_round_trips() {
-        let dimension =
-            Dimension::new(metadata(Some("FREQ")), concept("CONCEPT_FREQ"), None, Some(1)).unwrap();
+        let dimension = Dimension::new(
+            metadata(Some("FREQ")),
+            concept("CONCEPT_FREQ"),
+            vec![concept("FREQUENCY_ROLE")],
+            None,
+            Some(1),
+        )
+        .unwrap();
         crate::test_support::round_trip(&dimension);
     }
 
     #[test]
     fn dimension_deserialize_rejects_a_value_list_enumeration() {
-        // Dimension's Deserialize declares `Raw { metadata, concept, representation, position }` and
+        // Dimension's Deserialize declares
+        // `Raw { metadata, concept, concept_roles, representation, position }` and
         // routes through new(), which forbids a ValueList enumeration on a dimension. postcard is
         // positional, so a tuple of those field types carrying a well-formed ValueList
         // representation (so Raw deserialises, but rejected by the codelist-only rule in new())
@@ -422,9 +453,21 @@ mod tests {
             max_occurs: None,
         };
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
-        let ok = (metadata(Some("FREQ")), concept("FREQ"), None::<Representation>, None::<i32>);
+        let ok = (
+            metadata(Some("FREQ")),
+            concept("FREQ"),
+            Vec::<ConceptReference>::new(),
+            None::<Representation>,
+            None::<i32>,
+        );
         assert!(postcard::from_bytes::<Dimension>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
-        let raw = (metadata(Some("FREQ")), concept("FREQ"), Some(value_list), None::<i32>);
+        let raw = (
+            metadata(Some("FREQ")),
+            concept("FREQ"),
+            Vec::<ConceptReference>::new(),
+            Some(value_list),
+            None::<i32>,
+        );
         let bytes = postcard::to_allocvec(&raw).unwrap();
         assert!(postcard::from_bytes::<Dimension>(&bytes).is_err());
     }
@@ -529,8 +572,14 @@ mod tests {
     #[test]
     fn dimension_forwards_identifiable_accessors_and_exposes_its_fields() {
         let concept_ref = concept("CONCEPT_FREQ");
-        let dimension =
-            Dimension::new(full_metadata(Some("FREQ")), concept_ref.clone(), None, None).unwrap();
+        let dimension = Dimension::new(
+            full_metadata(Some("FREQ")),
+            concept_ref.clone(),
+            vec![concept_ref.clone()],
+            None,
+            None,
+        )
+        .unwrap();
         // urn/annotations/links delegate to the ComponentMetadata leaf.
         assert_eq!(dimension.urn(), Some("urn:x"));
         assert_eq!(dimension.uri(), Some("uri"));
@@ -538,6 +587,7 @@ mod tests {
         assert_eq!(dimension.links().len(), 1);
         // The component's own field accessors.
         assert_eq!(dimension.concept(), &concept_ref);
+        assert_eq!(dimension.concept_roles(), core::slice::from_ref(&concept_ref));
         assert!(dimension.representation().is_none());
     }
 

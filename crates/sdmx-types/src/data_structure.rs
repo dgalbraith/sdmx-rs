@@ -66,11 +66,12 @@ use crate::{
 ///         version: "1.0.0".parse().unwrap(),
 ///         id: String::from("FREQ"),
 ///     },
+///     Vec::new(),
 ///     None,
 ///     None,
 /// )?;
 /// let dimension_list =
-///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None)?;
+///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None, None)?;
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
 ///     language: Some(String::from("en")),
@@ -219,7 +220,7 @@ mod tests {
     }
 
     fn dimension(id: &str) -> Dimension {
-        Dimension::new(component_metadata(id), concept(id), None, None).unwrap()
+        Dimension::new(component_metadata(id), concept(id), Vec::new(), None, None).unwrap()
     }
 
     fn time_dimension() -> TimeDimension {
@@ -281,6 +282,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             None,
+            None,
         )
         .unwrap();
         let attribute_list = AttributeList::new(
@@ -289,6 +291,7 @@ mod tests {
                 Attribute::new(
                     component_metadata("OBS_STATUS"),
                     concept("OBS_STATUS"),
+                    Vec::new(),
                     None,
                     AttributeRelationship::Observation,
                     None,
@@ -299,16 +302,24 @@ mod tests {
             Vec::new(),
             Vec::new(),
             None,
+            None,
         )
         .unwrap();
         let measure_list = MeasureList::new(
             None,
             vec![
-                Measure::new(component_metadata("OBS_VALUE"), concept("OBS_VALUE"), None, None)
-                    .unwrap(),
+                Measure::new(
+                    component_metadata("OBS_VALUE"),
+                    concept("OBS_VALUE"),
+                    Vec::new(),
+                    None,
+                    None,
+                )
+                .unwrap(),
             ],
             Vec::new(),
             Vec::new(),
+            None,
             None,
         )
         .unwrap();
@@ -391,9 +402,16 @@ mod tests {
 
     #[test]
     fn artefact_hierarchy_forwards_every_accessor() {
-        let dimension_list =
-            DimensionList::new(None, vec![dimension("FREQ")], None, Vec::new(), Vec::new(), None)
-                .unwrap();
+        let dimension_list = DimensionList::new(
+            None,
+            vec![dimension("FREQ")],
+            None,
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+        )
+        .unwrap();
         let dsd = DataStructureDefinition {
             metadata: full_maintainable("ECB_EXR", "ECB"),
             dimension_list,
@@ -461,9 +479,9 @@ mod tests {
         // Deserialize over its fields in declaration order (metadata, dimension_list, groups,
         // attribute_list, measure_list, evolving_structure), and DimensionList has a custom
         // Deserialize routing an empty list through new(). Feeding the dimension_list position a
-        // DimensionList Raw tuple (id, annotations, links, urn, dimensions, time_dimension) with an
-        // empty `dimensions` proves the DSD's derived Deserialize propagates that nested rejection
-        // rather than swallowing it.
+        // DimensionList Raw tuple (id, annotations, links, urn, uri, dimensions, time_dimension)
+        // with an empty `dimensions` proves the DSD's derived Deserialize propagates that nested
+        // rejection rather than swallowing it.
         let metadata = maintainable("ECB_EXR", "ECB");
         // A valid (non-empty) dimension list decodes — guards the shape against field-order drift.
         let ok = (
@@ -472,6 +490,7 @@ mod tests {
                 None::<String>,
                 Vec::<Annotation>::new(),
                 Vec::<Link>::new(),
+                None::<String>,
                 None::<String>,
                 vec![dimension("FREQ")],
                 None::<crate::TimeDimension>,
@@ -491,6 +510,7 @@ mod tests {
                 None::<String>,
                 Vec::<Annotation>::new(),
                 Vec::<Link>::new(),
+                None::<String>,
                 None::<String>,
                 Vec::<crate::Dimension>::new(),
                 None::<crate::TimeDimension>,

@@ -19,6 +19,8 @@ Decisions: D-0025, D-0028, D-0048, D-0052, D-0057.
 "#
 )]
 
+use alloc::vec::Vec;
+
 use crate::{
     annotation::{Annotation, Link},
     artefact::IdentifiableArtefact,
@@ -37,9 +39,10 @@ use crate::{
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/MeasureType.md"))]
 ///
 /// A validated component: [`new`](Self::new) holds the representation to the Basic position rules,
-/// and the fields are private. The id is optional, inherited from the concept when absent. `usage`
-/// stores statedness; its schema default (`optional`) is the [`effective_usage`](Self::effective_usage)
-/// view.
+/// and the fields are private. The id is optional, inherited from the concept when absent.
+/// `concept_roles` holds the zero-or-more concept references defining roles the measure serves, in
+/// wire order. `usage` stores statedness; its schema default (`optional`) is the
+/// [`effective_usage`](Self::effective_usage) view.
 ///
 /// # Examples
 ///
@@ -59,7 +62,7 @@ use crate::{
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("OBS_VALUE"),
 /// };
-/// let measure = Measure::new(metadata, concept, None, None)?;
+/// let measure = Measure::new(metadata, concept, Vec::new(), None, None)?;
 /// assert_eq!(measure.id(), "OBS_VALUE");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -67,6 +70,7 @@ use crate::{
 pub struct Measure {
     metadata: ComponentMetadata,
     concept: ConceptReference,
+    concept_roles: Vec<ConceptReference>,
     representation: Option<Representation>,
     usage: Option<Usage>,
 }
@@ -82,11 +86,12 @@ impl Measure {
     pub fn new(
         metadata: ComponentMetadata,
         concept: ConceptReference,
+        concept_roles: Vec<ConceptReference>,
         representation: Option<Representation>,
         usage: Option<Usage>,
     ) -> Result<Self, Error> {
         validate_basic_representation("Measure", representation.as_ref())?;
-        Ok(Self { metadata, concept, representation, usage })
+        Ok(Self { metadata, concept, concept_roles, representation, usage })
     }
 
     /// Stated: the id exactly as the wire carried it. `None` means the id was absent and the
@@ -100,6 +105,12 @@ impl Measure {
     #[must_use]
     pub const fn concept(&self) -> &ConceptReference {
         &self.concept
+    }
+
+    /// The concepts defining roles this measure serves, in wire order (possibly empty).
+    #[must_use]
+    pub fn concept_roles(&self) -> &[ConceptReference] {
+        &self.concept_roles
     }
 
     /// The measure's local representation, if any.
@@ -146,11 +157,13 @@ impl<'de> serde::Deserialize<'de> for Measure {
         struct Raw {
             metadata: ComponentMetadata,
             concept: ConceptReference,
+            concept_roles: Vec<ConceptReference>,
             representation: Option<Representation>,
             usage: Option<Usage>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.metadata, raw.concept, raw.representation, raw.usage).map_err(to_de_error)
+        Self::new(raw.metadata, raw.concept, raw.concept_roles, raw.representation, raw.usage)
+            .map_err(to_de_error)
     }
 }
 
@@ -202,11 +215,13 @@ mod tests {
     #[test]
     fn measure_id_is_stated_else_inherited() {
         let stated =
-            Measure::new(metadata(Some("OBS_VALUE")), concept("OBS_VALUE"), None, None).unwrap();
+            Measure::new(metadata(Some("OBS_VALUE")), concept("OBS_VALUE"), Vec::new(), None, None)
+                .unwrap();
         assert_eq!(stated.id(), "OBS_VALUE");
         assert_eq!(stated.stated_id(), Some("OBS_VALUE"));
 
-        let inherited = Measure::new(metadata(None), concept("CONCEPT_VALUE"), None, None).unwrap();
+        let inherited =
+            Measure::new(metadata(None), concept("CONCEPT_VALUE"), Vec::new(), None, None).unwrap();
         assert_eq!(inherited.id(), "CONCEPT_VALUE");
         assert_eq!(inherited.stated_id(), None);
     }
@@ -218,6 +233,7 @@ mod tests {
             Measure::new(
                 metadata(Some("OBS_VALUE")),
                 concept("OBS_VALUE"),
+                Vec::new(),
                 Some(text_format(DataType::KeyValues)),
                 None,
             )
@@ -232,6 +248,7 @@ mod tests {
             Measure::new(
                 metadata(Some("OBS_VALUE")),
                 concept("OBS_VALUE"),
+                Vec::new(),
                 Some(text_format(DataType::Double)),
                 None,
             )
@@ -242,13 +259,15 @@ mod tests {
     #[test]
     fn measure_usage_default_is_a_layer_two_view() {
         let absent =
-            Measure::new(metadata(Some("OBS_VALUE")), concept("OBS_VALUE"), None, None).unwrap();
+            Measure::new(metadata(Some("OBS_VALUE")), concept("OBS_VALUE"), Vec::new(), None, None)
+                .unwrap();
         assert_eq!(absent.usage(), None);
         assert_eq!(absent.effective_usage(), Usage::Optional);
 
         let stated = Measure::new(
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
+            Vec::new(),
             None,
             Some(Usage::Mandatory),
         )
@@ -262,11 +281,14 @@ mod tests {
         let measure = Measure::new(
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
+            vec![concept("UNIT_MEASURE")],
             Some(text_format(DataType::Double)),
             None,
         )
         .unwrap();
         assert_eq!(measure.concept().id, "OBS_VALUE");
+        assert_eq!(measure.concept_roles().len(), 1);
+        assert_eq!(measure.concept_roles()[0].id, "UNIT_MEASURE");
         assert!(measure.representation().is_some());
     }
 
@@ -296,7 +318,7 @@ mod tests {
             }],
         )
         .unwrap();
-        let measure = Measure::new(full, concept("OBS_VALUE"), None, None).unwrap();
+        let measure = Measure::new(full, concept("OBS_VALUE"), Vec::new(), None, None).unwrap();
         assert_eq!(measure.urn(), Some("urn:x"));
         assert_eq!(measure.uri(), Some("uri"));
         assert_eq!(measure.annotations().len(), 1);
@@ -308,6 +330,7 @@ mod tests {
         let measure = Measure::new(
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
+            vec![concept("UNIT_MEASURE")],
             Some(text_format(DataType::Double)),
             Some(Usage::Mandatory),
         )
@@ -319,12 +342,13 @@ mod tests {
     fn measure_deserialize_enforces_the_rule() {
         // A non-Basic textType is rejected on the wire, routing through new().
         // postcard is positional, so a tuple in Measure::deserialize's Raw field order
-        // (metadata, concept, representation, usage) carrying a KeyValues textType decodes
-        // into new(), which rejects the non-Basic type.
+        // (metadata, concept, concept_roles, representation, usage) carrying a KeyValues textType
+        // decodes into new(), which rejects the non-Basic type.
         // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
         let ok = (
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
+            Vec::<ConceptReference>::new(),
             Some(text_format(DataType::Double)),
             None::<Usage>,
         );
@@ -332,6 +356,7 @@ mod tests {
         let raw = (
             metadata(Some("OBS_VALUE")),
             concept("OBS_VALUE"),
+            Vec::<ConceptReference>::new(),
             Some(text_format(DataType::KeyValues)),
             None::<Usage>,
         );
