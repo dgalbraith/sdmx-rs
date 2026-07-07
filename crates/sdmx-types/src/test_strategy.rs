@@ -910,16 +910,22 @@ fn usage() -> impl Strategy<Value = Usage> {
     prop_oneof![Just(Usage::Mandatory), Just(Usage::Optional)]
 }
 
+/// Zero-or-more concept-role references (the schema admits `ConceptRole` unbounded).
+fn concept_roles() -> impl Strategy<Value = Vec<ConceptReference>> {
+    proptest::collection::vec(concept_reference(), 0..=2)
+}
+
 /// A `Dimension` with a position-valid representation.
 pub(crate) fn dimension() -> impl Strategy<Value = Dimension> {
     (
         component_metadata(),
         concept_reference(),
+        concept_roles(),
         proptest::option::of(dimension_representation()),
         proptest::option::of(any::<i32>()),
     )
-        .prop_map(|(metadata, concept, representation, position)| {
-            Dimension::new(metadata, concept, representation, position)
+        .prop_map(|(metadata, concept, concept_roles, representation, position)| {
+            Dimension::new(metadata, concept, concept_roles, representation, position)
                 .expect("strategy respects the dimension position rules")
         })
         .boxed()
@@ -968,16 +974,26 @@ pub(crate) fn attribute() -> impl Strategy<Value = Attribute> {
     (
         component_metadata(),
         concept_reference(),
+        concept_roles(),
         proptest::option::of(basic_representation()),
         attribute_relationship(),
         proptest::option::of(measure_relationship()),
         proptest::option::of(usage()),
     )
         .prop_map(
-            |(metadata, concept, representation, relationship, measure_relationship, usage)| {
+            |(
+                metadata,
+                concept,
+                concept_roles,
+                representation,
+                relationship,
+                measure_relationship,
+                usage,
+            )| {
                 Attribute::new(
                     metadata,
                     concept,
+                    concept_roles,
                     representation,
                     relationship,
                     measure_relationship,
@@ -991,9 +1007,23 @@ pub(crate) fn attribute() -> impl Strategy<Value = Attribute> {
 
 /// A `MetadataAttributeUsage`.
 fn metadata_attribute_usage() -> impl Strategy<Value = MetadataAttributeUsage> {
-    (id_type_lexeme(), attribute_relationship(), annotations(), proptest::option::of(link()))
-        .prop_map(|(metadata_attribute_ref, relationship, annotations, link)| {
-            MetadataAttributeUsage { metadata_attribute_ref, relationship, annotations, link }
+    (
+        id_type_lexeme(),
+        attribute_relationship(),
+        annotations(),
+        proptest::option::of(link()),
+        proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
+    )
+        .prop_map(|(metadata_attribute_ref, relationship, annotations, link, urn, uri)| {
+            MetadataAttributeUsage {
+                metadata_attribute_ref,
+                annotations,
+                link,
+                urn,
+                uri,
+                relationship,
+            }
         })
         .boxed()
 }
@@ -1012,11 +1042,12 @@ pub(crate) fn measure() -> impl Strategy<Value = Measure> {
     (
         component_metadata(),
         concept_reference(),
+        concept_roles(),
         proptest::option::of(basic_representation()),
         proptest::option::of(usage()),
     )
-        .prop_map(|(metadata, concept, representation, usage)| {
-            Measure::new(metadata, concept, representation, usage)
+        .prop_map(|(metadata, concept, concept_roles, representation, usage)| {
+            Measure::new(metadata, concept, concept_roles, representation, usage)
                 .expect("strategy respects the basic position rules")
         })
         .boxed()
@@ -1036,9 +1067,10 @@ pub(crate) fn dimension_list() -> impl Strategy<Value = DimensionList> {
         annotations(),
         links(),
         proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
     )
-        .prop_map(|(id, dimensions, time_dimension, annotations, links, urn)| {
-            DimensionList::new(id, dimensions, time_dimension, annotations, links, urn)
+        .prop_map(|(id, dimensions, time_dimension, annotations, links, urn, uri)| {
+            DimensionList::new(id, dimensions, time_dimension, annotations, links, urn, uri)
                 .expect("fixed id and non-empty dimensions hold")
         })
         .boxed()
@@ -1062,9 +1094,10 @@ pub(crate) fn attribute_list() -> impl Strategy<Value = AttributeList> {
         annotations(),
         links(),
         proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
     )
-        .prop_map(|(id, members, annotations, links, urn)| {
-            AttributeList::new(id, members, annotations, links, urn)
+        .prop_map(|(id, members, annotations, links, urn, uri)| {
+            AttributeList::new(id, members, annotations, links, urn, uri)
                 .expect("fixed id and non-empty members hold")
         })
         .boxed()
@@ -1078,9 +1111,10 @@ pub(crate) fn measure_list() -> impl Strategy<Value = MeasureList> {
         annotations(),
         links(),
         proptest::option::of(any::<String>()),
+        proptest::option::of(any::<String>()),
     )
-        .prop_map(|(id, measures, annotations, links, urn)| {
-            MeasureList::new(id, measures, annotations, links, urn)
+        .prop_map(|(id, measures, annotations, links, urn, uri)| {
+            MeasureList::new(id, measures, annotations, links, urn, uri)
                 .expect("fixed id and non-empty measures hold")
         })
         .boxed()

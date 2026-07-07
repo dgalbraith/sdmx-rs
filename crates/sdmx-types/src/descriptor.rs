@@ -10,7 +10,7 @@
 ## Design Notes
 
 The component containers are identifiable (`ComponentListType` extends `IdentifiableType`): each
-carries `annotations`/`links`/`urn` as public fields. Their ids are *optional with a fixed value*
+carries `annotations`/`links`/`urn`/`uri` as public fields. Their ids are *optional with a fixed value*
 ("DimensionDescriptor"/"AttributeDescriptor"/"MeasureDescriptor"), so statedness is stored as a
 private `Option<String>` with a mismatch rejected at `new()` and a `stated_id()` accessor (D-0049 as
 amended by D-0052; private per ADR-0021, since mutation could break the fixed-id invariant). Each
@@ -199,10 +199,10 @@ impl IdentifiableArtefact for Group {
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("FREQ"),
 /// };
-/// let dimension = Dimension::new(metadata, concept, None, Some(1))?;
+/// let dimension = Dimension::new(metadata, concept, Vec::new(), None, Some(1))?;
 /// // A `None` id defaults to the fixed `DimensionDescriptor`.
 /// let dimension_list =
-///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None)?;
+///     DimensionList::new(None, vec![dimension], None, Vec::new(), Vec::new(), None, None)?;
 /// assert_eq!(dimension_list.dimensions().len(), 1);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -215,6 +215,8 @@ pub struct DimensionList {
     pub links: Vec<Link>,
     /// The descriptor's URN, if any.
     pub urn: Option<String>,
+    /// The descriptor's URI, if any.
+    pub uri: Option<String>,
     dimensions: Vec<Dimension>,
     /// The optional time dimension (a separate slot, never a member of the ordered key).
     pub time_dimension: Option<TimeDimension>,
@@ -235,12 +237,13 @@ impl DimensionList {
         annotations: Vec<Annotation>,
         links: Vec<Link>,
         urn: Option<String>,
+        uri: Option<String>,
     ) -> Result<Self, Error> {
         validate_fixed("id", id.as_deref(), "DimensionDescriptor")?;
         if dimensions.is_empty() {
             return Err(Error::EmptyDimensionList);
         }
-        Ok(Self { id, annotations, links, urn, dimensions, time_dimension })
+        Ok(Self { id, annotations, links, urn, uri, dimensions, time_dimension })
     }
 
     /// Stated: the descriptor id as the wire carried it.
@@ -282,12 +285,21 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
             annotations: Vec<Annotation>,
             links: Vec<Link>,
             urn: Option<String>,
+            uri: Option<String>,
             dimensions: Vec<Dimension>,
             time_dimension: Option<TimeDimension>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.id, raw.dimensions, raw.time_dimension, raw.annotations, raw.links, raw.urn)
-            .map_err(to_de_error)
+        Self::new(
+            raw.id,
+            raw.dimensions,
+            raw.time_dimension,
+            raw.annotations,
+            raw.links,
+            raw.urn,
+            raw.uri,
+        )
+        .map_err(to_de_error)
     }
 }
 
@@ -332,13 +344,21 @@ impl<'de> serde::Deserialize<'de> for DimensionList {
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("OBS_STATUS"),
 /// };
-/// let attribute =
-///     Attribute::new(metadata, concept, None, AttributeRelationship::Observation, None, None)?;
+/// let attribute = Attribute::new(
+///     metadata,
+///     concept,
+///     Vec::new(),
+///     None,
+///     AttributeRelationship::Observation,
+///     None,
+///     None,
+/// )?;
 /// let attribute_list = AttributeList::new(
 ///     None,
 ///     vec![AttributeListMember::Attribute(attribute)],
 ///     Vec::new(),
 ///     Vec::new(),
+///     None,
 ///     None,
 /// )?;
 /// assert_eq!(attribute_list.members().len(), 1);
@@ -353,6 +373,8 @@ pub struct AttributeList {
     pub links: Vec<Link>,
     /// The descriptor's URN, if any.
     pub urn: Option<String>,
+    /// The descriptor's URI, if any.
+    pub uri: Option<String>,
     members: Vec<AttributeListMember>,
 }
 
@@ -370,12 +392,13 @@ impl AttributeList {
         annotations: Vec<Annotation>,
         links: Vec<Link>,
         urn: Option<String>,
+        uri: Option<String>,
     ) -> Result<Self, Error> {
         validate_fixed("id", id.as_deref(), "AttributeDescriptor")?;
         if members.is_empty() {
             return Err(Error::EmptyAttributeList);
         }
-        Ok(Self { id, annotations, links, urn, members })
+        Ok(Self { id, annotations, links, urn, uri, members })
     }
 
     /// Stated: the descriptor id as the wire carried it.
@@ -426,10 +449,12 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
             annotations: Vec<Annotation>,
             links: Vec<Link>,
             urn: Option<String>,
+            uri: Option<String>,
             members: Vec<AttributeListMember>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.id, raw.members, raw.annotations, raw.links, raw.urn).map_err(to_de_error)
+        Self::new(raw.id, raw.members, raw.annotations, raw.links, raw.urn, raw.uri)
+            .map_err(to_de_error)
     }
 }
 
@@ -471,8 +496,8 @@ impl<'de> serde::Deserialize<'de> for AttributeList {
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("OBS_VALUE"),
 /// };
-/// let measure = Measure::new(metadata, concept, None, None)?;
-/// let measure_list = MeasureList::new(None, vec![measure], Vec::new(), Vec::new(), None)?;
+/// let measure = Measure::new(metadata, concept, Vec::new(), None, None)?;
+/// let measure_list = MeasureList::new(None, vec![measure], Vec::new(), Vec::new(), None, None)?;
 /// assert_eq!(measure_list.measures().len(), 1);
 /// assert!(measure_list.get("OBS_VALUE").is_some());
 /// # Ok::<(), sdmx_types::Error>(())
@@ -486,6 +511,8 @@ pub struct MeasureList {
     pub links: Vec<Link>,
     /// The descriptor's URN, if any.
     pub urn: Option<String>,
+    /// The descriptor's URI, if any.
+    pub uri: Option<String>,
     measures: Vec<Measure>,
 }
 
@@ -503,12 +530,13 @@ impl MeasureList {
         annotations: Vec<Annotation>,
         links: Vec<Link>,
         urn: Option<String>,
+        uri: Option<String>,
     ) -> Result<Self, Error> {
         validate_fixed("id", id.as_deref(), "MeasureDescriptor")?;
         if measures.is_empty() {
             return Err(Error::EmptyMeasureList);
         }
-        Ok(Self { id, annotations, links, urn, measures })
+        Ok(Self { id, annotations, links, urn, uri, measures })
     }
 
     /// Stated: the descriptor id as the wire carried it.
@@ -548,10 +576,12 @@ impl<'de> serde::Deserialize<'de> for MeasureList {
             annotations: Vec<Annotation>,
             links: Vec<Link>,
             urn: Option<String>,
+            uri: Option<String>,
             measures: Vec<Measure>,
         }
         let raw = Raw::deserialize(deserializer)?;
-        Self::new(raw.id, raw.measures, raw.annotations, raw.links, raw.urn).map_err(to_de_error)
+        Self::new(raw.id, raw.measures, raw.annotations, raw.links, raw.urn, raw.uri)
+            .map_err(to_de_error)
     }
 }
 
@@ -583,7 +613,7 @@ mod tests {
     }
 
     fn dimension(id: &str) -> Dimension {
-        Dimension::new(component_metadata(id), concept(id), None, None).unwrap()
+        Dimension::new(component_metadata(id), concept(id), Vec::new(), None, None).unwrap()
     }
 
     fn time_dimension() -> TimeDimension {
@@ -616,6 +646,7 @@ mod tests {
         Attribute::new(
             component_metadata(id),
             concept(id),
+            Vec::new(),
             None,
             AttributeRelationship::Observation,
             None,
@@ -625,7 +656,7 @@ mod tests {
     }
 
     fn measure(id: &str) -> Measure {
-        Measure::new(component_metadata(id), concept(id), None, None).unwrap()
+        Measure::new(component_metadata(id), concept(id), Vec::new(), None, None).unwrap()
     }
 
     fn group_metadata(id: &str) -> IdentifiableMetadata {
@@ -707,10 +738,13 @@ mod tests {
             Some(time_dimension()),
             Vec::new(),
             Vec::new(),
-            None,
+            Some(String::from("urn:x")),
+            Some(String::from("https://example.com/dsd")),
         )
         .unwrap();
         assert_eq!(list.stated_id(), Some("DimensionDescriptor"));
+        assert_eq!(list.urn.as_deref(), Some("urn:x"));
+        assert_eq!(list.uri.as_deref(), Some("https://example.com/dsd"));
         assert_eq!(list.dimensions().len(), 2);
         assert_eq!(list.dimensions()[0].id(), "FREQ");
         assert!(list.time_dimension.is_some());
@@ -731,6 +765,7 @@ mod tests {
                 None,
                 Vec::new(),
                 Vec::new(),
+                None,
                 None
             )
             .unwrap_err(),
@@ -741,23 +776,31 @@ mod tests {
         );
         // An empty dimension list is rejected.
         assert_eq!(
-            DimensionList::new(None, Vec::new(), None, Vec::new(), Vec::new(), None).unwrap_err(),
+            DimensionList::new(None, Vec::new(), None, Vec::new(), Vec::new(), None, None)
+                .unwrap_err(),
             Error::EmptyDimensionList
         );
     }
 
     #[test]
     fn dimension_list_push_and_deserialize() {
-        let mut list =
-            DimensionList::new(None, vec![dimension("FREQ")], None, Vec::new(), Vec::new(), None)
-                .unwrap();
+        let mut list = DimensionList::new(
+            None,
+            vec![dimension("FREQ")],
+            None,
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+        )
+        .unwrap();
         list.push(dimension("CURRENCY"));
         assert_eq!(list.dimensions().len(), 2);
         crate::test_support::round_trip(&list);
 
         // DimensionList's Deserialize declares
         // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
-        //        urn: Option<String>, dimensions: Vec<Dimension>,
+        //        urn: Option<String>, uri: Option<String>, dimensions: Vec<Dimension>,
         //        time_dimension: Option<TimeDimension> }`
         // and routes through new(), which rejects an empty dimension list. postcard is positional, so
         // a tuple of those field types carrying an empty `Vec<Dimension>` (every field valid, so Raw
@@ -769,6 +812,7 @@ mod tests {
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
             None::<String>,
+            None::<String>,
             vec![dimension("FREQ")],
             None::<TimeDimension>,
         );
@@ -779,6 +823,7 @@ mod tests {
             None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
+            None::<String>,
             None::<String>,
             Vec::<Dimension>::new(),
             None::<TimeDimension>,
@@ -797,6 +842,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             None,
+            None,
         )
         .unwrap();
         assert_eq!(list.iter().count(), 2);
@@ -812,6 +858,8 @@ mod tests {
             relationship: AttributeRelationship::Dataflow,
             annotations: Vec::new(),
             link: None,
+            urn: None,
+            uri: None,
         };
         let list = AttributeList::new(
             Some(String::from("AttributeDescriptor")),
@@ -821,10 +869,13 @@ mod tests {
             ],
             Vec::new(),
             Vec::new(),
-            None,
+            Some(String::from("urn:x")),
+            Some(String::from("https://example.com/dsd")),
         )
         .unwrap();
         assert_eq!(list.stated_id(), Some("AttributeDescriptor"));
+        assert_eq!(list.urn.as_deref(), Some("urn:x"));
+        assert_eq!(list.uri.as_deref(), Some("https://example.com/dsd"));
         assert_eq!(list.members().len(), 2);
         assert_eq!(list.attributes().count(), 1); // filtered view
         assert_eq!(list.usages().count(), 1);
@@ -837,6 +888,7 @@ mod tests {
                 Vec::new(),
                 Vec::new(),
                 Vec::new(),
+                None,
                 None
             )
             .unwrap_err(),
@@ -846,7 +898,7 @@ mod tests {
             }
         );
         assert_eq!(
-            AttributeList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
+            AttributeList::new(None, Vec::new(), Vec::new(), Vec::new(), None, None).unwrap_err(),
             Error::EmptyAttributeList
         );
     }
@@ -859,6 +911,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             None,
+            None,
         )
         .unwrap();
         list.push(AttributeListMember::Attribute(attribute("CONF_STATUS")));
@@ -867,7 +920,7 @@ mod tests {
 
         // AttributeList's Deserialize declares
         // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
-        //        urn: Option<String>, members: Vec<AttributeListMember> }`
+        //        urn: Option<String>, uri: Option<String>, members: Vec<AttributeListMember> }`
         // and routes through new(), which rejects an empty member list. postcard is positional, so a
         // tuple of those field types carrying an empty `Vec<AttributeListMember>` decodes into new(),
         // which rejects it on the wire.
@@ -876,6 +929,7 @@ mod tests {
             None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
+            None::<String>,
             None::<String>,
             vec![AttributeListMember::Attribute(attribute("OBS_STATUS"))],
         );
@@ -886,6 +940,7 @@ mod tests {
             None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
+            None::<String>,
             None::<String>,
             Vec::<AttributeListMember>::new(),
         );
@@ -902,10 +957,13 @@ mod tests {
             vec![measure("OBS_VALUE"), measure("LOWER_BOUND")],
             Vec::new(),
             Vec::new(),
-            None,
+            Some(String::from("urn:x")),
+            Some(String::from("https://example.com/dsd")),
         )
         .unwrap();
         assert_eq!(list.stated_id(), Some("MeasureDescriptor"));
+        assert_eq!(list.urn.as_deref(), Some("urn:x"));
+        assert_eq!(list.uri.as_deref(), Some("https://example.com/dsd"));
         assert_eq!(list.measures().len(), 2);
         assert_eq!(list.measures()[0].id(), "OBS_VALUE");
         assert_eq!(list.iter().count(), 2);
@@ -913,15 +971,22 @@ mod tests {
         assert!(list.get("MISSING").is_none());
 
         assert_eq!(
-            MeasureList::new(Some(String::from("Wrong")), Vec::new(), Vec::new(), Vec::new(), None)
-                .unwrap_err(),
+            MeasureList::new(
+                Some(String::from("Wrong")),
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                None,
+                None
+            )
+            .unwrap_err(),
             Error::FixedAttributeMismatch {
                 attribute: String::from("id"),
                 value: String::from("Wrong")
             }
         );
         assert_eq!(
-            MeasureList::new(None, Vec::new(), Vec::new(), Vec::new(), None).unwrap_err(),
+            MeasureList::new(None, Vec::new(), Vec::new(), Vec::new(), None, None).unwrap_err(),
             Error::EmptyMeasureList
         );
     }
@@ -929,7 +994,7 @@ mod tests {
     #[test]
     fn measure_list_push_and_deserialize() {
         let mut list =
-            MeasureList::new(None, vec![measure("OBS_VALUE")], Vec::new(), Vec::new(), None)
+            MeasureList::new(None, vec![measure("OBS_VALUE")], Vec::new(), Vec::new(), None, None)
                 .unwrap();
         list.push(measure("LOWER_BOUND"));
         assert_eq!(list.iter().count(), 2);
@@ -937,7 +1002,7 @@ mod tests {
 
         // MeasureList's Deserialize declares
         // `Raw { id: Option<String>, annotations: Vec<Annotation>, links: Vec<Link>,
-        //        urn: Option<String>, measures: Vec<Measure> }`
+        //        urn: Option<String>, uri: Option<String>, measures: Vec<Measure> }`
         // and routes through new(), which rejects an empty measure list. postcard is positional, so a
         // tuple of those field types carrying an empty `Vec<Measure>` decodes into new(), which
         // rejects it on the wire.
@@ -947,6 +1012,7 @@ mod tests {
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
             None::<String>,
+            None::<String>,
             vec![measure("OBS_VALUE")],
         );
         assert!(postcard::from_bytes::<MeasureList>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
@@ -954,6 +1020,7 @@ mod tests {
             None::<String>,
             Vec::<Annotation>::new(),
             Vec::<Link>::new(),
+            None::<String>,
             None::<String>,
             Vec::<Measure>::new(),
         );

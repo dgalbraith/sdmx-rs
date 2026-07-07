@@ -341,9 +341,10 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/AttributeType.md"))]
 ///
 /// A validated component: [`new`](Self::new) holds the representation to the Basic position rules,
-/// and the fields are private. The id is optional, inherited from the concept when absent. `usage`
-/// stores statedness; its schema default (`optional`) is the [`effective_usage`](Self::effective_usage)
-/// view.
+/// and the fields are private. The id is optional, inherited from the concept when absent.
+/// `concept_roles` holds the zero-or-more concept references defining roles the attribute serves,
+/// in wire order. `usage` stores statedness; its schema default (`optional`) is the
+/// [`effective_usage`](Self::effective_usage) view.
 ///
 /// # Examples
 ///
@@ -365,8 +366,15 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 ///     version: "1.0.0".parse().unwrap(),
 ///     id: String::from("OBS_STATUS"),
 /// };
-/// let attribute =
-///     Attribute::new(metadata, concept, None, AttributeRelationship::Observation, None, None)?;
+/// let attribute = Attribute::new(
+///     metadata,
+///     concept,
+///     Vec::new(),
+///     None,
+///     AttributeRelationship::Observation,
+///     None,
+///     None,
+/// )?;
 /// assert_eq!(attribute.id(), "OBS_STATUS");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -374,6 +382,7 @@ impl<'de> serde::Deserialize<'de> for MeasureRelationship {
 pub struct Attribute {
     metadata: ComponentMetadata,
     concept: ConceptReference,
+    concept_roles: Vec<ConceptReference>,
     representation: Option<Representation>,
     relationship: AttributeRelationship,
     measure_relationship: Option<MeasureRelationship>,
@@ -392,13 +401,22 @@ impl Attribute {
     pub fn new(
         metadata: ComponentMetadata,
         concept: ConceptReference,
+        concept_roles: Vec<ConceptReference>,
         representation: Option<Representation>,
         relationship: AttributeRelationship,
         measure_relationship: Option<MeasureRelationship>,
         usage: Option<Usage>,
     ) -> Result<Self, Error> {
         validate_basic_representation("Attribute", representation.as_ref())?;
-        Ok(Self { metadata, concept, representation, relationship, measure_relationship, usage })
+        Ok(Self {
+            metadata,
+            concept,
+            concept_roles,
+            representation,
+            relationship,
+            measure_relationship,
+            usage,
+        })
     }
 
     /// Stated: the id exactly as the wire carried it. `None` means the id was absent and the
@@ -412,6 +430,12 @@ impl Attribute {
     #[must_use]
     pub const fn concept(&self) -> &ConceptReference {
         &self.concept
+    }
+
+    /// The concepts defining roles this attribute serves, in wire order (possibly empty).
+    #[must_use]
+    pub fn concept_roles(&self) -> &[ConceptReference] {
+        &self.concept_roles
     }
 
     /// The attribute's local representation, if any.
@@ -470,6 +494,7 @@ impl<'de> serde::Deserialize<'de> for Attribute {
         struct Raw {
             metadata: ComponentMetadata,
             concept: ConceptReference,
+            concept_roles: Vec<ConceptReference>,
             representation: Option<Representation>,
             relationship: AttributeRelationship,
             measure_relationship: Option<MeasureRelationship>,
@@ -479,6 +504,7 @@ impl<'de> serde::Deserialize<'de> for Attribute {
         Self::new(
             raw.metadata,
             raw.concept,
+            raw.concept_roles,
             raw.representation,
             raw.relationship,
             raw.measure_relationship,
@@ -500,20 +526,24 @@ impl<'de> serde::Deserialize<'de> for Attribute {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/MetadataAttributeUsageType.md"))]
 ///
-/// Has no id, and excludes concept identity and local representation: what remains is the
-/// local reference into the metadata structure plus a full [`AttributeRelationship`]. The wire
-/// admits at most one `Link`, so it is an `Option`, not a `Vec`. An invariant-free pub-field
-/// carrier.
+/// Has no id (the schema prohibits it), and excludes concept identity and local representation:
+/// what remains is the optional `urn`/`uri` identification, the local reference into the metadata
+/// structure, plus a full [`AttributeRelationship`]. The wire admits at most one `Link`, so it is
+/// an `Option`, not a `Vec`. An invariant-free pub-field carrier.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct MetadataAttributeUsage {
     /// The local reference to the metadata attribute (a structural reference).
     pub metadata_attribute_ref: String,
-    /// The level the usage attaches to.
-    pub relationship: AttributeRelationship,
     /// Annotations carried on the usage.
     pub annotations: Vec<Annotation>,
     /// The single optional link (the wire admits at most one here).
     pub link: Option<Link>,
+    /// The usage's URN, if any.
+    pub urn: Option<String>,
+    /// The usage's URI, if any.
+    pub uri: Option<String>,
+    /// The level the usage attaches to.
+    pub relationship: AttributeRelationship,
 }
 
 /// A member of an attribute list: an [`Attribute`] or a [`MetadataAttributeUsage`].
@@ -564,6 +594,7 @@ mod tests {
         Attribute::new(
             metadata(Some("OBS_STATUS")),
             concept("OBS_STATUS"),
+            Vec::new(),
             None,
             AttributeRelationship::Observation,
             None,
@@ -683,6 +714,7 @@ mod tests {
         let inherited = Attribute::new(
             metadata(None),
             concept("CONCEPT_STATUS"),
+            Vec::new(),
             None,
             AttributeRelationship::Observation,
             None,
@@ -720,6 +752,7 @@ mod tests {
             Attribute::new(
                 metadata(Some("OBS_STATUS")),
                 concept("OBS_STATUS"),
+                Vec::new(),
                 Some(repr),
                 AttributeRelationship::Observation,
                 None,
@@ -755,6 +788,7 @@ mod tests {
         let attribute = Attribute::new(
             metadata(Some("OBS_STATUS")),
             concept("OBS_STATUS"),
+            vec![concept("STATUS_ROLE")],
             None,
             relationship,
             Some(MeasureRelationship::new(vec![String::from("OBS_VALUE")]).unwrap()),
@@ -765,6 +799,8 @@ mod tests {
         assert_eq!(attribute.measure_relationship().map(|m| m.as_slice().len()), Some(1));
         assert!(attribute.representation().is_none());
         assert_eq!(attribute.concept().id, "OBS_STATUS");
+        assert_eq!(attribute.concept_roles().len(), 1);
+        assert_eq!(attribute.concept_roles()[0].id, "STATUS_ROLE");
     }
 
     #[test]
@@ -781,7 +817,8 @@ mod tests {
     fn attribute_deserialize_enforces_the_basic_representation_rule() {
         // Attribute's Deserialize declares
         // `Raw { metadata: ComponentMetadata, concept: ConceptReference,
-        //        representation: Option<Representation>, relationship: AttributeRelationship,
+        //        concept_roles: Vec<ConceptReference>, representation: Option<Representation>,
+        //        relationship: AttributeRelationship,
         //        measure_relationship: Option<MeasureRelationship>, usage: Option<Usage> }`
         // and routes through new(), whose validate_basic_representation rejects a textType outside
         // the Basic subset. KeyValues is a valid DataType token (so Raw deserialises), but is outside
@@ -800,6 +837,7 @@ mod tests {
         let ok = (
             metadata(Some("OBS_STATUS")),
             concept("OBS_STATUS"),
+            Vec::<ConceptReference>::new(),
             Some(ok_repr),
             AttributeRelationship::Observation,
             None::<MeasureRelationship>,
@@ -830,6 +868,7 @@ mod tests {
         let raw = (
             metadata(Some("OBS_STATUS")),
             concept("OBS_STATUS"),
+            Vec::<ConceptReference>::new(),
             Some(repr),
             AttributeRelationship::Observation,
             None::<MeasureRelationship>,
@@ -868,6 +907,7 @@ mod tests {
         let attribute = Attribute::new(
             full,
             concept("OBS_STATUS"),
+            Vec::new(),
             None,
             AttributeRelationship::Observation,
             None,
@@ -887,6 +927,8 @@ mod tests {
             relationship: AttributeRelationship::Dataflow,
             annotations: Vec::new(),
             link: None,
+            urn: Some(String::from("urn:x")),
+            uri: Some(String::from("https://example.com/usage")),
         };
         let member = AttributeListMember::MetadataAttributeUsage(usage);
         crate::test_support::round_trip(&member);
