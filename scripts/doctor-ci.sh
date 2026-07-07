@@ -14,6 +14,21 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/lib/log.sh"
 
+# `just` has no transitive-dependency query, so we walk the graph ourselves.
+# resolve_recipe accumulates into RESOLVED every recipe name reachable from the
+# root (leaves and intermediates; the root itself is not added). A recipe's
+# direct deps are the space-separated tokens after `<name>:` on its definition
+# line; a recipe whose definition line has no trailing tokens is a leaf.
+resolve_recipe() {
+    for _dep in $(sed -n "s/^$1:[[:space:]]*//p" Justfile | head -1); do
+        case " ${RESOLVED} " in
+            *" ${_dep} "*) continue ;;
+        esac
+        RESOLVED="${RESOLVED} ${_dep}"
+        resolve_recipe "${_dep}"
+    done
+}
+
 log_section "CI/Local Verification Alignment"
 echo ""
 
@@ -72,9 +87,8 @@ echo ""
 verify_recipe=$(sed -n '/^verify:/,/^[a-z]/p' Justfile | head -1 || echo "")
 
 if [ -n "$verify_recipe" ]; then
-    # Parse the dependencies from the verify recipe
-    # Format: verify: fmt-check clippy verify-wasm doc deny machete check-scaffolding semver-check test-coverage-headless shellcheck verify-adr release-dry-run md-check
-
+    # verify's direct dependencies are its `verify-*` sub-gates (informational
+    # listing only; the alignment check below resolves the full graph).
     verify_deps=$(sed -n '/^verify:/p' Justfile | sed 's/.*verify: //' | tr ' ' '\n' | grep -v '^$')
 
     if [ -n "$verify_deps" ]; then
@@ -98,17 +112,23 @@ echo "Alignment Check"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Key checks to look for
+# Resolve `verify` transitively to its leaf recipes, then match the key checks
+# against that set with an EXACT (word-boundary) match. A substring match would
+# spuriously pass `doc` against `verify-docs`, and matching against verify's
+# DIRECT deps (its sub-gates) misses every leaf recipe.
+RESOLVED=""
+resolve_recipe verify
+
+# Key checks a developer expects `just verify` to run. Overridable for tests.
+KEY_CHECKS="${DOCTOR_CI_KEY_CHECKS:-check-format clippy check-conventions check-wasm test-wasm docs semver-check coverage-gate release-dry-run shellcheck md-check link-check deny machete secrets-scan}"
+
 echo "Key Checks Status:"
-
-checks="fmt-check clippy verify-wasm doc deny machete verify-adr md-check test release-dry-run"
-
-for check in $checks; do
-    if echo "$verify_deps" | grep -q "$check"; then
-        log_ok "$check (in local verify)" 1
-    else
-        log_warn "$check (not in local verify)" 1
-    fi
+missing=0
+for check in $KEY_CHECKS; do
+    case " ${RESOLVED} " in
+        *" ${check} "*) log_ok "${check} (in local verify)" 1 ;;
+        *) log_warn "${check} (not in local verify)" 1; missing=$((missing + 1)) ;;
+    esac
 done
 
 echo ""
@@ -119,11 +139,15 @@ echo "Summary"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-log_ok "CI workflow is properly configured"
-echo "   CI jobs and local targets are aligned"
+if [ "$missing" -eq 0 ]; then
+    log_ok "doctor-ci: local 'just verify' covers all key CI checks"
+else
+    log_fail "doctor-ci: ${missing} key check(s) not covered by local 'just verify'"
+fi
 echo ""
 echo "Maintenance Notes:"
 log_item "Keep CI jobs aligned with 'just verify' recipe" 1
-log_item "CI should run all local verification steps" 1
 log_item "Add new checks to both CI and 'just verify'" 1
 echo ""
+
+[ "$missing" -eq 0 ] || exit 1
