@@ -1638,15 +1638,21 @@ fn is_time(time: &str) -> bool {
     }
 }
 
-/// A four-or-more digit calendar year (`xs:gYear` component), excluding year zero.
+/// A four-or-more digit calendar year (`xs:gYear` component), excluding year zero and a leading
+/// zero once the year exceeds four digits.
 fn is_year(s: &str) -> bool {
-    // XSD 1.0 prohibits year `0000` across the builtin date/time types (`xs:gYear`,
-    // `xs:gYearMonth`, `xs:date`, `xs:dateTime`), so an all-zero run is rejected here — the one
-    // choke point every Gregorian/basic year reaches, including the `xs:dateTime` date and the
-    // `TimeRangeType` starts (D-0069/D-0072 time chain; D-0027 lexical family). Reporting-period
-    // years never reach this: their grammar is the `\d{4}` pattern (`BaseReportPeriodType`), which
-    // admits `0000`, and `classify_reporting` scans them by fixed offset.
-    s.len() >= 4 && s.bytes().all(|b| b.is_ascii_digit()) && s.bytes().any(|b| b != b'0')
+    // XSD 1.0 (§3.2.7) constrains the year across the builtin date/time types (`xs:gYear`,
+    // `xs:gYearMonth`, `xs:date`, `xs:dateTime`): year `0000` is prohibited, so an all-zero run is
+    // rejected, and leading zeros are prohibited once the year exceeds four digits, so a longer run
+    // may not start with `0`. This is the one choke point every Gregorian/basic year reaches,
+    // including the `xs:dateTime` date and the `TimeRangeType` starts (D-0069/D-0072 time chain;
+    // D-0027 lexical family). Reporting-period years never reach this: their grammar is the `\d{4}`
+    // pattern (`BaseReportPeriodType`), which admits `0000`, and `classify_reporting` scans them by
+    // fixed offset.
+    s.len() >= 4
+        && s.bytes().all(|b| b.is_ascii_digit())
+        && s.bytes().any(|b| b != b'0')
+        && (s.len() == 4 || !s.starts_with('0'))
 }
 
 /// True iff `s` is exactly `width` ASCII digits whose value lies in the inclusive range
@@ -2127,6 +2133,24 @@ mod tests {
         }
         assert!(SdmxTimeRange::new(String::from("0000-01-01/P1D")).is_err());
         assert!(SdmxTimeRange::new(String::from("0000-01-01T00:00:00/P1D")).is_err());
+    }
+
+    #[test]
+    fn gregorian_year_rejects_leading_zeros_past_four_digits() {
+        // XSD 1.0 (§3.2.7) prohibits a leading zero once the year exceeds four digits, so a longer
+        // run starting with `0` is rejected at every Gregorian site. Four-digit years (`0001`),
+        // five-or-more-digit non-zero-leading years, and BC (`-`-prefixed) forms stay accepted.
+        for ok in ["0001", "0001-06", "12024", "12024-06-30", "-2024", "-12024"] {
+            assert!(SdmxTimePeriod::new(ok.into()).is_ok(), "{ok:?} should be accepted");
+        }
+        for bad in ["02024", "012345", "02024-01", "02024-01-01T00:00:00", "-02024"] {
+            assert!(SdmxTimePeriod::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+        // The prohibition holds at a `TimeRangeType` start too (the shared scanner).
+        assert!(SdmxTimeRange::new(String::from("02024-01-01/P1D")).is_err());
+        // `+2024` is the same spec sentence's other prohibition (an explicit leading `+`), already
+        // rejected by the digit scan today and pinned here so it stays rejected.
+        assert!(SdmxTimePeriod::new(String::from("+2024")).is_err());
     }
 
     #[test]
