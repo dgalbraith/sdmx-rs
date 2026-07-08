@@ -118,8 +118,16 @@ pub(crate) fn reference_version_lexeme() -> impl Strategy<Value = String> {
 // ---------------------------------------------------------------------------
 
 /// A calendar year: four digits, a longer non-zero-leading run, or a BC (`-`-prefixed) year.
+/// Gregorian years floor at `0001`: XSD 1.0 prohibits year `0000` across the builtin date/time
+/// types, so `is_year` rejects it, and a generator emitting `0000` (or `-0000`) would produce a
+/// lexeme the classifier refuses. Reporting-period years keep their own `\d{4}` generator, whose
+/// pattern grammar admits `0000`.
 fn gregorian_year() -> impl Strategy<Value = String> {
-    prop_oneof![6 => r"[0-9]{4}", 1 => r"[1-9][0-9]{4}", 1 => r"-[0-9]{4}"]
+    prop_oneof![
+        6 => (1_u32..=9999).prop_map(|y| format!("{y:04}")),
+        1 => r"[1-9][0-9]{4}",
+        1 => (1_u32..=9999).prop_map(|y| format!("-{y:04}")),
+    ]
 }
 
 /// A Gregorian core lexeme: `gYear`, `gYearMonth`, or full date (timezone added separately).

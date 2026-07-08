@@ -290,7 +290,8 @@ impl SdmxVersion {
     ///
     /// Returns [`Error::InvalidVersion`] if `raw` matches neither the semantic nor the
     /// legacy form (this includes leading zeros, empty components, an extension on a legacy
-    /// version, and numeric components that exceed `u32`).
+    /// version, and numeric components that exceed `u32`, the deliberate width bound recorded
+    /// by D-0075).
     pub fn new(raw: String) -> Result<Self, Error> {
         parse_sdmx_version(raw)
     }
@@ -1606,29 +1607,46 @@ fn is_full_date(date: &str) -> bool {
 
 /// An `xs:dateTime` time body: `hh:mm:ss` with an optional fractional-seconds suffix.
 fn is_time(time: &str) -> bool {
-    let (hms, fraction_ok) = match time.split_once('.') {
+    let (hms, fraction) = match time.split_once('.') {
         Some((hms, fraction)) => {
-            (hms, !fraction.is_empty() && fraction.bytes().all(|b| b.is_ascii_digit()))
+            if fraction.is_empty() || !fraction.bytes().all(|b| b.is_ascii_digit()) {
+                return false;
+            }
+            (hms, Some(fraction))
         }
-        None => (time, true),
+        None => (time, None),
     };
-    if !fraction_ok {
-        return false;
-    }
     let mut parts = hms.split(':');
     match (parts.next(), parts.next(), parts.next(), parts.next()) {
         (Some(h), Some(m), Some(s), None) => {
             // Seconds are `0..=59`: a leap-second `60` is rejected, matching `xs:dateTime`,
             // which does not admit it (a detail often assumed the other way).
+            //
+            // Hour 24 is the end-of-day instant: XSD 1.0 `xs:dateTime` (§3.2.7) admits `24:00:00`
+            // only with zero minutes and seconds, and an all-zero fraction if one is stated; every
+            // other hour-24 form is out of the value space (D-0027 lexical family; D-0069/D-0072
+            // time chain). Requiring the seconds field to be exactly `00` keeps the relaxation from
+            // swallowing an out-of-range second, so `24:00:60` is still rejected.
+            if h == "24" {
+                return m == "00"
+                    && s == "00"
+                    && fraction.is_none_or(|f| f.bytes().all(|b| b == b'0'));
+            }
             num_in(h, 2, 0, 23) && num_in(m, 2, 0, 59) && num_in(s, 2, 0, 59)
         }
         _ => false,
     }
 }
 
-/// A four-or-more digit year (`xs:gYear` calendar component).
+/// A four-or-more digit calendar year (`xs:gYear` component), excluding year zero.
 fn is_year(s: &str) -> bool {
-    s.len() >= 4 && s.bytes().all(|b| b.is_ascii_digit())
+    // XSD 1.0 prohibits year `0000` across the builtin date/time types (`xs:gYear`,
+    // `xs:gYearMonth`, `xs:date`, `xs:dateTime`), so an all-zero run is rejected here — the one
+    // choke point every Gregorian/basic year reaches, including the `xs:dateTime` date and the
+    // `TimeRangeType` starts (D-0069/D-0072 time chain; D-0027 lexical family). Reporting-period
+    // years never reach this: their grammar is the `\d{4}` pattern (`BaseReportPeriodType`), which
+    // admits `0000`, and `classify_reporting` scans them by fixed offset.
+    s.len() >= 4 && s.bytes().all(|b| b.is_ascii_digit()) && s.bytes().any(|b| b != b'0')
 }
 
 /// True iff `s` is exactly `width` ASCII digits whose value lies in the inclusive range
@@ -2100,9 +2118,68 @@ mod tests {
     }
 
     #[test]
+    fn gregorian_classifiers_reject_year_zero() {
+        // XSD 1.0 prohibits year `0000` across the builtin date/time types, so it is rejected at
+        // every Gregorian site the grammar reaches: gYear, gYearMonth, date, dateTime, and the
+        // `TimeRangeType` starts that reuse those scanners.
+        for bad in ["0000", "0000-01", "0000-01-01", "0000-01-01T00:00:00"] {
+            assert!(SdmxTimePeriod::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+        assert!(SdmxTimeRange::new(String::from("0000-01-01/P1D")).is_err());
+        assert!(SdmxTimeRange::new(String::from("0000-01-01T00:00:00/P1D")).is_err());
+    }
+
+    #[test]
+    fn reporting_period_admits_year_zero() {
+        // The year-zero prohibition is a value-space property of the XSD builtins only. Reporting
+        // periods are pattern-restricted strings (`BaseReportPeriodType`, `\d{4}-...`), and `\d{4}`
+        // admits `0000`, so `0000-Q1` is schema-valid and stays accepted: the pattern-grammar
+        // boundary against the Gregorian rejection above.
+        assert_eq!(
+            SdmxTimePeriod::new(String::from("0000-Q1")).unwrap().kind(),
+            SdmxTimePeriodKind::ReportingQuarter
+        );
+    }
+
+    #[test]
     fn date_time_rejects_leap_second() {
         // `xs:dateTime` seconds are `0..=59`: a leap-second `60` is rejected.
         assert!(SdmxTimePeriod::new(String::from("2024-05-01T09:30:60")).is_err());
+    }
+
+    #[test]
+    fn date_time_admits_end_of_day_hour_24() {
+        // XSD 1.0 `xs:dateTime` (§3.2.7) admits `24:00:00` as the end-of-day instant, a stated
+        // fraction permitted only if it is all zeros. A boundary this locks against a refactor
+        // re-capping the hour at 23.
+        for ok in ["2024-06-30T24:00:00", "2024-06-30T24:00:00.0", "2024-06-30T24:00:00.000"] {
+            assert_eq!(
+                SdmxTimePeriod::new(ok.into()).unwrap().kind(),
+                SdmxTimePeriodKind::DateTime,
+                "{ok:?} should be accepted"
+            );
+        }
+        // Hour 24 rides the shared classifiers, so acceptance must also hold at a `TimeRangeType`
+        // start and under a timezone suffix: both are correct only because those paths reuse
+        // `is_time`, exactly the coupling a refactor could silently break.
+        assert!(SdmxTimeRange::new(String::from("2024-06-30T24:00:00/P1D")).is_ok());
+        assert_eq!(
+            SdmxTimePeriod::new(String::from("2024-06-30T24:00:00Z")).unwrap().kind(),
+            SdmxTimePeriodKind::DateTime
+        );
+    }
+
+    #[test]
+    fn date_time_rejects_malformed_hour_24() {
+        // Hour 24 is admitted only as the exact end-of-day instant: a nonzero minute, second, or
+        // fractional part falls outside the value space.
+        for bad in ["2024-06-30T24:00:01", "2024-06-30T24:01:00", "2024-06-30T24:00:00.5"] {
+            assert!(SdmxTimePeriod::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+        // `24:00:60`: the hour-24 acceptance path still enforces the seconds field, so an
+        // out-of-range second is rejected under the relaxation rather than waved through by the
+        // hour being 24. Not redundant with `24:00:01`, which pins the nonzero-but-valid second.
+        assert!(SdmxTimePeriod::new(String::from("2024-06-30T24:00:60")).is_err());
     }
 
     #[test]
