@@ -32,7 +32,7 @@ use crate::{
     lexical::SdmxVersion,
     localised::LocalisedString,
     metadata::MaintainableMetadata,
-    reference::DsdReference,
+    reference::DataStructureReference,
     validate::validate_id,
 };
 
@@ -131,9 +131,9 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 ///
 /// ```
 /// use sdmx_types::{
-///     Dataflow, DsdReference, IdentifiableArtefact, IdentifiableMetadata, LocalisedString,
-///     LocalisedText, MaintainableArtefact, MaintainableMetadata, NameableMetadata,
-///     VersionableMetadata,
+///     DataStructureReference, Dataflow, IdentifiableArtefact, IdentifiableMetadata,
+///     LocalisedString, LocalisedText, MaintainableArtefact, MaintainableMetadata,
+///     NameableMetadata, VersionableMetadata,
 /// };
 ///
 /// let names = LocalisedString::new(vec![LocalisedText {
@@ -163,7 +163,7 @@ impl<'de> serde::Deserialize<'de> for DimensionConstraint {
 ///
 /// let dataflow = Dataflow {
 ///     metadata,
-///     dsd: Some(DsdReference {
+///     dsd: Some(DataStructureReference {
 ///         agency: String::from("ECB"),
 ///         id: String::from("ECB_EXR"),
 ///         version: "1.0.0".parse().unwrap(),
@@ -179,7 +179,7 @@ pub struct Dataflow {
     /// The maintainable identity of the dataflow.
     pub metadata: MaintainableMetadata,
     /// The structure the data conforms to, or `None` for a stub (an external reference).
-    pub dsd: Option<DsdReference>,
+    pub dsd: Option<DataStructureReference>,
     /// The 3.1-only dimension subset this dataflow pins itself to.
     pub dimension_constraint: Option<DimensionConstraint>,
 }
@@ -276,8 +276,8 @@ mod tests {
         .unwrap()
     }
 
-    fn dsd_reference() -> DsdReference {
-        DsdReference {
+    fn dsd_reference() -> DataStructureReference {
+        DataStructureReference {
             agency: String::from("ECB"),
             id: String::from("ECB_EXR"),
             version: "1.0.0".parse().unwrap(),
@@ -461,7 +461,7 @@ mod tests {
         // Bubbling demonstration, not a composite-own proof: the empty-constraint invariant is
         // DimensionConstraint's (its source-level proof is above). Dataflow's derived Deserialize
         // reads its fields in declaration order
-        // `(metadata: MaintainableMetadata, dsd: Option<DsdReference>,
+        // `(metadata: MaintainableMetadata, dsd: Option<DataStructureReference>,
         //   dimension_constraint: Option<DimensionConstraint>)` and delegates the last field to
         // DimensionConstraint's custom impl. DimensionConstraint is #[serde(transparent)] over
         // Vec<String>, so its Option is byte-identical to Option<Vec<String>>; postcard is

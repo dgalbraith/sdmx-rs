@@ -246,7 +246,7 @@ pub enum Error {
 
     /// An `AttributeRelationship::Dimensions` was constructed with an empty dimension list. The
     /// schema requires at least one dimension reference (`Dimension+`), so an empty list is
-    /// mechanically schema-invalid. Produced by [`DimensionIds::new`](crate::DimensionIds::new).
+    /// mechanically schema-invalid. Produced by [`DimensionRefs::new`](crate::DimensionRefs::new).
     #[error(
         "Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id."
     )]

@@ -6,7 +6,7 @@
 //! the crate, they derive [`Hash`].
 //!
 //! The references group by coordinate shape. [`CodelistReference`], [`ValueListReference`],
-//! [`DsdReference`], [`DataflowReference`], and [`ProvisionAgreementReference`] name a maintainable
+//! [`DataStructureReference`], [`DataflowReference`], and [`ProvisionAgreementReference`] name a maintainable
 //! artefact (a codelist, value list, data structure definition, dataflow, or provision agreement) by
 //! its full triple of agency, id, and version. [`ConceptReference`] (a concept) and
 //! [`DataProviderReference`] (a data provider) name an item within its scheme, carrying the scheme
@@ -147,7 +147,7 @@ fn parse_item(
 }
 
 // ---------------------------------------------------------------------------
-// DsdReference
+// DataStructureReference
 // ---------------------------------------------------------------------------
 
 /// A reference to a [`DataStructureDefinition`](crate::DataStructureDefinition) by its maintenance
@@ -165,21 +165,21 @@ fn parse_item(
 /// # Examples
 ///
 /// ```
-/// use sdmx_types::DsdReference;
+/// use sdmx_types::DataStructureReference;
 ///
 /// // All fields are public, so you can construct one directly.
-/// let reference = DsdReference {
+/// let reference = DataStructureReference {
 ///     agency: String::from("SDMX"),
 ///     id: String::from("ECB_EXR1"),
 ///     version: "1.0.0".parse()?,
 /// };
 /// let urn = "urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=SDMX:ECB_EXR1(1.0.0)";
 /// assert_eq!(reference.to_string(), urn);
-/// assert_eq!(urn.parse::<DsdReference>()?, reference);
+/// assert_eq!(urn.parse::<DataStructureReference>()?, reference);
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct DsdReference {
+pub struct DataStructureReference {
     /// The maintenance agency id (`agencyID`).
     pub agency: String,
     /// The referenced data structure definition's id.
@@ -202,7 +202,7 @@ pub struct DsdReference {
 ///
 /// A concept is an *item in a concept scheme*, not a maintainable artefact in its own right, so its
 /// reference takes the item-in-scheme shape (agency, scheme id, item id) rather than the flat
-/// maintainable triple carried by [`CodelistReference`] and [`DsdReference`]: the carried version is
+/// maintainable triple carried by [`CodelistReference`] and [`DataStructureReference`]: the carried version is
 /// the enclosing scheme's, which the reference URN mandates.
 ///
 /// # Examples
@@ -329,7 +329,7 @@ pub struct ValueListReference {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataflowReferenceType.md"))]
 ///
 /// Identifies a dataflow by the flat maintainable triple (agency, id, version). A dataflow is a
-/// maintainable artefact, so its reference carries a version, like [`DsdReference`]. Used by a data
+/// maintainable artefact, so its reference carries a version, like [`DataStructureReference`]. Used by a data
 /// constraint to name a dataflow it is attached to.
 ///
 /// # Examples
@@ -372,7 +372,7 @@ pub struct DataflowReference {
 ///
 /// Identifies a provision agreement by the flat maintainable triple (agency, id, version). A
 /// provision agreement is a maintainable artefact, so its reference carries a version, like
-/// [`DsdReference`]. Used by a data constraint to name a provision agreement it is attached to.
+/// [`DataStructureReference`]. Used by a data constraint to name a provision agreement it is attached to.
 ///
 /// # Examples
 ///
@@ -444,7 +444,7 @@ Item-in-scheme shape (agency, scheme id, item id), mirroring `ConceptReference` 
 spec type `DataProviderReferenceType` shares `ComponentUrnReferenceType` with `ConceptReferenceType`
 (D-0034). The fixed `DATA_PROVIDERS` scheme id is stored in `scheme_id`; the scheme version is
 carried, as the item-in-scheme URN mandates (D-0073). The data provider itself, and its scheme,
-are not modelled in this crate (only the reference is), exactly as `DsdReference` predates any
+are not modelled in this crate (only the reference is), exactly as `DataStructureReference` predates any
 cross-crate resolver.
 
 Decisions: D-0034, D-0020, D-0021.
@@ -466,7 +466,7 @@ pub struct DataProviderReference {
 // URN contract (Display / FromStr): each reference renders and parses its own class URN.
 // ---------------------------------------------------------------------------
 
-impl core::fmt::Display for DsdReference {
+impl core::fmt::Display for DataStructureReference {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
             f,
@@ -476,7 +476,7 @@ impl core::fmt::Display for DsdReference {
     }
 }
 
-impl core::str::FromStr for DsdReference {
+impl core::str::FromStr for DataStructureReference {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -633,7 +633,7 @@ mod tests {
             "urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=SDMX:CS_FREQ(2.3.1+).FREQ",
             "urn:sdmx:org.sdmx.infomodel.base.DataProvider=SDMX:DATA_PROVIDERS(1.0.0).ECB",
         ];
-        assert_eq!(urns[0].parse::<DsdReference>().unwrap().to_string(), urns[0]);
+        assert_eq!(urns[0].parse::<DataStructureReference>().unwrap().to_string(), urns[0]);
         assert_eq!(urns[1].parse::<CodelistReference>().unwrap().to_string(), urns[1]);
         assert_eq!(urns[2].parse::<ValueListReference>().unwrap().to_string(), urns[2]);
         assert_eq!(urns[3].parse::<DataflowReference>().unwrap().to_string(), urns[3]);
@@ -666,7 +666,7 @@ mod tests {
     fn urn_parse_is_class_exact() {
         // A well-formed URN of the wrong class is rejected with the expected class named.
         let codelist = "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=SDMX:CL_FREQ(1.0.0)";
-        let err = codelist.parse::<DsdReference>().unwrap_err();
+        let err = codelist.parse::<DataStructureReference>().unwrap_err();
         assert!(matches!(
             err,
             crate::Error::InvalidReferenceUrn { class: "datastructure.DataStructure", .. }
@@ -745,12 +745,12 @@ mod tests {
                 version in reference_version_lexeme(),
             ) {
                 let version: VersionRef = version.parse().unwrap();
-                let dsd = DsdReference {
+                let dsd = DataStructureReference {
                     agency: agency.clone(),
                     id: id.clone(),
                     version: version.clone(),
                 };
-                prop_assert_eq!(dsd.to_string().parse::<DsdReference>().unwrap(), dsd);
+                prop_assert_eq!(dsd.to_string().parse::<DataStructureReference>().unwrap(), dsd);
                 let codelist = CodelistReference {
                     agency: agency.clone(),
                     id: id.clone(),
@@ -792,7 +792,7 @@ mod tests {
                 // dropped item tail on an item-in-scheme class, and an off-grammar agency.
                 let codelist =
                     format!("urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency}:{id}({version})");
-                prop_assert!(codelist.parse::<DsdReference>().is_err());
+                prop_assert!(codelist.parse::<DataStructureReference>().is_err());
                 let any_version =
                     format!("urn:sdmx:org.sdmx.infomodel.codelist.Codelist={agency}:{id}(*)");
                 prop_assert!(any_version.parse::<CodelistReference>().is_err());

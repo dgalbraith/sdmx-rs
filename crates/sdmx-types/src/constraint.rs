@@ -62,7 +62,8 @@ use crate::{
     localised::LocalisedString,
     metadata::MaintainableMetadata,
     reference::{
-        DataProviderReference, DataflowReference, DsdReference, ProvisionAgreementReference,
+        DataProviderReference, DataStructureReference, DataflowReference,
+        ProvisionAgreementReference,
     },
     validate::{validate_ncname, validate_nested_ncname},
 };
@@ -1523,10 +1524,10 @@ pub struct DataKeySet {
 ///     data_url: String::from("https://example.com/sdmx"),
 ///     wsdl_url: None,
 ///     wadl_url: None,
-///     is_rest_datasource: true,
-///     is_web_service_datasource: false,
+///     is_rest_data_source: true,
+///     is_web_service_data_source: false,
 /// };
-/// assert!(source.is_rest_datasource);
+/// assert!(source.is_rest_data_source);
 /// ```
 #[cfg_attr(
     design_docs,
@@ -1554,9 +1555,9 @@ pub struct QueryableDataSource {
     /// The optional URL of a WADL description of the source's REST protocol.
     pub wadl_url: Option<String>,
     /// Whether the source is reachable over the REST protocol.
-    pub is_rest_datasource: bool,
+    pub is_rest_data_source: bool,
     /// Whether the source is reachable over web-service protocols.
-    pub is_web_service_datasource: bool,
+    pub is_web_service_data_source: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1576,10 +1577,10 @@ pub struct QueryableDataSource {
 ///
 /// ## Guarantees
 ///
-/// Always holds at least one [`DsdReference`].
+/// Always holds at least one [`DataStructureReference`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
-pub struct DataStructureRefs(Vec<DsdReference>);
+pub struct DataStructureRefs(Vec<DataStructureReference>);
 
 impl DataStructureRefs {
     /// Builds a data-structure reference list.
@@ -1588,7 +1589,7 @@ impl DataStructureRefs {
     ///
     /// Returns [`Error::EmptyDataStructureRefs`] if `refs` is empty (a chosen attachment arm
     /// requires at least one reference).
-    pub fn new(refs: Vec<DsdReference>) -> Result<Self, Error> {
+    pub fn new(refs: Vec<DataStructureReference>) -> Result<Self, Error> {
         if refs.is_empty() {
             return Err(Error::EmptyDataStructureRefs);
         }
@@ -1597,34 +1598,34 @@ impl DataStructureRefs {
 
     /// The references, in order (always at least one).
     #[must_use]
-    pub fn as_slice(&self) -> &[DsdReference] {
+    pub fn as_slice(&self) -> &[DataStructureReference] {
         &self.0
     }
 
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
-    pub fn into_inner(self) -> Vec<DsdReference> {
+    pub fn into_inner(self) -> Vec<DataStructureReference> {
         self.0
     }
 }
 
-impl From<DataStructureRefs> for Vec<DsdReference> {
+impl From<DataStructureRefs> for Vec<DataStructureReference> {
     fn from(value: DataStructureRefs) -> Self {
         value.into_inner()
     }
 }
 
-impl TryFrom<Vec<DsdReference>> for DataStructureRefs {
+impl TryFrom<Vec<DataStructureReference>> for DataStructureRefs {
     type Error = Error;
 
-    fn try_from(refs: Vec<DsdReference>) -> Result<Self, Error> {
+    fn try_from(refs: Vec<DataStructureReference>) -> Result<Self, Error> {
         Self::new(refs)
     }
 }
 
 impl<'de> serde::Deserialize<'de> for DataStructureRefs {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Self::new(Vec::<DsdReference>::deserialize(deserializer)?).map_err(to_de_error)
+        Self::new(Vec::<DataStructureReference>::deserialize(deserializer)?).map_err(to_de_error)
     }
 }
 
@@ -1918,7 +1919,7 @@ Decisions: D-0034, D-0021.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum AvailabilityConstraintAttachment {
     /// The constraint is attached to a single data structure definition.
-    DataStructure(DsdReference),
+    DataStructure(DataStructureReference),
     /// The constraint is attached to a single dataflow.
     Dataflow(DataflowReference),
     /// The constraint is attached to a single provision agreement.
@@ -2165,7 +2166,7 @@ pub struct AvailabilityConstraint {
 /// ```
 /// use sdmx_types::{
 ///     AvailabilityConstraint, AvailabilityConstraintAttachment, ConstraintModel, CubeRegion,
-///     CubeRegions, DataConstraint, DsdReference, IdentifiableMetadata, LocalisedString,
+///     CubeRegions, DataConstraint, DataStructureReference, IdentifiableMetadata, LocalisedString,
 ///     LocalisedText, MaintainableMetadata, NameableMetadata, VersionableMetadata,
 /// };
 ///
@@ -2196,7 +2197,7 @@ pub struct AvailabilityConstraint {
 ///
 /// // An availability constraint is not maintainable: it carries no metadata.
 /// let availability = ConstraintModel::Availability(AvailabilityConstraint {
-///     attachment: AvailabilityConstraintAttachment::DataStructure(DsdReference {
+///     attachment: AvailabilityConstraintAttachment::DataStructure(DataStructureReference {
 ///         agency: String::from("SDMX"),
 ///         id: String::from("ECB_EXR1"),
 ///         version: "1.0.0".parse().unwrap(),
@@ -3063,14 +3064,14 @@ mod tests {
             data_url: String::from("https://example.com/sdmx"),
             wsdl_url: Some(String::from("https://example.com/sdmx?wsdl")),
             wadl_url: None,
-            is_rest_datasource: true,
-            is_web_service_datasource: true,
+            is_rest_data_source: true,
+            is_web_service_data_source: true,
         };
         crate::test_support::round_trip(&source);
     }
 
-    fn dsd_ref(id: &str) -> DsdReference {
-        DsdReference {
+    fn dsd_ref(id: &str) -> DataStructureReference {
+        DataStructureReference {
             agency: String::from("SDMX"),
             id: id.to_string(),
             version: "1.0.0".parse().unwrap(),
@@ -3131,7 +3132,7 @@ mod tests {
         );
         assert!(
             postcard::from_bytes::<DataStructureRefs>(
-                &postcard::to_allocvec(&Vec::<DsdReference>::new()).unwrap()
+                &postcard::to_allocvec(&Vec::<DataStructureReference>::new()).unwrap()
             )
             .is_err()
         );
@@ -3182,8 +3183,8 @@ mod tests {
             data_url: String::from("https://example.com/sdmx"),
             wsdl_url: None,
             wadl_url: None,
-            is_rest_datasource: true,
-            is_web_service_datasource: false,
+            is_rest_data_source: true,
+            is_web_service_data_source: false,
         }];
         let arms = [
             DataConstraintAttachment::DataStructure {

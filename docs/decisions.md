@@ -185,7 +185,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Keywords** | reference-types, spec-alignment, domain-model |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) |
 
-**Observation**: `DsdReference`, `CodelistReference`, `DataflowReference`, and `ConceptReference` share overlapping field sets and could be collapsed into a unified type.
+**Observation**: `DataStructureReference`, `CodelistReference`, `DataflowReference`, and `ConceptReference` share overlapping field sets and could be collapsed into a unified type.
 
 **Decision**: Kept as distinct types — each maps 1-to-1 to a named reference concept in the SDMX information model.
 
@@ -483,7 +483,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0019 — AttributeRelationship data variants wrap validating newtypes
 
-> **`GroupId` clause amended 2026-07-08 by [D-0077](#d-0077).** `GroupId::new()` now validates the full `IDType` grammar, not merely non-empty; `Error::EmptyGroupId` is removed (the empty lexeme reports `InvalidIdentifier`, like every identifier site). `DimensionIds`' non-empty list invariant and the `group()`/`dimensions()` forwarders stand; `DimensionRef` itself is separately promoted by D-0077.
+> **`DimensionIds` renamed 2026-07-08:** `DimensionIds` → `DimensionRefs` — the newtype holds `DimensionRef`s, not ids, and joins the `…Refs` collection family (`DataStructureRefs`/`DataflowRefs`). A name sync, not a new decision, so the references below are updated in place.
+>
+> **`GroupId` clause amended 2026-07-08 by [D-0077](#d-0077).** `GroupId::new()` now validates the full `IDType` grammar, not merely non-empty; `Error::EmptyGroupId` is removed (the empty lexeme reports `InvalidIdentifier`, like every identifier site). `DimensionRefs`' non-empty list invariant and the `group()`/`dimensions()` forwarders stand; `DimensionRef` itself is separately promoted by D-0077.
 
 | **Area**     | Data structure |
 | **Phase**    | M0 |
@@ -495,7 +497,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 **Observation**: The data-carrying variants `Group(..)` and `Dimensions(..)` can hold structurally meaningless values: an empty group id, or an empty dimension list. A bare `pub` variant leaves `Dimensions(vec![])` freely constructible and lets derived `Deserialize` build it from the wire (the D-0005 gap).
 
-**Decision**: Data variants wrap private-field newtypes (`GroupId`, `DimensionIds`) whose validating `new()` rejects empty — so the invalid state is unrepresentable. Ergonomic forwarders `AttributeRelationship::group()/dimensions()` wrap the newtype constructors. Unit variants (`Dataflow`, `Observation`) stay freely constructible — they carry no data and cannot be invalid.
+**Decision**: Data variants wrap private-field newtypes (`GroupId`, `DimensionRefs`) whose validating `new()` rejects empty — so the invalid state is unrepresentable. Ergonomic forwarders `AttributeRelationship::group()/dimensions()` wrap the newtype constructors. Unit variants (`Dataflow`, `Observation`) stay freely constructible — they carry no data and cannot be invalid.
 
 **Rationale**: Chosen over enforcing in `Attribute::new()`, which would be a layer violation — the type that owns the invariant enforces it. Newtypes carry custom `Deserialize`; the enum and `Attribute` ride on derived `Deserialize` per the D-0017 cross-field rule.
 
@@ -622,7 +624,7 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 
 **Rationale**: A standard `Option` is correct because versioning genuinely *is* optional in SDMX. The display-formatting risk (someone calling `.to_string()` without handling `None`) is closed *structurally*: `Version`'s own `Display` is verbatim (raw string, no sentinel), and the un-versioned sentinel lives only on a separate adapter `VersionDisplay<'a>(Option<&'a Version>)` reached through the `VersionableArtefact::version_display()` **default trait method**. The sentinel is `<unversioned>` — the angle brackets are outside every SDMX id/version lexical set, so it is **un-roundtrippable by design**: if it ever reaches a writer it fails validation loudly rather than passing as a valid version. The default-method placement means delegating structs inherit the display path for free (no per-impl boilerplate).
 
-**Consequences**: (1) `VersionableArtefact::version()` changes from `-> &str` to `-> Option<&Version>`, rippling through every delegating `version()` impl (§5.4/§5.5) — they move together. (2) Writers must match on `version()` directly and emit nothing when `None`; `version_display()` is display/logging-only. (3) `valid_from`/`valid_to` are unaffected (already `Option`). (4) **Out of scope for this pass:** the `version: String` field on the reference structs (`DsdReference`/`CodelistReference`/`DataflowReference`) is left a plain `String` — they are references (D-0020 territory, transparent carriers), and whether they should adopt `Version`/`Option<Version>` is a separate follow-up, not part of the identifier/version remit settled here. Flagged so the `String` there reads as deliberate, not an oversight.
+**Consequences**: (1) `VersionableArtefact::version()` changes from `-> &str` to `-> Option<&Version>`, rippling through every delegating `version()` impl (§5.4/§5.5) — they move together. (2) Writers must match on `version()` directly and emit nothing when `None`; `version_display()` is display/logging-only. (3) `valid_from`/`valid_to` are unaffected (already `Option`). (4) **Out of scope for this pass:** the `version: String` field on the reference structs (`DataStructureReference`/`CodelistReference`/`DataflowReference`) is left a plain `String` — they are references (D-0020 territory, transparent carriers), and whether they should adopt `Version`/`Option<Version>` is a separate follow-up, not part of the identifier/version remit settled here. Flagged so the `String` there reads as deliberate, not an oversight.
 
 ---
 
@@ -882,9 +884,9 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 
 **Decision**: Replace the shared `ConstraintAttachment` with **two per-constraint enums mirroring the XSD restrictions**, both **exhaustive** (D-0021 — bounded, spec-fixed):
 - `DataConstraintAttachment` = `DataProvider(DataProviderReference)` | `DataStructure(DataStructureRefs)` | `Dataflow(DataflowRefs)` | `ProvisionAgreement(ProvisionAgreementRefs)` — on `DataConstraint`.
-- `AvailabilityConstraintAttachment` = `DataStructure(DsdReference)` | `Dataflow(DataflowReference)` | `ProvisionAgreement(ProvisionAgreementReference)` (all single) — on `AvailabilityConstraint`.
+- `AvailabilityConstraintAttachment` = `DataStructure(DataStructureReference)` | `Dataflow(DataflowReference)` | `ProvisionAgreement(ProvisionAgreementReference)` (all single) — on `AvailabilityConstraint`.
 
-The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructureRefs`/`DataflowRefs`/`ProvisionAgreementRefs`) — *not* a generic `NonEmptyVec<T>`: the arms carry distinct domain identity (a vec of dataflow refs is not interchangeable with a vec of DSD refs), warrant distinct empty-error variants naming *what* was empty, and may gain arm-specific behaviour; same bespoke pattern as `DimensionIds` (D-0019), private field + validating `new()` (empty = mechanically schema-invalid for a chosen unbounded `<choice>` arm, so `new()`-rejectable under D-0031) + custom `Deserialize`. `Error` gains `EmptyDataStructureRefs`/`EmptyDataflowRefs`/`EmptyProvisionAgreementRefs`. Two new reference structs added: `ProvisionAgreementReference` (maintainable URN → flat agency/id/version) and `DataProviderReference` (its spec type `OrganisationReferenceType` shares `ComponentUrnReferenceType` with `ConceptReferenceType`, so it takes the **item-in-scheme** shape agency/scheme_id/id, *not* the maintainable triple).
+The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructureRefs`/`DataflowRefs`/`ProvisionAgreementRefs`) — *not* a generic `NonEmptyVec<T>`: the arms carry distinct domain identity (a vec of dataflow refs is not interchangeable with a vec of DSD refs), warrant distinct empty-error variants naming *what* was empty, and may gain arm-specific behaviour; same bespoke pattern as `DimensionRefs` (D-0019), private field + validating `new()` (empty = mechanically schema-invalid for a chosen unbounded `<choice>` arm, so `new()`-rejectable under D-0031) + custom `Deserialize`. `Error` gains `EmptyDataStructureRefs`/`EmptyDataflowRefs`/`EmptyProvisionAgreementRefs`. Two new reference structs added: `ProvisionAgreementReference` (maintainable URN → flat agency/id/version) and `DataProviderReference` (its spec type `OrganisationReferenceType` shares `ComponentUrnReferenceType` with `ConceptReferenceType`, so it takes the **item-in-scheme** shape agency/scheme_id/id, *not* the maintainable triple).
 
 **Rationale**: Encoding the restriction in the type makes the illegal cross-attachment (e.g. availability-on-DataProvider) unrepresentable — mathematically exact to the spec's *mechanical* restriction, and the same architectural intent as the two `CubeRegion` selection maps (D-0026) and the `SdmxInteger`/`SdmxDecimal` split (D-0027). A flat shared enum would be over-permissive *and* (as built) lossy on the 1..* cardinality. The split also adds a second axis to the intentional Reporting-vs-Availability asymmetry formalised in D-0033 (maintainability + attachment subset). Bespoke-not-generic newtypes: incorrectly applied DRY — a generic container erases the per-arm domain identity and collapses three distinct empty-errors into one.
 
@@ -1085,6 +1087,8 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0044 — 3.0-only data-source attachment members modelled (SimpleDataSource arm; QueryableDataSource companions)
 
+> **Field names renamed 2026-07-08:** `is_rest_datasource`/`is_web_service_datasource` → `is_rest_data_source`/`is_web_service_data_source`, following Rust word boundaries (the wire attributes stay `isRESTDatasource`/`isWebServiceDatasource`). A name sync, not a new decision, so the reference below is updated in place.
+
 | **Area**     | Constraints |
 | **Phase**    | Phase-1 |
 | **Status**   | Active |
@@ -1095,7 +1099,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 **Observation**: 3.0's `DataConstraintAttachmentType` is wider than the four reference targets D-0034 recorded (its count was 3.1-accurate only): it additionally allows a `SimpleDataSource` choice arm (`xs:anyURI`, 1..unbounded — URLs of SDMX-ML data/metadata messages) and trailing `QueryableDataSource` elements (`common:QueryableDataSourceType`, 0..unbounded) inside each of the DataStructure/Dataflow/ProvisionAgreement sequences. 3.1 removed both from constraint attachments entirely (the 3.1 abstract `ConstraintAttachmentType` holds only the 8 reference targets). `QueryableDataSourceType` = `DataURL` (`xs:anyURI`, required) + optional `WSDLURL`/`WADLURL` + **required** `isRESTDatasource`/`isWebServiceDatasource` booleans. A 3.0 data constraint attached to a data source was unrepresentable.
 
-**Decision**: Model both as 3.0-only superset members (the D-0037/D-0042 provenance class). `DataConstraintAttachment` gains a `SimpleDataSource(SimpleDataSources)` arm — bespoke non-empty newtype over `Vec<String>` (chosen arm is 1..\*, mechanical; URLs unvalidated `xs:anyURI` per D-0014; `Error::EmptySimpleDataSources`). The three 1..\* reference arms become struct variants carrying their companions: `DataStructure { refs: DataStructureRefs, queryable: Vec<QueryableDataSource> }` (likewise `Dataflow`, `ProvisionAgreement`) — `queryable` empty ⟺ absent (`minOccurs="0"` unbounded; always empty on 3.1 wire). `QueryableDataSource { data_url, wsdl_url, wadl_url, is_rest_datasource, is_web_service_datasource }` is an invariant-free pub-field carrier (both bools mandatory — required attributes). `AvailabilityConstraintAttachment` is untouched (3.1-only type; no data-source members).
+**Decision**: Model both as 3.0-only superset members (the D-0037/D-0042 provenance class). `DataConstraintAttachment` gains a `SimpleDataSource(SimpleDataSources)` arm — bespoke non-empty newtype over `Vec<String>` (chosen arm is 1..\*, mechanical; URLs unvalidated `xs:anyURI` per D-0014; `Error::EmptySimpleDataSources`). The three 1..\* reference arms become struct variants carrying their companions: `DataStructure { refs: DataStructureRefs, queryable: Vec<QueryableDataSource> }` (likewise `Dataflow`, `ProvisionAgreement`) — `queryable` empty ⟺ absent (`minOccurs="0"` unbounded; always empty on 3.1 wire). `QueryableDataSource { data_url, wsdl_url, wadl_url, is_rest_data_source, is_web_service_data_source }` is an invariant-free pub-field carrier (both bools mandatory — required attributes). `AvailabilityConstraintAttachment` is untouched (3.1-only type; no data-source members).
 
 **Rationale**: Struct variants because the spec nests refs and queryable sources in one sequence per arm — a separate parallel field would detach them from the arm they belong to. Superset-not-cut for the same reason as `ReleaseCalendar` (D-0042): real 3.0 wire on the type ADR-0008 stakes its claim on.
 
@@ -1311,7 +1315,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.7 |
 | **Related**  | [D-0030](#d-0030), [D-0031](#d-0031) |
 
-**Observation**: The `Structure` element (the dataflow's DSD reference) is `minOccurs="0"` in both versions. The spec's prose says the structure must be referenced "unless defined externally" — an external-reference stub (D-0030) may legitimately omit it. The model's `dsd: Option<DsdReference>` was correct but silent: no comment, no register record, unlike every comparable decision.
+**Observation**: The `Structure` element (the dataflow's DSD reference) is `minOccurs="0"` in both versions. The spec's prose says the structure must be referenced "unless defined externally" — an external-reference stub (D-0030) may legitimately omit it. The model's `dsd: Option<DataStructureReference>` was correct but silent: no comment, no register record, unlike every comparable decision.
 
 **Decision**: Record the `Option` as deliberate. `None` is a schema-valid wire state (typically an `isExternalReference=true` stub whose full definition lives elsewhere). The prose conditional ("must reference a DSD unless defined externally") is **not** a construction rejection: it is stated only in documentation, so a non-stub dataflow without a `Structure` still validates against the XSD — under ADR-0023 the coherence check ("`dsd: None` while the effective `is_external_reference()` is false is dubious") is a catalogued lint.
 
@@ -1396,7 +1400,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0058 — AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef)
 
-> **Carrier class amended 2026-07-08 by [D-0077](#d-0077)**: `DimensionRef` is no longer an invariant-free pub-field carrier — it crosses to an invariant-bearing type whose `new()` validates `id` as `NCNameIDType` (the `OptionalLocalDimensionReferenceType` base). The statedness treatment of `optional` and `DimensionIds`' non-empty invariant stand.
+> **Carrier class amended 2026-07-08 by [D-0077](#d-0077)**: `DimensionRef` is no longer an invariant-free pub-field carrier — it crosses to an invariant-bearing type whose `new()` validates `id` as `NCNameIDType` (the `OptionalLocalDimensionReferenceType` base). The statedness treatment of `optional` and `DimensionRefs`' non-empty invariant stand.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
@@ -1408,9 +1412,9 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 > **Accessor renamed 2026-06-29:** `effective_optional()` → `effective_is_optional()`, synchronising to the `effective_is_*` boolean effective-view naming convention; semantics unchanged. A name sync, not a new decision, so the reference below is updated in place.
 
-**Observation**: Each `<Dimension>` ref inside `AttributeRelationshipType`'s Dimensions arm is typed `OptionalLocalDimensionReferenceType` in BOTH versions — an extension of `common:NCNameIDType` adding `optional: xs:boolean default="false"`. The model stored the refs as `DimensionIds(Vec<String>)`, so `<Dimension optional="true">FREQ</Dimension>` — schema-valid wire — was unrepresentable. Doubly defective: a whole attribute dropped (the ADR-0008 #1 / Layer-1 superset hole), and a *defaulted* attribute, so also a missed D-0052 statedness site. It directly falsified D-0057's consequence (3) totality claim as recorded.
+**Observation**: Each `<Dimension>` ref inside `AttributeRelationshipType`'s Dimensions arm is typed `OptionalLocalDimensionReferenceType` in BOTH versions — an extension of `common:NCNameIDType` adding `optional: xs:boolean default="false"`. The model stored the refs as `DimensionRefs(Vec<String>)`, so `<Dimension optional="true">FREQ</Dimension>` — schema-valid wire — was unrepresentable. Doubly defective: a whole attribute dropped (the ADR-0008 #1 / Layer-1 superset hole), and a *defaulted* attribute, so also a missed D-0052 statedness site. It directly falsified D-0057's consequence (3) totality claim as recorded.
 
-**Decision**: Model it. A per-ref struct `DimensionRef { id: String, optional: Option<bool> }` (named for the role; the spec type name is the unwieldy `OptionalLocalDimensionReferenceType`) — the id structural-only (D-0020), `optional` with statedness stored (D-0052: `None` ⟺ absent; `effective_is_optional()` = `false`). `DimensionIds` becomes the bespoke non-empty newtype over `Vec<DimensionRef>` (its `EmptyAttributeDimensions` invariant and custom Deserialize unchanged); the `AttributeRelationship::dimensions()` forwarder takes `Vec<DimensionRef>`. An invariant-free pub-field carrier — position in the §7 taxonomy unchanged for every touched type.
+**Decision**: Model it. A per-ref struct `DimensionRef { id: String, optional: Option<bool> }` (named for the role; the spec type name is the unwieldy `OptionalLocalDimensionReferenceType`) — the id structural-only (D-0020), `optional` with statedness stored (D-0052: `None` ⟺ absent; `effective_is_optional()` = `false`). `DimensionRefs` becomes the bespoke non-empty newtype over `Vec<DimensionRef>` (its `EmptyAttributeDimensions` invariant and custom Deserialize unchanged); the `AttributeRelationship::dimensions()` forwarder takes `Vec<DimensionRef>`. An invariant-free pub-field carrier — position in the §7 taxonomy unchanged for every touched type.
 
 **Rationale**: The standing full-model ruling leaves no room for a cut, and the statedness treatment is D-0052 applied mechanically. The recorded-cut alternative was rejected: it would have left the totality claim false for a trivially modellable attribute.
 

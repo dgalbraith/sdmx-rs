@@ -1317,7 +1317,7 @@ pub enum RepresentationChoice {
 // validated at declaration, not reference); serde stays field-wise derived (the projection is
 // not the wire — D-0068). Item tails are held verbatim (nested paths are wire-legal).
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub struct DsdReference {
+pub struct DataStructureReference {
     pub agency: String,
     pub id: String,
     pub version: VersionRef,
@@ -1355,7 +1355,7 @@ pub struct ValueListReference {
 
 // Added for the constraint-attachment split (D-0034 / D3). ProvisionAgreement is a MAINTAINABLE
 // artefact (MaintainableUrnReferenceType), so its reference is the flat agency/id/version triple,
-// like DsdReference/DataflowReference.
+// like DataStructureReference/DataflowReference.
 // Display: urn:sdmx:org.sdmx.infomodel.registry.ProvisionAgreement=<agency>:<id>(<version>)
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ProvisionAgreementReference {
@@ -1480,7 +1480,7 @@ impl Dimension {
 // The data-carrying relationship variants wrap private-field newtypes so the
 // invariant (IDType-valid group id / non-empty dimension list) is enforced by
 // construction, not by convention: `AttributeRelationship::Dimensions(..)` cannot
-// be built without a `DimensionIds`, which only its validating constructor produces.
+// be built without a `DimensionRefs`, which only its validating constructor produces.
 // This closes the D-0005 gap — a raw `Dimensions(vec![])` is uncallable, and the
 // custom Deserialize on each newtype enforces the constraint on the deserialisation
 // path too. The group reference validates its lexical tier, IDType (D-0077).
@@ -1523,16 +1523,16 @@ impl DimensionRef {
     pub fn effective_is_optional(&self) -> bool { self.optional.unwrap_or(false) }
 }
 
-pub struct DimensionIds(Vec<DimensionRef>); // private field; constructor rejects empty
+pub struct DimensionRefs(Vec<DimensionRef>); // private field; constructor rejects empty
 
-impl DimensionIds {
+impl DimensionRefs {
     pub fn new(refs: Vec<DimensionRef>) -> Result<Self, Error> {
         if refs.is_empty() { return Err(Error::EmptyAttributeDimensions); }
         Ok(Self(refs))
     }
     pub fn as_slice(&self) -> &[DimensionRef] { &self.0 }
 }
-// Custom Deserialize calls DimensionIds::new().
+// Custom Deserialize calls DimensionRefs::new().
 
 // The enum merely composes unit variants and already-valid newtypes, so it carries
 // derived Deserialize (delegates to the newtypes' custom impls — §7 cross-field rule).
@@ -1546,14 +1546,14 @@ pub enum AttributeRelationship {
     Dataflow,
     Observation,
     Group(GroupId),
-    Dimensions(DimensionIds),
+    Dimensions(DimensionRefs),
 }
 
 impl AttributeRelationship {
     // Ergonomic forwarders so callers do not touch the newtypes directly.
     pub fn group(id: String) -> Result<Self, Error> { Ok(Self::Group(GroupId::new(id)?)) }
     pub fn dimensions(refs: Vec<DimensionRef>) -> Result<Self, Error> {
-        Ok(Self::Dimensions(DimensionIds::new(refs)?))
+        Ok(Self::Dimensions(DimensionRefs::new(refs)?))
     }
 }
 
@@ -1945,7 +1945,7 @@ pub struct Dataflow {
     // elsewhere. The prose "must reference a DSD unless defined externally" is documentation,
     // not a facet, so a non-stub dataflow without a DSD is held, not rejected; the stub
     // coherence check is a catalogued lint (ADR-0023).
-    pub dsd: Option<DsdReference>,
+    pub dsd: Option<DataStructureReference>,
     // 3.1-only (D-0045) — isPartialLanguage provenance class (D-0010): the superset carries it;
     // a 3.0 payload simply never produces Some.
     pub dimension_constraint: Option<DimensionConstraint>,
@@ -2239,7 +2239,7 @@ impl FixedInclude {
     /// Layer-1 (infoset): the statedness exactly as the wire carried it.
     pub fn stated(&self) -> Option<bool> { self.0 }
     /// Layer-2 (view): the effective value is always the fixed value.
-    pub fn effective(&self) -> bool { true }
+    pub fn effective_is_included(&self) -> bool { true }
 }
 // Custom Deserialize calls FixedInclude::new() — the wire path rejects a stated "false" too.
 
@@ -2399,16 +2399,16 @@ pub struct DataflowReference {
 // Three bespoke non-empty-vec newtypes for the 1..* DATA-constraint arms — NOT a generic
 // NonEmptyVec<T>: each carries distinct domain identity (a vec of dataflow refs is not a vec of DSD
 // refs), a distinct empty-error variant naming WHAT was empty, and room for arm-specific behaviour
-// later. Same bespoke pattern as DimensionIds (D-0019): private field, validating new() rejecting
+// later. Same bespoke pattern as DimensionRefs (D-0019): private field, validating new() rejecting
 // empty (a chosen `<choice>` arm with maxOccurs=unbounded requires ≥1 — empty is mechanically
 // schema-INVALID, so new()-rejectable under D-0031), custom Deserialize through new().
-pub struct DataStructureRefs(Vec<DsdReference>); // private; constructor rejects empty
+pub struct DataStructureRefs(Vec<DataStructureReference>); // private; constructor rejects empty
 impl DataStructureRefs {
-    pub fn new(refs: Vec<DsdReference>) -> Result<Self, Error> {
+    pub fn new(refs: Vec<DataStructureReference>) -> Result<Self, Error> {
         if refs.is_empty() { return Err(Error::EmptyDataStructureRefs); }
         Ok(Self(refs))
     }
-    pub fn as_slice(&self) -> &[DsdReference] { &self.0 }
+    pub fn as_slice(&self) -> &[DataStructureReference] { &self.0 }
 }
 pub struct DataflowRefs(Vec<DataflowReference>); // private; constructor rejects empty
 impl DataflowRefs {
@@ -2453,8 +2453,8 @@ pub struct QueryableDataSource {
     pub data_url: String,
     pub wsdl_url: Option<String>,
     pub wadl_url: Option<String>,
-    pub is_rest_datasource: bool,
-    pub is_web_service_datasource: bool,
+    pub is_rest_data_source: bool,
+    pub is_web_service_data_source: bool,
 }
 
 // DataConstraintAttachmentType → DataConstraint. The 3.1 restriction has 4 targets; 3.0 adds
@@ -2476,7 +2476,7 @@ pub enum DataConstraintAttachment {
 // it from the availability restriction).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum AvailabilityConstraintAttachment {
-    DataStructure(DsdReference),
+    DataStructure(DataStructureReference),
     Dataflow(DataflowReference),
     ProvisionAgreement(ProvisionAgreementReference),
 }
@@ -2840,7 +2840,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 - **Delegation Boilerplate:** Exposing getters like `id()` or `version()` requires writing delegating trait implementations for each concrete domain struct (e.g., implementing `IdentifiableArtefact` on `Code` by forwarding to `self.metadata.id()`). This is a small, one-time writing cost that can be mitigated by macros if the number of types grows. We accept this trade-off to keep the public API clean.
 - **Linear Lookup over Ordered Stores:** Wire collections are ordered `Vec`s (D-0051/ADR-0023), so identity lookup (`get(id)`, `get(lang)`) is a first-match O(n) scan rather than a keyed O(log n)/O(1) access. This is the price of preserving element order and schema-valid duplicates — wire information a keyed store destroys. At SDMX metadata cardinalities (10 to 5,000 items) the scan is bounded and cache-friendly; per-observation hot paths live in the parser/client crates, which build their own indexes; and cached index *views* over the `Vec` store are the sanctioned, additive evolution if profiling ever demands (the reverse migration — map store to `Vec` — would have been a breaking change, which is why the store side was fixed first).
 - **Owned Types & Allocations:** Having the domain model own all strings (`String` instead of references or `Cow`) increases allocation counts during parsing. This is a deliberate choice: keeping the domain structures lifetimeless (`'static`) simplifies consumer code, client caching, and storage. Lifetimes are confined strictly to the parsers during raw tokenise loops.
-- **Reference Type Structural Repetition:** The seven reference structs (`DsdReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DsdReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (Each struct owns its class URN contract — `Display` renders it, `FromStr` parses exactly that class — with versions typed `VersionRef`; D-0073.)
+- **Reference Type Structural Repetition:** The seven reference structs (`DataStructureReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DataStructureReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (Each struct owns its class URN contract — `Display` renders it, `FromStr` parses exactly that class — with versions typed `VersionRef`; D-0073.)
 - **`DataConstraint` Naming (earlier divergence reversed — D-0037):** An earlier draft named this type `ReportingConstraint` for "semantic clarity" (reporting limits on a dataflow). That reading did not survive the 3.0 `role` attribute: a 3.0 data constraint with `role="Actual"` states what data actually *exists* — not a reporting limit — so the invented name described only one of the type's two roles, while the type's own attachment enum (`DataConstraintAttachment`) already carried the spec name. The type is now named `DataConstraint`, matching `DataConstraintType` in both 3.0 and 3.1, per D-0002's rule that types map 1-to-1 to named spec concepts.
 - **`Link` Elements Modelled (earlier omission reversed — D-0035):** An earlier draft (D-0014) omitted `Link`, calling it a transport-layer HATEOAS affordance belonging in the HTTP envelope. That was a misreading of the schema: `LinkType` sits on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship (`rel`), a target `url`/`urn`, and a media-type hint — strictly more than the `uri` field can express. Reconstructing it from `uri`/`urn` is not possible (those are single identity fields, not a typed multi-valued association). So omitting it lost real, producer-supplied domain content — a lossless-superset defect (ADR-0008 #1). `Link` is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (the single `IdentifiableType` chokepoint), surfaced via `IdentifiableArtefact::links()`. See D-0035.
 - **`AvailabilityConstraint` Asymmetry in `ConstraintModel`:** The two variants of `ConstraintModel` are structurally asymmetric: `DataConstraint` is a maintainable, registerable artefact with `MaintainableMetadata`; `AvailabilityConstraint` is an ephemeral, non-maintainable response type with no registry identity. This asymmetry is intentional — it reflects the spec's own distinction. The asymmetry is precisely *maintainability*, not annotability: both extend `AnnotableType`, so both carry `annotations` (D-0033) — `DataConstraint` via its `MaintainableMetadata`, `AvailabilityConstraint` via a bare field. Both share the `ConstraintModel` enum because both express constraint semantics on a dataflow and are consumed by the same client code paths.

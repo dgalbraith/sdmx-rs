@@ -34,8 +34,8 @@ use crate::{
     CubeRegion, CubeRegionKey, CubeRegions, DataComponentSelection, DataComponentValue,
     DataComponentValueSet, DataComponentValues, DataConstraint, DataConstraintAttachment, DataKey,
     DataKeySet, DataKeyValue, DataKeys, DataProviderReference, DataStructureDefinition,
-    DataStructureRefs, DataType, Dataflow, DataflowReference, DataflowRefs, Dimension,
-    DimensionConstraint, DimensionList, DimensionRef, DsdReference, EnumerationFormat,
+    DataStructureReference, DataStructureRefs, DataType, Dataflow, DataflowReference, DataflowRefs,
+    Dimension, DimensionConstraint, DimensionList, DimensionRef, EnumerationFormat,
     EnumerationReference, FixedInclude, Group, GroupDimensions, IdentifiableMetadata,
     IsoConceptReference, KeyValueSelection, Link, LocalisedString, LocalisedText,
     MaintainableMetadata, MaxOccurs, Measure, MeasureList, MeasureRelationship, MemberValue,
@@ -823,13 +823,10 @@ fn value_list_reference() -> impl Strategy<Value = ValueListReference> {
         .prop_map(|(agency, id, version)| ValueListReference { agency, id, version })
 }
 
-/// A typed `DsdReference`.
-pub(crate) fn dsd_reference() -> impl Strategy<Value = DsdReference> {
-    (urn_agency(), urn_id(), reference_version()).prop_map(|(agency, id, version)| DsdReference {
-        agency,
-        id,
-        version,
-    })
+/// A typed `DataStructureReference`.
+pub(crate) fn dsd_reference() -> impl Strategy<Value = DataStructureReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| DataStructureReference { agency, id, version })
 }
 
 /// A typed `DataflowReference`.
@@ -1608,8 +1605,8 @@ fn queryable_data_source() -> impl Strategy<Value = QueryableDataSource> {
             data_url,
             wsdl_url,
             wadl_url,
-            is_rest_datasource: is_rest,
-            is_web_service_datasource: is_ws,
+            is_rest_data_source: is_rest,
+            is_web_service_data_source: is_ws,
         })
         .boxed()
 }

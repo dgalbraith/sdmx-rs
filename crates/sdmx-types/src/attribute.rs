@@ -12,7 +12,7 @@
 
 The data-carrying relationship variants wrap private-field newtypes so their invariants are
 enforced by construction, not convention: an `AttributeRelationship::Dimensions` cannot be built
-without a [`DimensionIds`], whose validating constructor rejects an empty list, and `Group` needs an
+without a [`DimensionRefs`], whose validating constructor rejects an empty list, and `Group` needs an
 `IDType`-valid [`GroupId`]. The enum itself merely composes unit variants and already-valid
 newtypes, so it carries a derived `Deserialize` that delegates to those newtypes' custom impls (§7).
 
@@ -106,7 +106,7 @@ impl<'de> serde::Deserialize<'de> for GroupId {
 }
 
 // ---------------------------------------------------------------------------
-// DimensionRef, DimensionIds
+// DimensionRef, DimensionRefs
 // ---------------------------------------------------------------------------
 
 /// A reference to a dimension in an attribute's [`AttributeRelationship::Dimensions`], with its
@@ -192,9 +192,9 @@ impl<'de> serde::Deserialize<'de> for DimensionRef {
 /// Always holds at least one [`DimensionRef`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
-pub struct DimensionIds(Vec<DimensionRef>);
+pub struct DimensionRefs(Vec<DimensionRef>);
 
-impl DimensionIds {
+impl DimensionRefs {
     /// Builds a dimension-reference list.
     ///
     /// # Errors
@@ -220,13 +220,13 @@ impl DimensionIds {
     }
 }
 
-impl From<DimensionIds> for Vec<DimensionRef> {
-    fn from(value: DimensionIds) -> Self {
+impl From<DimensionRefs> for Vec<DimensionRef> {
+    fn from(value: DimensionRefs) -> Self {
         value.into_inner()
     }
 }
 
-impl TryFrom<Vec<DimensionRef>> for DimensionIds {
+impl TryFrom<Vec<DimensionRef>> for DimensionRefs {
     type Error = Error;
 
     fn try_from(refs: Vec<DimensionRef>) -> Result<Self, Error> {
@@ -234,7 +234,7 @@ impl TryFrom<Vec<DimensionRef>> for DimensionIds {
     }
 }
 
-impl<'de> serde::Deserialize<'de> for DimensionIds {
+impl<'de> serde::Deserialize<'de> for DimensionRefs {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Self::new(Vec::<DimensionRef>::deserialize(deserializer)?).map_err(to_de_error)
     }
@@ -279,7 +279,7 @@ pub enum AttributeRelationship {
     /// The value attaches to a named [`Group`](crate::Group).
     Group(GroupId),
     /// The value attaches to a set of dimensions.
-    Dimensions(DimensionIds),
+    Dimensions(DimensionRefs),
 }
 
 impl AttributeRelationship {
@@ -298,7 +298,7 @@ impl AttributeRelationship {
     ///
     /// Returns [`Error::EmptyAttributeDimensions`] if `refs` is empty.
     pub fn dimensions(refs: Vec<DimensionRef>) -> Result<Self, Error> {
-        Ok(Self::Dimensions(DimensionIds::new(refs)?))
+        Ok(Self::Dimensions(DimensionRefs::new(refs)?))
     }
 }
 
@@ -785,15 +785,15 @@ mod tests {
     #[test]
     fn dimension_ids_reject_empty() {
         let refs = vec![DimensionRef::new(String::from("FREQ"), None).unwrap()];
-        assert_eq!(DimensionIds::new(refs).unwrap().as_slice().len(), 1);
-        assert_eq!(DimensionIds::new(Vec::new()).unwrap_err(), Error::EmptyAttributeDimensions);
+        assert_eq!(DimensionRefs::new(refs).unwrap().as_slice().len(), 1);
+        assert_eq!(DimensionRefs::new(Vec::new()).unwrap_err(), Error::EmptyAttributeDimensions);
 
-        // The invariant holds on the wire: DimensionIds' Deserialize routes the raw Vec<DimensionRef>
+        // The invariant holds on the wire: DimensionRefs' Deserialize routes the raw Vec<DimensionRef>
         // through new(), so an empty list is rejected on deserialisation. Any composite that wraps it
         // (AttributeRelationship::Dimensions, and Attribute above that) is protected because serde
         // bubbles this nested failure up.
         let empty = postcard::to_allocvec(&Vec::<DimensionRef>::new()).unwrap();
-        assert!(postcard::from_bytes::<DimensionIds>(&empty).is_err());
+        assert!(postcard::from_bytes::<DimensionRefs>(&empty).is_err());
     }
 
     #[test]
@@ -989,7 +989,7 @@ mod tests {
 
     #[test]
     fn attribute_deserialize_round_trips() {
-        // The empty-Dimensions invariant lives on DimensionIds and is proven on the wire in
+        // The empty-Dimensions invariant lives on DimensionRefs and is proven on the wire in
         // dimension_ids_reject_empty; AttributeRelationship::Dimensions wraps it, so serde bubbles
         // that nested rejection up through Attribute's Deserialize. Attribute's own rule (the Basic
         // representation subset) is covered by the next test.
@@ -1178,7 +1178,7 @@ mod tests {
     #[test]
     fn dimension_ids_try_from_rejects_empty() {
         assert_eq!(
-            DimensionIds::try_from(Vec::new()).unwrap_err(),
+            DimensionRefs::try_from(Vec::new()).unwrap_err(),
             Error::EmptyAttributeDimensions
         );
     }
@@ -1197,8 +1197,8 @@ mod tests {
         assert_eq!(g.clone().into_inner(), "G");
         assert_eq!(String::from(g), "G");
         let refs = vec![DimensionRef::new(String::from("D"), None).unwrap()];
-        assert_eq!(DimensionIds::new(refs.clone()).unwrap().into_inner(), refs);
-        assert_eq!(Vec::from(DimensionIds::new(refs.clone()).unwrap()), refs);
+        assert_eq!(DimensionRefs::new(refs.clone()).unwrap().into_inner(), refs);
+        assert_eq!(Vec::from(DimensionRefs::new(refs.clone()).unwrap()), refs);
         let m = vec![String::from("M")];
         assert_eq!(MeasureRelationship::new(m.clone()).unwrap().into_inner(), m);
         assert_eq!(Vec::from(MeasureRelationship::new(m.clone()).unwrap()), m);

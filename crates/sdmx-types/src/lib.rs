@@ -85,8 +85,8 @@ pub use crate::{
     annotation::{Annotation, AnnotationUrl, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     attribute::{
-        Attribute, AttributeListMember, AttributeRelationship, DimensionIds, DimensionRef, GroupId,
-        MeasureRelationship, MetadataAttributeUsage,
+        Attribute, AttributeListMember, AttributeRelationship, DimensionRef, DimensionRefs,
+        GroupId, MeasureRelationship, MetadataAttributeUsage,
     },
     codelist::{
         Cascade, Code, CodeSelection, Codelist, CodelistExtension, MemberValue, MemberValues,
@@ -119,8 +119,8 @@ pub use crate::{
     metadata::{IdentifiableMetadata, MaintainableMetadata, NameableMetadata, VersionableMetadata},
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
     reference::{
-        CodelistReference, ConceptReference, DataProviderReference, DataflowReference,
-        DsdReference, ProvisionAgreementReference, ValueListReference,
+        CodelistReference, ConceptReference, DataProviderReference, DataStructureReference,
+        DataflowReference, ProvisionAgreementReference, ValueListReference,
     },
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,

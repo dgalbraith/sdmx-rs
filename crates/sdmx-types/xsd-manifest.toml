@@ -141,7 +141,7 @@ rust = ["MaintainableArtefact"]
 symbol = "DataStructureReferenceType"
 file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
-rust = ["DsdReference"]
+rust = ["DataStructureReference"]
 
 [[fragment]]
 symbol = "ConceptReferenceType"
