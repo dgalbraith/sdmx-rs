@@ -46,7 +46,7 @@ use crate::error::{Error, to_de_error};
 ///
 /// ## Guarantees
 ///
-/// A constructed value never holds `Some(false)`, so [`effective`](Self::effective) is always
+/// A constructed value never holds `Some(false)`, so [`effective_is_included`](Self::effective_is_included) is always
 /// `true`.
 ///
 /// # Examples
@@ -56,7 +56,7 @@ use crate::error::{Error, to_de_error};
 ///
 /// let omitted = FixedInclude::new(None)?;
 /// assert_eq!(omitted.stated(), None);
-/// assert!(omitted.effective());
+/// assert!(omitted.effective_is_included());
 ///
 /// // A stated `false` contradicts `fixed="true"` and is rejected.
 /// assert!(FixedInclude::new(Some(false)).is_err());
@@ -91,7 +91,7 @@ impl FixedInclude {
 
     /// The effective value, which is always the fixed value `true`.
     #[must_use]
-    pub const fn effective(&self) -> bool {
+    pub const fn effective_is_included(&self) -> bool {
         true
     }
 }
@@ -127,8 +127,8 @@ mod tests {
 
     #[test]
     fn effective_is_always_true() {
-        assert!(FixedInclude::new(None).unwrap().effective());
-        assert!(FixedInclude::new(Some(true)).unwrap().effective());
+        assert!(FixedInclude::new(None).unwrap().effective_is_included());
+        assert!(FixedInclude::new(Some(true)).unwrap().effective_is_included());
     }
 
     #[test]
