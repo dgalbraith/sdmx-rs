@@ -155,8 +155,10 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0072](#d-0072) | Lexical types               | ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme                                                                                                                       |
 | [D-0073](#d-0073) | Reference types             | Reference types own their class URN (Display/FromStr); versions typed VersionRef; + admitted everywhere, * nowhere                                                                                                                |
 | [D-0074](#d-0074) | Lexical types               | `PartialEq<str>` string identity on the lexeme-storing types only; raw-free grammar types take none (canonical semantics pre-agreed)                                                                                              |
+| [D-0075](#d-0075) | Conventions                 | Schema-unbounded integers take u32 width where the value is a count or version component; the bound is a recorded deviation; lexeme newtypes where the value is the datum                                                         |
+| [D-0076](#d-0076) | Data structure              | Format-facet validity moves into the field types: time_interval takes the SdmxDuration newtype, the positiveInteger facets and MaxOccurs::Count take NonZeroU32; min_occurs stays u32                                             |
 
-<!-- Next ID: D-0075 -->
+<!-- Next ID: D-0077 -->
 
 ## Entries
 
@@ -708,12 +710,14 @@ It also claimed a *per-value-set* `include` which was **incorrect** — `include
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (subsystem amended by [D-0048](#d-0048), [D-0052](#d-0052)) |
+| **Status**   | Active (subsystem amended by [D-0048](#d-0048), [D-0052](#d-0052); facet-grammar cut closed by [D-0076](#d-0076)) |
 | **Keywords** | representation, textformat, datatype, facets, codelist, component, spec-alignment |
 | **Spec ref** | [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L209-L242) (`RepresentationType`, the TextFormat tier chain, `CodeDataType`); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L609-L625) (`SimpleDataStructureRepresentationType`); [SDMXStructureConcept.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L101-L120) (`ConceptRepresentation`); [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L1244-L1470) (`DataType` subsets); 3.0 identical throughout except the `isMultiLingual` default ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6.1 |
-| **Related**  | [D-0021](#d-0021), [D-0025](#d-0025), [D-0027](#d-0027), [D-0029](#d-0029), [D-0048](#d-0048) |
+| **Related**  | [D-0021](#d-0021), [D-0025](#d-0025), [D-0027](#d-0027), [D-0029](#d-0029), [D-0048](#d-0048), [D-0052](#d-0052), [D-0076](#d-0076) |
 
+> **`xs:duration` facet-grammar cut closed 2026-07-08 by [D-0076](#d-0076).** `TextFormat.time_interval` and `EnumerationFormat.time_interval` now carry the `SdmxDuration` lexical newtype, so consequence (4)'s cut list (`ConceptRole`, `ISOConceptReference`, the `xs:duration` facet grammar) is fully closed.
+>
 > **`ISOConceptReference` cut closed 2026-07-07.** `Concept` now carries `iso_concept_reference: Option<IsoConceptReference>`, a pub-field carrier of the element's three mandatory strings. The `xs:duration` facet grammar is the sole remaining cut of consequence (4).
 >
 > **`ConceptRole` cut closed 2026-07-07; site list corrected.** `Dimension`, `Attribute`, and `Measure` now carry `concept_roles: Vec<ConceptReference>` (0..* in wire order, so a possibly-empty `Vec`, not an `Option`). Consequence (4) mis-states the sites as "dimensions/measures/concepts": the schema declares `ConceptRole` on dimensions, attributes, and measures only, and `TimeDimensionType`'s restriction drops it, so `TimeDimension` correctly omits it. `ISOConceptReference` and the `xs:duration` facet grammar remain cut.
@@ -1706,5 +1710,43 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: A comparison operator must have one obvious reading at the call site. Where the lexeme is reconstructed, the operator would silently pick one of two readings users legitimately hold — the hazard [D-0060](#d-0060) resolved by deferral — while declining costs nothing, because the operator is additive whenever its semantics are settled.
 
 **Consequences**: (1) practices.md's trait-surface row is recut from unqualified "intended" to the lexeme-storing types, citing this entry. (2) Parse-based equality on the raw-free types is rejected outright, not merely deferred: under the bijective canonical grammars it duplicates structural equality wherever the literal is grammar-valid, and any divergence would bless non-stated forms against the statedness principle. (3) Canonical (formats-to-equal) semantics are pre-agreed as the meaning if ergonomic pressure ever justifies adopting the operator on a raw-free type — an additive MINOR change.
+
+---
+
+### D-0075 — Schema-unbounded integers take u32 width; the bound is a recorded deviation
+
+| **Area**     | Conventions |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | integer-width, u32, nonzero, positive-integer, magnitude, deviation, representability |
+| **Related**  | [D-0027](#d-0027), [D-0070](#d-0070), [D-0076](#d-0076) |
+
+**Observation**: Several schema slots are unbounded integers — the `xs:positiveInteger` facet counts, the `xs:nonNegativeInteger` `minOccurs`, `MaxOccursNumberType`, and the `VersionType` numeric components — and the crate models them at `u32` width, so a schema-valid `minLength="5000000000"` or a beyond-`u32` version component is unrepresentable. [D-0070](#d-0070)'s design note argues the version components' *signedness*, not their magnitude, and no entry records the width choice, in contrast to the lexeme-storing types ([D-0027](#d-0027)) where the text is the datum and is held losslessly.
+
+**Decision**: Schema-unbounded integers whose value is a count or version component are modelled at `u32` width (`u32`, or `NonZeroU32` where the schema floors the value at 1), and that width is a deliberate, documented deviation from the schema's unbounded value space. Where the value itself is the datum, the lexeme newtypes (`SdmxInteger`, `SdmxDecimal`) hold the text losslessly and no width applies.
+
+**Rationale**: A count beyond `u32` is schema-legal but semantically absurd (a four-billion-character minimum length), so lexeme-fidelity machinery would buy nothing there; the fork that matters is datum-versus-bound, and the datum side is already lossless. Recording the width once gives every future integer slot a citable rule and stops the deviation propagating unrecorded.
+
+**Consequences**: (1) The existing width choices are instances of this policy — the `SdmxVersion` components (whose rustdoc already documents the rejection), `Representation.min_occurs`, and `MaxOccurs` — so they now have a citable rule and no change follows for them. (2) The format facets adopt the width through [D-0076](#d-0076), taking `NonZeroU32` where the schema floor is 1. (3) A future slot whose integer is genuinely data-carrying must not take an integer width; it takes a lexeme newtype per [D-0027](#d-0027).
+
+---
+
+### D-0076 — Format-facet validity moves into the field types: SdmxDuration and NonZeroU32
+
+| **Area**     | Data structure |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | facets, duration, textformat, nonzero, positive-integer, validation, representation |
+| **Spec ref** | [SDMXStructureBase.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureBase.xsd#L274-L309) (`timeInterval` `xs:duration`; `minLength`/`maxLength`/`decimals` `xs:positiveInteger`); [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L697-L711) (`OccurenceType`, `MaxOccursNumberType` `minInclusive 1`); 3.1 identical |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6.1 |
+| **Related**  | [D-0027](#d-0027), [D-0028](#d-0028), [D-0048](#d-0048), [D-0075](#d-0075) |
+
+**Observation**: The construction contract holds that input an XSD validator could itself reject is a construction error, and the format facets escaped it in two ways: `time_interval` held any `String` (the [D-0028](#d-0028) cut, flagged as an uncommon facet), and the `xs:positiveInteger` facets (`minLength`, `maxLength`, `decimals`) plus `MaxOccurs::Count` admitted a stated zero (`MaxOccursNumberType` is `minInclusive 1`; the zero admission was never recorded as a cut). The facet carriers are pub-field types with no constructor, so constructor-side checks are not available there.
+
+**Decision**: Validity moves into the field types. `time_interval` takes `SdmxDuration`, a lexeme-storing newtype over the full signed `xs:duration` grammar (the `TimeRangeType` chain's ordered-component scanner plus the leading `-` that plain `xs:duration` admits); the `xs:positiveInteger` facets and `MaxOccurs::Count` take `NonZeroU32` at the [D-0075](#d-0075) width, whose serde impl rejects a stated zero on the wire path. `min_occurs` stays `u32`: `xs:nonNegativeInteger` admits zero, so tightening it would reject schema-valid input.
+
+**Rationale**: Within-field grammar belongs to the field's type (§7): a nested validated type enforces the wire path through a derived carrier with no constructor, the same shape as `SdmxTimePeriod` inside the constraint carriers; `NonZeroU32` proivdes the schema floor with a `core` type and no new API surface.
+
+**Consequences**: (1) `Error::InvalidDuration` joins the lexical family's variants. (2) `SdmxDuration` and `SdmxTimeRange` keep distinct validators: the range half is unsigned by the chain's pattern, plain `xs:duration` is signed; the shared scanner is the reuse point, not the grammar.
 
 ---
