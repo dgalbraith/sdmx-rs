@@ -34,9 +34,13 @@ on a later minor bump.
 
 The identifier tiers back the distinct identifier-failure variants (`IDType` for `InvalidIdentifier`,
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
-`Invalid{Decimal,Integer,Version,TimePeriod,Duration}` variants.
+`Invalid{Decimal,Integer,Version,TimePeriod,Duration}` variants. The identifier variants serve
+declaration and local-reference sites alike (D-0077): an off-tier reference lexeme reports the same
+failure as an off-tier declared id, and the empty lexeme is just one off-grammar case, with no
+bespoke empty variant (the `Empty*` family is reserved for list-cardinality invariants). The
+identifier-failure messages delimit the offending lexeme so that case renders unambiguously.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052, D-0076.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052, D-0076, D-0077.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, thiserror::Error)]
@@ -45,8 +49,12 @@ pub enum Error {
     ///
     /// This is the loosest of the three identifier tiers: the base check
     /// every identifiable artefact shares (codes, generic ids, and the maintainable
-    /// artefacts whose ids the spec leaves at `IDType`).
-    #[error("Invalid artefact identifier: {0}. Must match SDMX IDType format.")]
+    /// artefacts whose ids the spec leaves at `IDType`), and the tier of the `IDType`
+    /// local references ([`GroupId::new`](crate::GroupId::new), the
+    /// [`DimensionConstraint::new`](crate::DimensionConstraint::new) items, and a stated
+    /// [`Code`](crate::Code) parent id). The lexeme is delimited in the message so an
+    /// empty identifier renders unambiguously.
+    #[error("Invalid artefact identifier: `{0}`. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
     /// An `agencyID` failed the SDMX `NestedNCNameIDType` grammar (dotted `NCName`:
@@ -54,7 +62,7 @@ pub enum Error {
     ///
     /// Produced by [`MaintainableMetadata::new`](crate::MaintainableMetadata::new),
     /// the only owner of the agency-identifier check.
-    #[error("Invalid agency identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
+    #[error("Invalid agency identifier: `{0}`. Must match SDMX NestedNCNameIDType format.")]
     InvalidAgencyIdentifier(String),
 
     /// An identifier failed the SDMX `NCNameIDType` grammar (`[A-Za-z][A-Za-z0-9_\-]*`):
@@ -63,10 +71,17 @@ pub enum Error {
     ///
     /// Produced by the constructors whose ids the spec types as `NCNameIDType`: the validated
     /// scheme items [`Concept::new`](crate::Concept::new) and [`Agency::new`](crate::Agency::new)
-    /// (their own ids), and the `NCName` scheme wrappers [`Codelist::new`](crate::Codelist::new) and
+    /// (their own ids, and a stated `Concept` parent id), and the `NCName` scheme wrappers
+    /// [`Codelist::new`](crate::Codelist::new) and
     /// [`ConceptScheme::new`](crate::ConceptScheme::new) (their scheme ids). The component leaf
-    /// [`ComponentMetadata::new`](crate::ComponentMetadata::new) validates a stated component id.
-    #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
+    /// [`ComponentMetadata::new`](crate::ComponentMetadata::new) validates a stated component id,
+    /// and the `NCNameIDType` local references validate here too:
+    /// [`DimensionRef::new`](crate::DimensionRef::new),
+    /// [`MetadataAttributeUsage::new`](crate::MetadataAttributeUsage::new), and the
+    /// [`MeasureRelationship::new`](crate::MeasureRelationship::new) /
+    /// [`GroupDimensions::new`](crate::GroupDimensions::new) items. The lexeme is delimited in
+    /// the message so an empty identifier renders unambiguously.
+    #[error("Invalid NCName identifier: `{0}`. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 
     /// A value failed the `xs:decimal` lexical grammar (optional sign, digits, at
@@ -230,14 +245,6 @@ pub enum Error {
         "Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id."
     )]
     EmptyAttributeDimensions,
-
-    /// An `AttributeRelationship::Group` was constructed with an empty group id. The schema requires
-    /// a non-empty group reference, so an empty id is mechanically schema-invalid. Produced by
-    /// [`GroupId::new`](crate::GroupId::new).
-    #[error(
-        "Invalid attribute relationship: an AttributeRelationship::Group must reference a non-empty group id."
-    )]
-    EmptyGroupId,
 
     /// A measure relationship was constructed with an empty measure list. The schema requires at
     /// least one measure reference, so an empty list is mechanically schema-invalid. Produced by

@@ -99,11 +99,11 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0016](#d-0016) | Localisation                | LocalisedString rejects blank keys and empty values (amended by [D-0031](#d-0031), [D-0051](#d-0051), [D-0059](#d-0059))                                                                                                          |
 | [D-0017](#d-0017) | Encapsulation               | Field visibility rule → promoted to ADR-0021 (amended by [D-0026](#d-0026))                                                                                                                                                       |
 | [D-0018](#d-0018) | Conventions                 | bool vs enum chosen by call-site visibility                                                                                                                                                                                       |
-| [D-0019](#d-0019) | Data structure              | AttributeRelationship data variants wrap validating newtypes                                                                                                                                                                      |
-| [D-0020](#d-0020) | Identifiers                 | Identifiers validated at declaration, not at reference                                                                                                                                                                            |
+| [D-0019](#d-0019) | Data structure              | AttributeRelationship data variants wrap validating newtypes (amended by [D-0077](#d-0077))                                                                                                                                       |
+| [D-0020](#d-0020) | Identifiers                 | Identifiers validated at declaration, not at reference (amended by [D-0077](#d-0077))                                                                                                                                             |
 | [D-0021](#d-0021) | Conventions                 | #[non_exhaustive] per public enum, not blanket                                                                                                                                                                                    |
 | [D-0022](#d-0022) | Serialisation               | ~~Round-trip fidelity is semantic, not byte-level~~ (superseded by [D-0031](#d-0031), residual clause by [D-0052](#d-0052))                                                                                                       |
-| [D-0023](#d-0023) | Identifiers                 | Identifier validation is per-artefact lexical type, not blanket NCName (amended by [D-0052](#d-0052))                                                                                                                             |
+| [D-0023](#d-0023) | Identifiers                 | Identifier validation is per-artefact lexical type, not blanket NCName (amended by [D-0052](#d-0052), [D-0077](#d-0077))                                                                                                          |
 | [D-0024](#d-0024) | Versionable artefacts       | version is optional (`Option<Version>`); un-versioned is distinct (amended by [D-0027](#d-0027))                                                                                                                                  |
 | [D-0025](#d-0025) | Data structure              | DSD has multiple measures (3.x), not a single PrimaryMeasure (2.1) (amended by [D-0049](#d-0049), [D-0051](#d-0051), [D-0052](#d-0052), [D-0057](#d-0057))                                                                        |
 | [D-0026](#d-0026) | Constraints                 | CubeRegion modelled to full spec structure (dim/component, cascade, time range) (corrected by [D-0038](#d-0038); amended by [D-0051](#d-0051), [D-0052](#d-0052), [D-0064](#d-0064))                                              |
@@ -125,12 +125,12 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0042](#d-0042) | Constraints                 | ReleaseCalendar (3.0-only) carried on DataConstraint as a superset member; three required xs:string fields, unvalidated                                                                                                           |
 | [D-0043](#d-0043) | Constraints                 | series_count/obs_count stored as Option of i32 (xs:int, verbatim); rule stated — integer types mirror the XSD value space                                                                                                         |
 | [D-0044](#d-0044) | Constraints                 | 3.0-only data-source attachment members modelled (SimpleDataSource arm; QueryableDataSource companions); amends [D-0034](#d-0034)'s 3.1-only count                                                                                |
-| [D-0045](#d-0045) | Data structure              | 3.1-only DimensionConstraint (Dataflow) and evolvingStructure (DSD) carried as superset members (amended by [D-0052](#d-0052))                                                                                                    |
-| [D-0046](#d-0046) | Architecture                | 3.0↔3.1 divergences resolved by carrying the superset; disposition table is the reconciliation baseline                                                                                                                           |
+| [D-0045](#d-0045) | Data structure              | 3.1-only DimensionConstraint (Dataflow) and evolvingStructure (DSD) carried as superset members (amended by [D-0052](#d-0052), [D-0077](#d-0077))                                                                                 |
+| [D-0046](#d-0046) | Architecture                | 3.0↔3.1 divergences resolved by carrying the superset; disposition table is the reconciliation baseline (amended by [D-0077](#d-0077))                                                                                            |
 | [D-0047](#d-0047) | Codelist                    | ValueList modelled as a maintainable artefact (not an item scheme); fourth id tier (plain xs:string); items a Vec — duplicates are wire-valid                                                                                     |
 | [D-0048](#d-0048) | Data structure              | Representation completed: EnumerationReference widened, pattern/isMultiLingual/occurs drawn, per-position rules constructor-enforced (amended by [D-0052](#d-0052))                                                               |
-| [D-0049](#d-0049) | Data structure              | DSD container redrawn: identifiable descriptors (DimensionList/Group/AttributeList/MeasureList); DSD itself becomes a derived carrier (amended by [D-0051](#d-0051), [D-0052](#d-0052))                                           |
-| [D-0050](#d-0050) | Data structure              | MetadataAttributeUsage and MeasureRelationship modelled on the attribute list                                                                                                                                                     |
+| [D-0049](#d-0049) | Data structure              | DSD container redrawn: identifiable descriptors (DimensionList/Group/AttributeList/MeasureList); DSD itself becomes a derived carrier (amended by [D-0051](#d-0051), [D-0052](#d-0052), [D-0077](#d-0077))                        |
+| [D-0050](#d-0050) | Data structure              | MetadataAttributeUsage and MeasureRelationship modelled on the attribute list (amended by [D-0077](#d-0077))                                                                                                                      |
 | [D-0051](#d-0051) | Collections                 | Wire collections stored as ordered Vecs (order + duplicates preserved); lookup is a first-match view; supersedes [D-0006](#d-0006)                                                                                                |
 | [D-0052](#d-0052) | Architecture                | Attribute statedness stored: XSD defaults and fixed values are views, not data; Option + effective views; fixed mismatch rejected (amended by [D-0057](#d-0057))                                                                  |
 | [D-0053](#d-0053) | Dataflow                    | Dataflow.dsd is Option by design: Structure is minOccurs=0 (external-reference stubs); the prose conditional is lint territory                                                                                                    |
@@ -138,7 +138,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0055](#d-0055) | Organisation                | Contact modelled on Agency (names/departments/roles + one interleaved detail list); other organisation kinds remain out of scope                                                                                                  |
 | [D-0056](#d-0056) | Data structure              | effective_position pinned 1-based: the derived fallback is list index + 1, matching official stated-position samples; lint now writable                                                                                           |
 | [D-0057](#d-0057) | Data structure              | Component id statedness stored (ComponentMetadata leaf); the trait id() is the effective view; TimeDimension fixed id enforced                                                                                                    |
-| [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole                                                                                             |
+| [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole (amended by [D-0077](#d-0077))                                                              |
 | [D-0059](#d-0059) | Localisation                | LocalisedString key: statedness stored + blank/off-pattern keys held; parsable-within-spec reject-line (amended by [D-0066](#d-0066))                                                                                             |
 | [D-0060](#d-0060) | Lexical types               | SdmxVersion ordering deferred past Phase 1: raw-based Eq only, no Ord/PartialOrd; SemVer precedence is a future method/wrapper, not an Ord impl (amended by [D-0070](#d-0070))                                                    |
 | [D-0061](#d-0061) | Codelist                    | MemberValue content held verbatim (carrier); WildcardedMemberValueType well-formedness (non-empty + pattern) is a Layer-2 lint, not a new() check                                                                                 |
@@ -157,8 +157,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0074](#d-0074) | Lexical types               | `PartialEq<str>` string identity on the lexeme-storing types only; raw-free grammar types take none (canonical semantics pre-agreed)                                                                                              |
 | [D-0075](#d-0075) | Conventions                 | Schema-unbounded integers take u32 width where the value is a count or version component; the bound is a recorded deviation; lexeme newtypes where the value is the datum                                                         |
 | [D-0076](#d-0076) | Data structure              | Format-facet validity moves into the field types: time_interval takes the SdmxDuration newtype, the positiveInteger facets and MaxOccurs::Count take NonZeroU32; min_occurs stays u32                                             |
+| [D-0077](#d-0077) | Identifiers                 | Local reference ids validate their lexical tier at construction (edition union where divergent); D-0020 narrows to referential integrity; DimensionRef/MetadataAttributeUsage/Code promoted                                       |
 
-<!-- Next ID: D-0077 -->
+<!-- Next ID: D-0078 -->
 
 ## Entries
 
@@ -482,9 +483,11 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0019 — AttributeRelationship data variants wrap validating newtypes
 
+> **`GroupId` clause amended 2026-07-08 by [D-0077](#d-0077).** `GroupId::new()` now validates the full `IDType` grammar, not merely non-empty; `Error::EmptyGroupId` is removed (the empty lexeme reports `InvalidIdentifier`, like every identifier site). `DimensionIds`' non-empty list invariant and the `group()`/`dimensions()` forwarders stand; `DimensionRef` itself is separately promoted by D-0077.
+
 | **Area**     | Data structure |
 | **Phase**    | M0 |
-| **Status**   | Active |
+| **Status**   | Active (GroupId clause amended by [D-0077](#d-0077)) |
 | **Keywords** | attribute, enum, newtypes, invariants, unrepresentable |
 | **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L220) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
@@ -500,9 +503,11 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0020 — Identifiers validated at declaration, not at reference
 
+> **Reference-lexeme clause amended 2026-07-08 by [D-0077](#d-0077).** The "only structural well-formedness is enforced" clause is withdrawn: local reference identifiers now validate their lexical tier at construction (lexical grammar is a local property of the lexeme, independent of resolution — the wire validates a reference lexeme whether or not its target exists). The boundary this entry draws narrows to referential integrity (does the id name a declared component?), which stays deferred exactly as the Consequences record.
+
 | **Area**     | Identifiers |
 | **Phase**    | M0 |
-| **Status**   | Active |
+| **Status**   | Active (reference-lexeme clause amended by [D-0077](#d-0077)) |
 | **Keywords** | validation, ncname, identifiers, referential-integrity |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) |
 | **Related**  | [D-0004](#d-0004), [D-0019](#d-0019) |
@@ -561,11 +566,13 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0023 — Identifier validation is per-artefact lexical type, not blanket NCName
 
+> **Reference clauses amended 2026-07-08 by [D-0077](#d-0077)**: consequence (2)'s "structural-only at reference" half is withdrawn — reference ids and stated `Parent` fields now validate their lexical tier at construction, the same per-site tier system extended to reference sites (where the tier diverges between editions, the union: `Code.parent_id` validates `IDType`). The "`Code` stays a derive-only carrier" clause is superseded with it: `Code` crosses to an invariant-bearing type whose `new()` validates the stated `parent_id`. The tier table, the validators, and every declaration-side placement stand.
+>
 > **Amended 2026-06-11 by [D-0052](#d-0052)**: the `fixed="AGENCIES"` *value* is now enforced — a stated value differing from a fixed value is mechanically schema-invalid — so `AgencyScheme::new()` is **fallible** (`FixedAttributeMismatch`), not infallible as stated below. The lexical-tier system itself is unchanged.
 
 | **Area**     | Identifiers |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (fixed-value enforcement amended by [D-0052](#d-0052)) |
+| **Status**   | Active (fixed-value enforcement amended by [D-0052](#d-0052); reference clauses amended by [D-0077](#d-0077)) |
 | **Keywords** | validation, ncname, idtype, identifiers, spec-alignment, no_std |
 | **Spec ref** | [SDMXCommonReferences.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommonReferences.xsd#L1572-L1579) (`IDType`, `NCNameIDType`, `NestedNCNameIDType`); [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L43-L58) (`ItemBaseType.id`); [SDMXStructureOrganisation.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureOrganisation.xsd#L229-L250) (`AgencyType.id`); [SDMXStructureConcept.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L50-L77) (`ConceptBaseType.id`) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.2, §5.5, §7 |
@@ -1096,11 +1103,13 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0045 — 3.1-only DimensionConstraint (Dataflow) and evolvingStructure (DSD) carried as superset members
 
+> **Item-validation clause amended 2026-07-08 by [D-0077](#d-0077)**: the "structural-only validation per D-0020, not NCName-checked" clause below is superseded — `DimensionConstraint` items now validate `IDType` at construction (the element's own tier, so still correctly not NCName). The carriage decision and the non-empty invariant stand.
+>
 > **Amended 2026-06-11 by [D-0052](#d-0052)**: `evolving_structure` is stored as `Option<bool>` — the bare-bool exactness argument below treated the schema default as data; XSD defaulting is a view.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (statedness storage amended by [D-0052](#d-0052)) |
+| **Status**   | Active (statedness storage amended by [D-0052](#d-0052); item validation amended by [D-0077](#d-0077)) |
 | **Keywords** | dataflow, dsd, dimension-constraint, evolving-structure, superset, divergence, sdmx-3.1, spec-alignment |
 | **Spec ref** | [SDMXStructureDataflow.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataflow.xsd#L19-L34) (`DataflowBaseType.DimensionConstraint` 0..1; `DimensionConstraintType` = `Dimension` `common:IDType` 1..unbounded); [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L39-L59) (`DataStructureType.evolvingStructure`, `xs:boolean`, default `false`); 3.0: zero occurrences of either |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6, §5.7; |
@@ -1116,9 +1125,11 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0046 — 3.0↔3.1 divergences resolved by carrying the superset; the disposition table is the reconciliation baseline
 
+> **Parent-row grounds amended 2026-07-08 by [D-0077](#d-0077).** The `Item.Parent`/`Code.Parent`/`Concept.Parent` divergence row below is carried "no-op — `parent_id: Option<String>` is structurally validated only (D-0020)". D-0077 validates stated parents at the union of the two editions' tiers (`Code.parent_id` `IDType`; `Concept.parent_id` `NCNameIDType`, the two editions' identical pattern), so the row's carrying ground is now union-tier validation, no longer non-validation. The disposition itself (carry the superset; never version-branch) is unchanged.
+
 | **Area**     | Architecture |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (Parent-row grounds amended by [D-0077](#d-0077)) |
 | **Keywords** | divergence, superset, carry, reconciliation-baseline, spec-alignment |
 | **Spec ref** | All in-scope pinned XSDs: `SDMXCommon`, `SDMXCommonReferences`, `SDMXStructureBase`, `SDMXStructureCodelist`, `SDMXStructureConcept`, `SDMXStructureOrganisation`, `SDMXStructureDataStructure`, `SDMXStructureDataflow`, `SDMXStructureConstraint`, `xml.xsd` (both `specs/3.0/schemas/` and `specs/3.1/schemas/`) |
 | **Source**   | [ADR-0008](adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) (unified superset guardrail); 0010 quality assessment |
@@ -1194,13 +1205,15 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0049 — DSD container redrawn: identifiable descriptor structs; the DSD itself becomes a derived carrier
 
+> **`GroupDimensions` refs amended 2026-07-08 by [D-0077](#d-0077)**: the "refs structural-only per D-0020" clause below is superseded — each `GroupDimensions` item now validates `NCNameIDType` at construction (the `DimensionReference` element's tier). The descriptor redraw, the non-empty invariant, and the `Vec<Group>` store stand.
+>
 > **Amended 2026-06-11 by [D-0051](#d-0051)/[D-0052](#d-0052)**: descriptor contents are ordered `Vec`s (`AttributeList` holds a single interleaved member `Vec` — the wire is one repeated choice; `attributes()`/`usages()` are filtered views), and the fixed descriptor ids are stored as `Option<String>` with mismatch rejected (statedness), rather than omitted as below.
 >
 > **Corrected 2026-06-12 (schema-fidelity pass).** The "Group ids carry no `xs:unique` (duplicates are schema-valid)" claim in the Observation/Decision/Rationale below is **false against the XSD**. `DataStructureUniqueComponent` (`SDMXStructureDataStructure.xsd` 3.1:65 / 3.0:53) is an `xs:unique` whose selector lists `structure:Group | …/Dimension | …/TimeDimension | …/Attribute | …/ReportingYearStartDay | …/Measure` on field `@id`; `Group @id` is `use="required"` (`GroupBaseType` ~3.1:431), so explicit duplicate group ids are **schema-invalid**. `Vec<Group>` still stands, justified now by **wire-order preservation** (a keyed map sorts) plus the genuine residue the constraint cannot see: an id a component **inherits from its concept identity** escapes XML validation (the `DataStructureComponents` annotation states such checks fall "outside of the XML validation"). Catalogued lint #4 is re-scoped from "duplicate group ids" to that concept-inherited residue.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
-| **Status**   | Active (descriptor stores amended by [D-0051](#d-0051), [D-0052](#d-0052)) |
+| **Status**   | Active (descriptor stores amended by [D-0051](#d-0051), [D-0052](#d-0052); GroupDimensions refs amended by [D-0077](#d-0077)) |
 | **Keywords** | dsd, descriptor, group, dimension-list, attribute-list, measure-list, identifiable, construction-contract, vec-vs-map, spec-alignment |
 | **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L81-L95) (`DataStructureComponentsType`, `DimensionListType`, `GroupType`/`GroupBaseType`/`GroupDimensionType`, `AttributeListType`, `MeasureListType`); [SDMXStructureBase.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureBase.xsd#L130-L143) (`ComponentListType` extends `IdentifiableType`); 3.0 identical throughout ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §4, §5.6, §7 |
@@ -1218,9 +1231,11 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0050 — MetadataAttributeUsage and MeasureRelationship modelled on the attribute list
 
+> **Validation clauses amended 2026-07-08 by [D-0077](#d-0077)**: `MetadataAttributeUsage` is no longer an invariant-free pub-field carrier — it crosses to an invariant-bearing type whose `new()` validates `metadata_attribute_ref` as `NCNameIDType`; `MeasureRelationship` items likewise validate `NCNameIDType` (its non-empty list invariant stands). The modelling decision — both members drawn, the single-link quirk, the `Vec` of usages — is otherwise unchanged.
+
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (validation clauses amended by [D-0077](#d-0077)) |
 | **Keywords** | attribute-list, metadata-attribute-usage, measure-relationship, component, spec-alignment |
 | **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L123-L135) (`AttributeListType` choice; `MetadataAttributeUsageBaseType`/`MetadataAttributeUsageType`; `AttributeType.MeasureRelationship`, `MeasureRelationshipType`); 3.0 identical ([D-0046](#d-0046)) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
@@ -1379,9 +1394,11 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0058 — AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef)
 
+> **Carrier class amended 2026-07-08 by [D-0077](#d-0077)**: `DimensionRef` is no longer an invariant-free pub-field carrier — it crosses to an invariant-bearing type whose `new()` validates `id` as `NCNameIDType` (the `OptionalLocalDimensionReferenceType` base). The statedness treatment of `optional` and `DimensionIds`' non-empty invariant stand.
+
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (carrier class amended by [D-0077](#d-0077)) |
 | **Keywords** | attribute-relationship, dimension-reference, optional, statedness, superset, spec-alignment |
 | **Spec ref** | [SDMXStructureDataStructure.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L220) (`AttributeRelationshipType.Dimension` line 203; `OptionalLocalDimensionReferenceType` lines 222–228); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureDataStructure.xsd#L180-L208) (lines 191/210–216, identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6 |
@@ -1748,5 +1765,25 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: Within-field grammar belongs to the field's type (§7): a nested validated type enforces the wire path through a derived carrier with no constructor, the same shape as `SdmxTimePeriod` inside the constraint carriers; `NonZeroU32` proivdes the schema floor with a `core` type and no new API surface.
 
 **Consequences**: (1) `Error::InvalidDuration` joins the lexical family's variants. (2) `SdmxDuration` and `SdmxTimeRange` keep distinct validators: the range half is unsigned by the chain's pattern, plain `xs:duration` is signed; the shared scanner is the reuse point, not the grammar.
+
+---
+
+### D-0077 — Local reference identifiers validate their lexical tier at construction; D-0020 narrows to referential integrity
+
+| **Area**     | Identifiers |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | identifiers, references, validation, ncname, idtype, construction-contract, representability, superset, spec-alignment |
+| **Spec ref** | [SDMXStructureDataStructure.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureDataStructure.xsd#L180-L275) (`AttributeRelationshipType.Group` `IDType` :197; `OptionalLocalDimensionReferenceType` base `NCNameIDType` :212; `MeasureRelationshipType.Measure` `NCNameIDType` :223; `MetadataAttributeReference` `NCNameIDType` :261; `GroupDimensionType.DimensionReference` `NCNameIDType` :463), [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataStructure.xsd#L192-L287) identical (:209/:224/:235/:273/:475); [SDMXStructureDataflow.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureDataflow.xsd#L63-L70) (`DimensionConstraintType.Dimension` `IDType`; no 3.0 counterpart); `Code.Parent` [3.0 `SingleNCNameIDType`](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureCodelist.xsd#L77) → [3.1 `IDType`](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureCodelist.xsd#L82); `Concept.Parent` [3.0 `SingleNCNameIDType`](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureConcept.xsd#L55) → [3.1 `NCNameIDType`](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureConcept.xsd#L62) (the identical pattern per `SDMXCommonReferences.xsd`'s own `SingleNCNameIDType` documentation) |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.6, §7 |
+| **Related**  | [D-0019](#d-0019), [D-0020](#d-0020), [D-0023](#d-0023), [D-0046](#d-0046), [D-0050](#d-0050), [D-0058](#d-0058), [D-0073](#d-0073), [D-0076](#d-0076) |
+
+**Observation**: A local reference identifier is bare `NCNameIDType`/`IDType` content the schema validates independently of whether its target exists, so lexical validity is a local, mechanical property of the lexeme — yet [D-0020](#d-0020)'s reference clause left every such site structural-only, on a rationale ("validating a pointer is redundant if the target was validated") that addresses resolution, not grammar. Eight sites admit lexemes every supported edition rejects: `DimensionRef.id` and `MetadataAttributeUsage.metadata_attribute_ref` (pub fields — even the empty string constructs), the `MeasureRelationship`/`GroupDimensions`/`DimensionConstraint` items (list-level non-empty only), `GroupId` (non-empty only), and `Concept.parent_id`/`Code.parent_id` (unchecked). Meanwhile `ComponentMetadata` NCName-validates the same kind of optional local id, so the model answers one lexical question two ways.
+
+**Decision**: Local reference identifiers validate their site's lexical tier at construction through the [D-0023](#d-0023) validators, stored as plain `String`s — constructor placement, not field newtypes. The construction contract's edition quantifier is universal: a lexeme is a construction error **iff every supported edition's schema rejects it**, so a site whose tier diverges between editions validates at the union of the two grammars — `Code.parent_id` validates `IDType` (3.0 `SingleNCNameIDType` ⊂ 3.1 `IDType`) — and edition-targeted strictness is the writer's obligation, as for every version-specific superset member ([D-0046](#d-0046)). Referential integrity stays deferred exactly as [D-0020](#d-0020)'s Consequences record; maintainable references stay on the URN parse-path contract ([D-0073](#d-0073)). The modelled local-reference sites and their tiers: `NCNameIDType` — `DimensionRef.id`, `MetadataAttributeUsage.metadata_attribute_ref`, `MeasureRelationship` items, `GroupDimensions` items, `Concept.parent_id`; `IDType` — `GroupId`, `DimensionConstraint` items (3.1-only element, so its sole tier), `Code.parent_id` (the union); the constraint selection-node ids are equally within the rule — consequence (6).
+
+**Rationale**: The wire validates every reference lexeme in place, so declaration-side validation covers nothing at the reference site, and a writer emitting an off-tier lexeme produces schema-invalid documents from constructors that cannot fail — the representability class [D-0076](#d-0076) closed for the facets. The union floor is forced, not chosen: a constructor stricter than the loosest edition's grammar could not build values that edition's schema-valid wire carries, breaking round-trip. Constructor placement over field newtypes because the invariant does not travel — no API consumes a statically-valid NCName, uniform newtyping would retype the collection newtypes' delivered `Vec<String>` views, and the guarantee wanted is a property of assembly, which the identifier-validator family ([D-0023](#d-0023)) already provides at every declaration site.
+
+**Consequences**: (1) `DimensionRef`, `MetadataAttributeUsage`, and `Code` cross the §7 carrier→invariant-bearing line (the [D-0023](#d-0023) `Concept`/`Agency` promotion pattern): private fields, fallible `new()`, accessors, Raw-shape `Deserialize`; their carrier classifications in [D-0050](#d-0050)/[D-0058](#d-0058) and D-0023's `Code`-stays-derive-only clause are amended. (2) `GroupId`'s empty special-case dissolves: `Error::EmptyGroupId` is removed and the empty lexeme reports `InvalidIdentifier`, like every identifier site; the collection-emptiness variants (`EmptyMeasureRelationship` and kin) are list-cardinality invariants and stand. (3) The identifier-failure `Display` messages delimit the offending lexeme, so the empty lexeme renders unambiguously. (4) [D-0046](#d-0046)'s Parent-divergence row is re-grounded: carried by union-tier validation, no longer by non-validation. (5) `Item.Parent` and `Organisation.Parent` have no modelled carrier, so nothing validates; a future carrier adopts this rule at its own tier union. (6) The constraint selection-node ids ([D-0051](#d-0051)'s `pub id: String` fields) are local references within this rule: the `CubeRegionKey`/`DataKeyValue` ids validate `SingleNCNameIDType` (the `NCNameIDType` pattern, per the schema's own documentation) and the `ComponentValueSet`/`DataComponentValueSet` ids validate `NestedNCNameIDType` (the dotted tier — a nested metadata-attribute path such as `CONTACT.ADDRESS.STREET` is one lexeme), both editions. (7) The enforcement surface for the writer's per-edition strictness is the writer's design question, deferred until that surface exists; the tier validators stay crate-private.
 
 ---

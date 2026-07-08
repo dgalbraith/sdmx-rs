@@ -473,10 +473,14 @@ pub(crate) fn maintainable_metadata() -> impl Strategy<Value = MaintainableMetad
     maintainable_metadata_from(id_type_lexeme())
 }
 
-/// A `Code`: nameable metadata plus an optional structural parent reference.
+/// A `Code`: nameable metadata plus an optional parent reference. The parent draws from the full
+/// `IDType` class (leading digits, `@`, `$` included), so generation covers the lexemes valid at
+/// the editions' union tier but invalid as 3.0 `SingleNCNameIDType` — locking the union boundary.
 pub(crate) fn code() -> impl Strategy<Value = Code> {
     (nameable_metadata(), proptest::option::of(id_type_lexeme()))
-        .prop_map(|(metadata, parent_id)| Code { metadata, parent_id })
+        .prop_map(|(metadata, parent_id)| {
+            Code::new(metadata, parent_id).expect("strategy emits IDType-valid parent ids")
+        })
         .boxed()
 }
 
@@ -966,19 +970,21 @@ pub(crate) fn time_dimension() -> impl Strategy<Value = TimeDimension> {
         .boxed()
 }
 
-/// A `DimensionRef` for an attribute relationship.
+/// A `DimensionRef` for an attribute relationship (an `NCNameIDType` local reference).
 fn dimension_ref() -> impl Strategy<Value = DimensionRef> {
-    (id_type_lexeme(), proptest::option::of(any::<bool>()))
-        .prop_map(|(id, optional)| DimensionRef { id, optional })
+    (ncname_lexeme(), proptest::option::of(any::<bool>())).prop_map(|(id, optional)| {
+        DimensionRef::new(id, optional).expect("strategy emits NCName-valid dimension ids")
+    })
 }
 
-/// An `AttributeRelationship` across all four arms.
+/// An `AttributeRelationship` across all four arms. The group arm draws from the full `IDType`
+/// class (its tier, looser than `NCName`).
 pub(crate) fn attribute_relationship() -> impl Strategy<Value = AttributeRelationship> {
     prop_oneof![
         Just(AttributeRelationship::Dataflow),
         Just(AttributeRelationship::Observation),
         id_type_lexeme()
-            .prop_map(|id| AttributeRelationship::group(id).expect("group ids are non-empty")),
+            .prop_map(|id| AttributeRelationship::group(id).expect("group ids are IDType-valid")),
         proptest::collection::vec(dimension_ref(), 1..=3).prop_map(|refs| {
             AttributeRelationship::dimensions(refs).expect("dimension refs are non-empty")
         }),
@@ -986,10 +992,10 @@ pub(crate) fn attribute_relationship() -> impl Strategy<Value = AttributeRelatio
     .boxed()
 }
 
-/// A non-empty `MeasureRelationship`.
+/// A non-empty `MeasureRelationship` (its items are `NCNameIDType` local references).
 fn measure_relationship() -> impl Strategy<Value = MeasureRelationship> {
-    proptest::collection::vec(id_type_lexeme(), 1..=2)
-        .prop_map(|ids| MeasureRelationship::new(ids).expect("measure ids are non-empty"))
+    proptest::collection::vec(ncname_lexeme(), 1..=2)
+        .prop_map(|ids| MeasureRelationship::new(ids).expect("measure ids are NCName-valid"))
 }
 
 /// An `Attribute` with a Basic-position representation.
@@ -1028,10 +1034,10 @@ pub(crate) fn attribute() -> impl Strategy<Value = Attribute> {
         .boxed()
 }
 
-/// A `MetadataAttributeUsage`.
+/// A `MetadataAttributeUsage` (its local reference is `NCNameIDType`).
 fn metadata_attribute_usage() -> impl Strategy<Value = MetadataAttributeUsage> {
     (
-        id_type_lexeme(),
+        ncname_lexeme(),
         attribute_relationship(),
         annotations(),
         proptest::option::of(link()),
@@ -1039,14 +1045,15 @@ fn metadata_attribute_usage() -> impl Strategy<Value = MetadataAttributeUsage> {
         proptest::option::of(any::<String>()),
     )
         .prop_map(|(metadata_attribute_ref, relationship, annotations, link, urn, uri)| {
-            MetadataAttributeUsage {
+            MetadataAttributeUsage::new(
                 metadata_attribute_ref,
                 annotations,
                 link,
                 urn,
                 uri,
                 relationship,
-            }
+            )
+            .expect("strategy emits NCName-valid local references")
         })
         .boxed()
 }
@@ -1099,12 +1106,12 @@ pub(crate) fn dimension_list() -> impl Strategy<Value = DimensionList> {
         .boxed()
 }
 
-/// A `Group` with a non-empty dimension selection.
+/// A `Group` with a non-empty dimension selection (its items are `NCNameIDType` local references).
 pub(crate) fn group() -> impl Strategy<Value = Group> {
-    (identifiable_metadata(), proptest::collection::vec(id_type_lexeme(), 1..=2))
+    (identifiable_metadata(), proptest::collection::vec(ncname_lexeme(), 1..=2))
         .prop_map(|(metadata, ids)| Group {
             metadata,
-            dimensions: GroupDimensions::new(ids).expect("group dimensions are non-empty"),
+            dimensions: GroupDimensions::new(ids).expect("group dimension ids are NCName-valid"),
         })
         .boxed()
 }
@@ -1166,10 +1173,11 @@ pub(crate) fn data_structure_definition() -> impl Strategy<Value = DataStructure
         .boxed()
 }
 
-/// A `Dataflow` with an optional structure reference and 3.1 dimension constraint.
+/// A `Dataflow` with an optional structure reference and 3.1 dimension constraint (its items are
+/// `IDType` local references, drawn from the full class).
 pub(crate) fn dataflow() -> impl Strategy<Value = Dataflow> {
     let constraint = proptest::collection::vec(id_type_lexeme(), 1..=2)
-        .prop_map(|ids| DimensionConstraint::new(ids).expect("dimension ids are non-empty"));
+        .prop_map(|ids| DimensionConstraint::new(ids).expect("dimension ids are IDType-valid"));
     (
         maintainable_metadata(),
         proptest::option::of(dsd_reference()),
@@ -1198,11 +1206,12 @@ fn iso_concept_reference() -> impl Strategy<Value = IsoConceptReference> {
     )
 }
 
-/// A `Concept` over an `NCName` id with a Basic-position core representation.
+/// A `Concept` over an `NCName` id with a Basic-position core representation. The parent is the
+/// same `NCNameIDType` tier (the editions' `Parent` declarations share one pattern).
 pub(crate) fn concept() -> impl Strategy<Value = Concept> {
     (
         nameable_metadata_from(ncname_lexeme()),
-        proptest::option::of(id_type_lexeme()),
+        proptest::option::of(ncname_lexeme()),
         proptest::option::of(basic_representation()),
         proptest::option::of(iso_concept_reference()),
     )

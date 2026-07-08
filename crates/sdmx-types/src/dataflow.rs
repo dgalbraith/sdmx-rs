@@ -13,9 +13,11 @@ cross-field invariant). `dsd` is `Option` because `Structure` is `minOccurs="0"`
 (D-0053): `None` is a schema-valid stub, typically an external reference whose full definition lives
 elsewhere; the "must reference a DSD unless defined externally" rule is prose, so it is a catalogued
 lint, not a construction rejection. `dimension_constraint` is a 3.1-only addition (D-0045); a 3.0
-payload never produces `Some`. The artefact trait hierarchy delegates to the `metadata` leaf.
+payload never produces `Some`, and its items validate `IDType` at construction (D-0077) while
+referential integrity stays above the type level (D-0020). The artefact trait hierarchy delegates
+to the `metadata` leaf.
 
-Decisions: D-0020, D-0030, D-0045, D-0053.
+Decisions: D-0020, D-0030, D-0045, D-0053, D-0077.
 "#
 )]
 
@@ -31,6 +33,7 @@ use crate::{
     localised::LocalisedString,
     metadata::MaintainableMetadata,
     reference::DsdReference,
+    validate::validate_id,
 };
 
 // ---------------------------------------------------------------------------
@@ -45,26 +48,31 @@ use crate::{
 /// - **Editions**: SDMX 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DimensionConstraintType.md"))]
 ///
-/// Pins the subset of the referenced structure's dimensions this dataflow uses. The ids are
-/// structural references, not re-validated. 3.1-only: a 3.0 payload never produces
-/// one.
+/// Pins the subset of the referenced structure's dimensions this dataflow uses. Each id validates
+/// against `IDType` (the `Dimension` element's type; as a 3.1-only element that is its sole tier);
+/// whether each names a dimension the referenced structure declares stays a higher-layer concern
+/// (D-0020). 3.1-only: a 3.0 payload never produces one.
 ///
 /// ## Guarantees
 ///
-/// Always holds at least one dimension id.
+/// Always holds at least one dimension id, every id `IDType`-valid.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DimensionConstraint(Vec<String>);
 
 impl DimensionConstraint {
-    /// Builds a dimension constraint.
+    /// Builds a dimension constraint, validating each id against SDMX `IDType`.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::EmptyDimensionConstraint`] if `dimension_ids` is empty.
+    /// Returns [`Error::EmptyDimensionConstraint`] if `dimension_ids` is empty, or
+    /// [`Error::InvalidIdentifier`] if any id is not a valid `IDType` lexeme.
     pub fn new(dimension_ids: Vec<String>) -> Result<Self, Error> {
         if dimension_ids.is_empty() {
             return Err(Error::EmptyDimensionConstraint);
+        }
+        for id in &dimension_ids {
+            validate_id(id)?;
         }
         Ok(Self(dimension_ids))
     }
@@ -277,7 +285,7 @@ mod tests {
     }
 
     #[test]
-    fn dimension_constraint_rejects_empty() {
+    fn dimension_constraint_rejects_empty_list_and_off_grammar_items() {
         assert_eq!(
             DimensionConstraint::new(vec![String::from("FREQ")]).unwrap().as_slice().len(),
             1
@@ -286,18 +294,41 @@ mod tests {
             DimensionConstraint::new(Vec::new()).unwrap_err(),
             Error::EmptyDimensionConstraint
         );
+        // IDType is the loosest tier, so a leading digit and @ are valid items; whitespace,
+        // the dot, and the empty string are not.
+        assert_eq!(
+            DimensionConstraint::new(vec![String::from("1"), String::from("@INTERNAL")])
+                .unwrap()
+                .as_slice()
+                .len(),
+            2
+        );
+        for bad in ["", "a b", "a.b"] {
+            assert_eq!(
+                DimensionConstraint::new(vec![String::from("FREQ"), String::from(bad)])
+                    .unwrap_err(),
+                Error::InvalidIdentifier(String::from(bad))
+            );
+        }
     }
 
     #[test]
-    fn dimension_constraint_deserialize_enforces_non_empty() {
+    fn dimension_constraint_deserialize_enforces_list_and_item_grammar() {
         // DimensionConstraint's Deserialize declares an inner `Raw = Vec<String>` (it does
         // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
-        // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
-        // which rejects it, while a non-empty one round-trips.
+        // as that bare vector. postcard is positional, so an empty `Vec<String>` or an off-grammar
+        // item decodes into new(), which rejects it, while a valid one round-trips.
         let empty: Vec<String> = Vec::new();
         assert!(
             postcard::from_bytes::<DimensionConstraint>(&postcard::to_allocvec(&empty).unwrap())
                 .is_err()
+        );
+        let off_grammar = vec![String::from("a b")];
+        assert!(
+            postcard::from_bytes::<DimensionConstraint>(
+                &postcard::to_allocvec(&off_grammar).unwrap()
+            )
+            .is_err()
         );
         let constraint = DimensionConstraint::new(vec![String::from("FREQ")]).unwrap();
         assert_eq!(constraint.as_slice().len(), 1);
