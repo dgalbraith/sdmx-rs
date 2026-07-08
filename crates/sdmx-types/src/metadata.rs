@@ -353,7 +353,7 @@ impl MaintainableMetadata {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidAgencyIdentifier`] if `agency` is not a valid `NestedNCNameIDType`.
+    /// Returns [`Error::InvalidNestedNcNameIdentifier`] if `agency` is not a valid `NestedNCNameIDType`.
     pub fn new(
         versionable: VersionableMetadata,
         agency: String,
@@ -531,7 +531,7 @@ mod tests {
         assert_eq!(
             MaintainableMetadata::new(versionable, String::from("1ORG"), None, None, None, None)
                 .unwrap_err(),
-            Error::InvalidAgencyIdentifier(String::from("1ORG"))
+            Error::InvalidNestedNcNameIdentifier(String::from("1ORG"))
         );
     }
 

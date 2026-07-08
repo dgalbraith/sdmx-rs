@@ -6,12 +6,14 @@
 //! rather than regex-backed to stay `no_std` with no extra dependency; each mirrors the exact
 //! `xs:pattern` from `SDMXCommonReferences.xsd`.
 //!
-//! All three tiers now have callers: `validate_id` ([`IdentifiableMetadata`](crate::IdentifiableMetadata)),
-//! `validate_ncname` (the scheme items and wrappers whose ids the spec types as `NCNameIDType`:
-//! [`Concept`](crate::Concept), [`Codelist`](crate::Codelist), [`ConceptScheme`](crate::ConceptScheme)),
-//! and `validate_nested_ncname` ([`MaintainableMetadata`](crate::MaintainableMetadata)). The
-//! fixed-value check `validate_fixed` arrives alongside them, owned by
-//! [`AgencyScheme`](crate::AgencyScheme) (the `fixed="AGENCIES"` scheme id).
+//! All three tiers have callers. `validate_id` backs [`IdentifiableMetadata`](crate::IdentifiableMetadata)
+//! and the `IDType` local references; `validate_ncname` backs the `NCNameIDType` scheme items and
+//! wrappers ([`Concept`](crate::Concept), [`Codelist`](crate::Codelist),
+//! [`ConceptScheme`](crate::ConceptScheme)), the component ids, and the `NCNameIDType` local
+//! references and constraint selection-node ids; `validate_nested_ncname` backs the `agencyID` field
+//! ([`MaintainableMetadata`](crate::MaintainableMetadata)) and the nested constraint selection-node
+//! ids. The fixed-value check `validate_fixed` is owned by [`AgencyScheme`](crate::AgencyScheme)
+//! (the `fixed="AGENCIES"` scheme id).
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -99,17 +101,18 @@ pub fn validate_fixed(attribute: &str, stated: Option<&str>, expected: &str) -> 
 
 /// Validates an identifier against SDMX `NestedNCNameIDType`
 /// (`[A-Za-z][A-Za-z0-9_\-]*(\.[A-Za-z][A-Za-z0-9_\-]*)*`), a dot-delimited sequence of
-/// one or more `NCName` segments. This is the `agencyID` tier.
+/// one or more `NCName` segments. This is the tier of the `agencyID` field and of the nested
+/// constraint selection-node ids (a dotted metadata-attribute path is one lexeme).
 ///
 /// # Errors
 ///
-/// Returns [`Error::InvalidAgencyIdentifier`] if any dot-delimited segment is not a valid
+/// Returns [`Error::InvalidNestedNcNameIdentifier`] if any dot-delimited segment is not a valid
 /// `NCName` segment (which also rejects an empty string and leading, trailing, or doubled dots).
 pub fn validate_nested_ncname(id: &str) -> Result<(), Error> {
     if id.split('.').all(is_ncname_segment) {
         Ok(())
     } else {
-        Err(Error::InvalidAgencyIdentifier(id.to_string()))
+        Err(Error::InvalidNestedNcNameIdentifier(id.to_string()))
     }
 }
 
@@ -180,7 +183,7 @@ mod tests {
         for bad in ["1ABC", "", "A.", ".A", "A..B", "A.1B", "A B"] {
             assert_eq!(
                 validate_nested_ncname(bad),
-                Err(Error::InvalidAgencyIdentifier(bad.into()))
+                Err(Error::InvalidNestedNcNameIdentifier(bad.into()))
             );
         }
     }

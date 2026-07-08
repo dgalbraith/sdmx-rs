@@ -64,6 +64,7 @@ use crate::{
     reference::{
         DataProviderReference, DataflowReference, DsdReference, ProvisionAgreementReference,
     },
+    validate::{validate_ncname, validate_nested_ncname},
 };
 
 // ---------------------------------------------------------------------------
@@ -526,47 +527,129 @@ pub enum ComponentSelection {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/CubeRegionKeyType.md"))]
 ///
-/// Names a dimension by its `id` and the values it selects ([`KeyValueSelection`]). The `include`
-/// flag (whether the named values are included in or excluded from the region) defaults to `true`
-/// when absent. A dimension selection may carry its own validity window.
+/// Names a dimension by its `id` and the values it selects ([`KeyValueSelection`]). The `id` is
+/// validated against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction (D-0077);
+/// whether it names a declared dimension stays a higher-layer concern (D-0020). The `include` flag (whether the
+/// named values are included in or excluded from the region) defaults to `true` when absent. A
+/// dimension selection may carry its own validity window.
+///
+/// ## Guarantees
+///
+/// Always holds a `SingleNCNameIDType`-valid id.
 #[cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
 A node type named after its spec complexType. `id` is carried on the struct (D-0051; formerly the
-map key) as a structural-only reference (`SingleNCNameIDType`, D-0020), not re-validated. The
-`MemberSelectionType` attributes are inherited (D-0038): `include` (schema `default="true"`,
-statedness stored, D-0052), `removePrefix` (no schema default, so `Option<bool>` distinguishes
-absent from stated, D-0031), and the validity window (`StandardTimePeriodType`, so `SdmxTimePeriod`,
-D-0027), which `CubeRegionKeyType` may carry. No cross-field invariant (every field self-enforcing),
-so pub fields and derived `Deserialize` (ADR-0021); the non-empty values newtype and `SdmxTimePeriod`
-carry their own validating paths.
+map key) and validated against `SingleNCNameIDType` (the `NCNameIDType` pattern, both editions) at
+construction (D-0077); whether it resolves to a declared dimension stays a higher-layer concern
+(D-0020). The `MemberSelectionType` attributes are inherited (D-0038): `include` (schema
+`default="true"`, statedness stored, D-0052), `removePrefix` (no schema default, so `Option<bool>`
+distinguishes absent from stated, D-0031), and the validity window (`StandardTimePeriodType`, so
+`SdmxTimePeriod`, D-0027), which `CubeRegionKeyType` may carry. The id invariant lives on the struct,
+so it crosses the §7 carrier→invariant-bearing line: private fields, fallible `new()`, accessors, and
+a `Deserialize` that routes through `new()`; the non-empty values newtype and `SdmxTimePeriod` carry
+their own validating paths.
 
-Decisions: D-0020, D-0038, D-0051, D-0052.
+Decisions: D-0020, D-0038, D-0051, D-0052, D-0077.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct CubeRegionKey {
-    /// The id of the dimension being selected (a structural reference, not re-validated).
-    pub id: String,
-    /// The values this dimension admits.
-    pub selection: KeyValueSelection,
-    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
-    pub include: Option<bool>,
-    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
-    pub remove_prefix: Option<bool>,
-    /// The start of the selection's validity window, if stated.
-    pub valid_from: Option<SdmxTimePeriod>,
-    /// The end of the selection's validity window, if stated.
-    pub valid_to: Option<SdmxTimePeriod>,
+    id: String,
+    selection: KeyValueSelection,
+    include: Option<bool>,
+    remove_prefix: Option<bool>,
+    valid_from: Option<SdmxTimePeriod>,
+    valid_to: Option<SdmxTimePeriod>,
 }
 
 impl CubeRegionKey {
+    /// Builds a cube-region dimension selection, validating the `id` against SDMX
+    /// `SingleNCNameIDType` (the `NCNameIDType` pattern).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidNcNameIdentifier`] if `id` is not a valid `NCNameIDType` lexeme
+    /// (which also rejects the empty string).
+    pub fn new(
+        id: String,
+        selection: KeyValueSelection,
+        include: Option<bool>,
+        remove_prefix: Option<bool>,
+        valid_from: Option<SdmxTimePeriod>,
+        valid_to: Option<SdmxTimePeriod>,
+    ) -> Result<Self, Error> {
+        validate_ncname(&id)?;
+        Ok(Self { id, selection, include, remove_prefix, valid_from, valid_to })
+    }
+
+    /// The id of the dimension being selected.
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// The values this dimension admits.
+    #[must_use]
+    pub const fn selection(&self) -> &KeyValueSelection {
+        &self.selection
+    }
+
+    /// Stated: whether the named values are included or excluded, as the wire carried it.
+    /// `None` ⟺ absent.
+    #[must_use]
+    pub const fn include(&self) -> Option<bool> {
+        self.include
+    }
+
+    /// Stated: whether codes drop the codelist-extension prefix. `None` ⟺ absent (no schema default).
+    #[must_use]
+    pub const fn remove_prefix(&self) -> Option<bool> {
+        self.remove_prefix
+    }
+
+    /// The start of the selection's validity window, if stated.
+    #[must_use]
+    pub const fn valid_from(&self) -> Option<&SdmxTimePeriod> {
+        self.valid_from.as_ref()
+    }
+
+    /// The end of the selection's validity window, if stated.
+    #[must_use]
+    pub const fn valid_to(&self) -> Option<&SdmxTimePeriod> {
+        self.valid_to.as_ref()
+    }
+
     /// Effective: whether the named values are included, with the schema default `true` applied.
     #[must_use]
     pub fn effective_is_included(&self) -> bool {
         self.include.unwrap_or(true)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for CubeRegionKey {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            id: String,
+            selection: KeyValueSelection,
+            include: Option<bool>,
+            remove_prefix: Option<bool>,
+            valid_from: Option<SdmxTimePeriod>,
+            valid_to: Option<SdmxTimePeriod>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(
+            raw.id,
+            raw.selection,
+            raw.include,
+            raw.remove_prefix,
+            raw.valid_from,
+            raw.valid_to,
+        )
+        .map_err(to_de_error)
     }
 }
 
@@ -579,39 +662,100 @@ impl CubeRegionKey {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ComponentValueSetType.md"))]
 ///
 /// Names an attribute or measure by its `id` and the values it selects ([`ComponentSelection`]). The
-/// `id` may be a nested identifier. Unlike a dimension selection, a component selection carries no
-/// validity window: the schema prohibits one here, so the field is simply absent.
+/// `id` may be a nested identifier (a dotted metadata-attribute path such as `CONTACT.ADDRESS.STREET`
+/// is one lexeme), validated against `NestedNCNameIDType` at construction (D-0077). Unlike a dimension
+/// selection, a component selection carries no validity window: the schema prohibits one here, so the
+/// field is simply absent.
+///
+/// ## Guarantees
+///
+/// Always holds a `NestedNCNameIDType`-valid id.
 #[cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-A node type named after its spec complexType. `id` is carried on the struct (D-0051) as a
-structural-only reference (`NestedNCNameIDType`, dotted, e.g. `CONTACT.ADDRESS.STREET`; D-0020). It
+A node type named after its spec complexType. `id` is carried on the struct (D-0051) and validated
+against `NestedNCNameIDType` (dotted, e.g. `CONTACT.ADDRESS.STREET`, both editions) at construction
+(D-0077); whether it resolves to a declared component stays a higher-layer concern (D-0020). It
 carries the same `include`/`removePrefix` node attributes as [`CubeRegionKey`] but no
 `validFrom`/`validTo`: `ComponentValueSetType` prohibits them (both editions), so the illegal state
-is unrepresentable by field omission. Pub-field carrier, derived `Deserialize`.
+is unrepresentable by field omission. The id invariant lives on the struct, so it crosses the §7
+carrier→invariant-bearing line: private fields, fallible `new()`, accessors, and a `Deserialize`
+that routes through `new()`.
 
-Decisions: D-0020, D-0038, D-0051, D-0052.
+Decisions: D-0020, D-0038, D-0051, D-0052, D-0077.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct ComponentValueSet {
-    /// The id of the component being selected (a structural reference, possibly nested).
-    pub id: String,
-    /// The values this component admits.
-    pub selection: ComponentSelection,
-    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
-    pub include: Option<bool>,
-    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
-    pub remove_prefix: Option<bool>,
+    id: String,
+    selection: ComponentSelection,
+    include: Option<bool>,
+    remove_prefix: Option<bool>,
 }
 
 impl ComponentValueSet {
+    /// Builds a cube-region component selection, validating the `id` against SDMX
+    /// `NestedNCNameIDType` (a dotted sequence of `NCName` segments).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidNestedNcNameIdentifier`] if `id` is not a valid `NestedNCNameIDType`
+    /// lexeme (which also rejects the empty string and leading, trailing, or doubled dots).
+    pub fn new(
+        id: String,
+        selection: ComponentSelection,
+        include: Option<bool>,
+        remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_nested_ncname(&id)?;
+        Ok(Self { id, selection, include, remove_prefix })
+    }
+
+    /// The id of the component being selected (possibly nested).
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// The values this component admits.
+    #[must_use]
+    pub const fn selection(&self) -> &ComponentSelection {
+        &self.selection
+    }
+
+    /// Stated: whether the named values are included or excluded, as the wire carried it.
+    /// `None` ⟺ absent.
+    #[must_use]
+    pub const fn include(&self) -> Option<bool> {
+        self.include
+    }
+
+    /// Stated: whether codes drop the codelist-extension prefix. `None` ⟺ absent (no schema default).
+    #[must_use]
+    pub const fn remove_prefix(&self) -> Option<bool> {
+        self.remove_prefix
+    }
+
     /// Effective: whether the named values are included, with the schema default `true` applied.
     #[must_use]
     pub fn effective_is_included(&self) -> bool {
         self.include.unwrap_or(true)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ComponentValueSet {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            id: String,
+            selection: ComponentSelection,
+            include: Option<bool>,
+            remove_prefix: Option<bool>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(raw.id, raw.selection, raw.include, raw.remove_prefix).map_err(to_de_error)
     }
 }
 
@@ -635,14 +779,14 @@ impl ComponentValueSet {
 ///
 /// let value =
 ///     CubeKeyValue { value: String::from("A"), cascade: None, valid_from: None, valid_to: None };
-/// let key = CubeRegionKey {
-///     id: String::from("FREQ"),
-///     selection: KeyValueSelection::Values(CubeKeyValues::new(vec![value])?),
-///     include: None,
-///     remove_prefix: None,
-///     valid_from: None,
-///     valid_to: None,
-/// };
+/// let key = CubeRegionKey::new(
+///     String::from("FREQ"),
+///     KeyValueSelection::Values(CubeKeyValues::new(vec![value])?),
+///     None,
+///     None,
+///     None,
+///     None,
+/// )?;
 /// let region = CubeRegion {
 ///     key_values: vec![key],
 ///     components: Vec::new(),
@@ -905,39 +1049,98 @@ pub enum DataComponentSelection {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataComponentValueSetType.md"))]
 ///
 /// The key-set counterpart of [`ComponentValueSet`]. It names an attribute or measure by its `id`
-/// (possibly nested) and the values it selects ([`DataComponentSelection`]), and carries the same
-/// `include`/`remove_prefix` node attributes but no validity window (prohibited here).
+/// (possibly nested, validated against `NestedNCNameIDType` at construction, D-0077) and the values
+/// it selects ([`DataComponentSelection`]), and carries the same `include`/`remove_prefix` node
+/// attributes but no validity window (prohibited here).
+///
+/// ## Guarantees
+///
+/// Always holds a `NestedNCNameIDType`-valid id.
 #[cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-A node type named after its spec complexType. `id` is carried on the struct (D-0051) as a
-structural-only reference (`NestedNCNameIDType`, D-0020). Same node attributes as the cube
+A node type named after its spec complexType. `id` is carried on the struct (D-0051) and validated
+against `NestedNCNameIDType` (both editions) at construction (D-0077); whether it resolves to a
+declared component stays a higher-layer concern (D-0020). Same node attributes as the cube
 [`ComponentValueSet`]: `include` (schema `default="true"`, statedness stored, D-0052) and
 `removePrefix` (no default, `Option<bool>`, D-0031). Validity is prohibited, so there are no such
-fields. Pub-field carrier, derived `Deserialize`.
+fields. The id invariant lives on the struct, so it crosses the §7 carrier→invariant-bearing line:
+private fields, fallible `new()`, accessors, and a `Deserialize` that routes through `new()`.
 
-Decisions: D-0020, D-0038, D-0039, D-0051, D-0052.
+Decisions: D-0020, D-0038, D-0039, D-0051, D-0052, D-0077.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct DataComponentValueSet {
-    /// The id of the component being selected (a structural reference, possibly nested).
-    pub id: String,
-    /// The values this component admits.
-    pub selection: DataComponentSelection,
-    /// Whether the named values are included or excluded; `None` ⟺ absent (schema default `true`).
-    pub include: Option<bool>,
-    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
-    pub remove_prefix: Option<bool>,
+    id: String,
+    selection: DataComponentSelection,
+    include: Option<bool>,
+    remove_prefix: Option<bool>,
 }
 
 impl DataComponentValueSet {
+    /// Builds a data-key component selection, validating the `id` against SDMX `NestedNCNameIDType`
+    /// (a dotted sequence of `NCName` segments).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidNestedNcNameIdentifier`] if `id` is not a valid `NestedNCNameIDType`
+    /// lexeme (which also rejects the empty string and leading, trailing, or doubled dots).
+    pub fn new(
+        id: String,
+        selection: DataComponentSelection,
+        include: Option<bool>,
+        remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_nested_ncname(&id)?;
+        Ok(Self { id, selection, include, remove_prefix })
+    }
+
+    /// The id of the component being selected (possibly nested).
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// The values this component admits.
+    #[must_use]
+    pub const fn selection(&self) -> &DataComponentSelection {
+        &self.selection
+    }
+
+    /// Stated: whether the named values are included or excluded, as the wire carried it.
+    /// `None` ⟺ absent.
+    #[must_use]
+    pub const fn include(&self) -> Option<bool> {
+        self.include
+    }
+
+    /// Stated: whether codes drop the codelist-extension prefix. `None` ⟺ absent (no schema default).
+    #[must_use]
+    pub const fn remove_prefix(&self) -> Option<bool> {
+        self.remove_prefix
+    }
+
     /// Effective: whether the named values are included, with the schema default `true` applied.
     #[must_use]
     pub fn effective_is_included(&self) -> bool {
         self.include.unwrap_or(true)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataComponentValueSet {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            id: String,
+            selection: DataComponentSelection,
+            include: Option<bool>,
+            remove_prefix: Option<bool>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(raw.id, raw.selection, raw.include, raw.remove_prefix).map_err(to_de_error)
     }
 }
 
@@ -1033,9 +1236,14 @@ impl<'de> serde::Deserialize<'de> for SimpleKeyValues {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeyValueType.3.1.md"))]
 #[cfg_attr(design_docs, doc = "")]
 ///
-/// Names a dimension by its `id` and the values it takes ([`SimpleKeyValues`]). Its `include` flag is
-/// schema-fixed to `true`, so it is the [`FixedInclude`] wrapper. A data-key selection carries no
-/// validity window (prohibited here).
+/// Names a dimension by its `id` and the values it takes ([`SimpleKeyValues`]). The `id` is validated
+/// against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction (D-0077). Its `include`
+/// flag is schema-fixed to `true`, so it is the [`FixedInclude`] wrapper. A data-key selection
+/// carries no validity window (prohibited here).
+///
+/// ## Guarantees
+///
+/// Always holds a `SingleNCNameIDType`-valid id.
 #[cfg_attr(
     design_docs,
     doc = r#"
@@ -1045,25 +1253,81 @@ impl<'de> serde::Deserialize<'de> for SimpleKeyValues {
 allows unbounded (a `<sequence maxOccurs="unbounded">`, for keys like `FREQ = A or M or Q`). The
 superset carries the 3.1 shape as the non-empty [`SimpleKeyValues`], which covers 3.0's exactly-one;
 what a 3.0 writer does with more than one value is Phase-2 adapter policy (the same provenance class
-as a 3.1-only attribute, D-0039/D-0037), not a Phase-1 rejection. `id` is structural-only
-(`SingleNCNameIDType`, D-0020/D-0051); `include` is `fixed="true"`, so the `FixedInclude` wrapper
-stores statedness and rejects a stated `false` (D-0052). Validity is prohibited, so there are no such
-fields. Pub-field carrier: the rejection rides the `FixedInclude` and `SimpleKeyValues` custom impls
-(§7 within-field rule).
+as a 3.1-only attribute, D-0039/D-0037), not a Phase-1 rejection. `id` is validated against
+`SingleNCNameIDType` (the `NCNameIDType` pattern, both editions) at construction (D-0077/D-0051);
+whether it resolves to a declared dimension stays a higher-layer concern (D-0020). `include` is
+`fixed="true"`, so the `FixedInclude` wrapper stores statedness and rejects a stated `false`
+(D-0052). Validity is prohibited, so there are no such fields. The id invariant lives on the struct,
+so it crosses the §7 carrier→invariant-bearing line: private fields, fallible `new()`, accessors, and
+a `Deserialize` that routes through `new()` (which also carries the `FixedInclude` and
+`SimpleKeyValues` within-field rejections).
 
-Decisions: D-0039, D-0020, D-0051, D-0052.
+Decisions: D-0020, D-0039, D-0051, D-0052, D-0077.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct DataKeyValue {
-    /// The id of the dimension being selected (a structural reference, not re-validated).
-    pub id: String,
+    id: String,
+    values: SimpleKeyValues,
+    include: FixedInclude,
+    remove_prefix: Option<bool>,
+}
+
+impl DataKeyValue {
+    /// Builds a data-key dimension selection, validating the `id` against SDMX `SingleNCNameIDType`
+    /// (the `NCNameIDType` pattern).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidNcNameIdentifier`] if `id` is not a valid `NCNameIDType` lexeme
+    /// (which also rejects the empty string).
+    pub fn new(
+        id: String,
+        values: SimpleKeyValues,
+        include: FixedInclude,
+        remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_ncname(&id)?;
+        Ok(Self { id, values, include, remove_prefix })
+    }
+
+    /// The id of the dimension being selected.
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     /// The values this dimension takes.
-    pub values: SimpleKeyValues,
+    #[must_use]
+    pub const fn values(&self) -> &SimpleKeyValues {
+        &self.values
+    }
+
     /// The schema-fixed `include` flag (always effectively `true`).
-    pub include: FixedInclude,
-    /// Whether codes drop the codelist-extension prefix; `None` ⟺ absent (no schema default).
-    pub remove_prefix: Option<bool>,
+    #[must_use]
+    pub const fn include(&self) -> FixedInclude {
+        self.include
+    }
+
+    /// Stated: whether codes drop the codelist-extension prefix. `None` ⟺ absent (no schema default).
+    #[must_use]
+    pub const fn remove_prefix(&self) -> Option<bool> {
+        self.remove_prefix
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for DataKeyValue {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            id: String,
+            values: SimpleKeyValues,
+            include: FixedInclude,
+            remove_prefix: Option<bool>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(raw.id, raw.values, raw.include, raw.remove_prefix).map_err(to_de_error)
+    }
 }
 
 /// A distinct full or partial data key: the dimension and component values that identify it.
@@ -1192,12 +1456,12 @@ impl<'de> serde::Deserialize<'de> for DataKeys {
 /// ```
 /// use sdmx_types::{DataKey, DataKeySet, DataKeyValue, DataKeys, FixedInclude, SimpleKeyValues};
 ///
-/// let key_value = DataKeyValue {
-///     id: String::from("FREQ"),
-///     values: SimpleKeyValues::new(vec![String::from("A")])?,
-///     include: FixedInclude::new(None)?,
-///     remove_prefix: None,
-/// };
+/// let key_value = DataKeyValue::new(
+///     String::from("FREQ"),
+///     SimpleKeyValues::new(vec![String::from("A")])?,
+///     FixedInclude::new(None)?,
+///     None,
+/// )?;
 /// let key = DataKey {
 ///     key_values: vec![key_value],
 ///     components: Vec::new(),
@@ -2103,12 +2367,13 @@ mod tests {
         // Each `include`-bearing carrier defaults to `true` when the flag is absent.
         assert!(cube_key("FREQ", "A").effective_is_included());
         assert!(
-            ComponentValueSet {
-                id: String::from("OBS_STATUS"),
-                selection: ComponentSelection::Empty,
-                include: None,
-                remove_prefix: None,
-            }
+            ComponentValueSet::new(
+                String::from("OBS_STATUS"),
+                ComponentSelection::Empty,
+                None,
+                None,
+            )
+            .unwrap()
             .effective_is_included()
         );
         assert!(
@@ -2121,16 +2386,17 @@ mod tests {
             .effective_is_included()
         );
         assert!(
-            DataComponentValueSet {
-                id: String::from("TIME_PERIOD"),
-                selection: DataComponentSelection::TimeRange(TimeRange {
+            DataComponentValueSet::new(
+                String::from("TIME_PERIOD"),
+                DataComponentSelection::TimeRange(TimeRange {
                     kind: TimeRangeKind::Before(period("2024")),
                     valid_from: None,
                     valid_to: None,
                 }),
-                include: None,
-                remove_prefix: None,
-            }
+                None,
+                None,
+            )
+            .unwrap()
             .effective_is_included()
         );
         // A stated `false` is honoured (one representative carrier).
@@ -2204,31 +2470,109 @@ mod tests {
             valid_from: None,
             valid_to: None,
         };
-        CubeRegionKey {
-            id: id.to_string(),
-            selection: KeyValueSelection::Values(CubeKeyValues::new(vec![v]).unwrap()),
-            include: None,
-            remove_prefix: None,
-            valid_from: None,
-            valid_to: None,
-        }
+        CubeRegionKey::new(
+            id.to_string(),
+            KeyValueSelection::Values(CubeKeyValues::new(vec![v]).unwrap()),
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap()
     }
 
     #[test]
     fn cube_region_key_round_trips_with_time_range_selection() {
-        let key = CubeRegionKey {
-            id: String::from("TIME_PERIOD"),
-            selection: KeyValueSelection::TimeRange(TimeRange {
+        let key = CubeRegionKey::new(
+            String::from("TIME_PERIOD"),
+            KeyValueSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::After(period("2020")),
                 valid_from: None,
                 valid_to: None,
             }),
-            include: Some(false),
-            remove_prefix: Some(true),
-            valid_from: Some(SdmxTimePeriod::new(String::from("2019")).unwrap()),
-            valid_to: None,
-        };
+            Some(false),
+            Some(true),
+            Some(SdmxTimePeriod::new(String::from("2019")).unwrap()),
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&key);
+    }
+
+    #[test]
+    fn cube_region_key_validates_the_single_ncname_grammar() {
+        let key = cube_key("FREQ", "A");
+        assert_eq!(key.id(), "FREQ");
+        // SingleNCNameIDType is the NCName pattern: a leading digit, @, $, an embedded dot, and the
+        // empty string are all rejected.
+        for bad in ["", "1BAD", "@X", "EUR$", "A.B"] {
+            assert_eq!(
+                CubeRegionKey::new(
+                    String::from(bad),
+                    KeyValueSelection::TimeRange(TimeRange {
+                        kind: TimeRangeKind::After(period("2020")),
+                        valid_from: None,
+                        valid_to: None,
+                    }),
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+                .unwrap_err(),
+                Error::InvalidNcNameIdentifier(String::from(bad))
+            );
+        }
+    }
+
+    #[test]
+    fn cube_region_key_deserialize_enforces_the_single_ncname_grammar() {
+        // CubeRegionKey's Deserialize declares a positional `Raw` and routes through new(). postcard
+        // is positional, so a tuple of the field types carrying an off-grammar id proves the wire
+        // path re-runs the id check, while a valid value round-trips.
+        let raw = (
+            String::from("1BAD"),
+            KeyValueSelection::TimeRange(TimeRange {
+                kind: TimeRangeKind::After(period("2020")),
+                valid_from: None,
+                valid_to: None,
+            }),
+            None::<bool>,
+            None::<bool>,
+            None::<SdmxTimePeriod>,
+            None::<SdmxTimePeriod>,
+        );
+        assert!(
+            postcard::from_bytes::<CubeRegionKey>(&postcard::to_allocvec(&raw).unwrap()).is_err()
+        );
+        crate::test_support::round_trip(&cube_key("FREQ", "A"));
+    }
+
+    #[test]
+    fn cube_region_key_accessors_expose_stated_fields() {
+        let selection = KeyValueSelection::TimeRange(TimeRange {
+            kind: TimeRangeKind::After(period("2020")),
+            valid_from: None,
+            valid_to: None,
+        });
+        let from = SdmxTimePeriod::new(String::from("2019")).unwrap();
+        let to = SdmxTimePeriod::new(String::from("2024")).unwrap();
+        let key = CubeRegionKey::new(
+            String::from("FREQ"),
+            selection.clone(),
+            Some(false),
+            Some(true),
+            Some(from.clone()),
+            Some(to.clone()),
+        )
+        .unwrap();
+        assert_eq!(key.id(), "FREQ");
+        assert_eq!(key.selection(), &selection);
+        assert_eq!(key.include(), Some(false));
+        assert_eq!(key.remove_prefix(), Some(true));
+        assert_eq!(key.valid_from(), Some(&from));
+        assert_eq!(key.valid_to(), Some(&to));
+        assert!(!key.effective_is_included());
     }
 
     #[test]
@@ -2250,25 +2594,88 @@ mod tests {
 
     #[test]
     fn component_value_set_round_trips() {
-        let set = ComponentValueSet {
-            id: String::from("CONTACT.ADDRESS.STREET"),
-            selection: ComponentSelection::Empty,
-            include: Some(true),
-            remove_prefix: None,
-        };
+        let set = ComponentValueSet::new(
+            String::from("CONTACT.ADDRESS.STREET"),
+            ComponentSelection::Empty,
+            Some(true),
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&set);
+    }
+
+    #[test]
+    fn component_value_set_validates_the_nested_ncname_grammar() {
+        // NestedNCNameIDType accepts a single NCName and a dotted path of NCName segments.
+        for ok in ["STREET", "CONTACT.ADDRESS.STREET"] {
+            assert_eq!(
+                ComponentValueSet::new(String::from(ok), ComponentSelection::Empty, None, None)
+                    .unwrap()
+                    .id(),
+                ok
+            );
+        }
+        // A leading/trailing/doubled dot, a leading digit, and the empty string are all rejected.
+        for bad in ["", "1BAD", ".A", "A.", "A..B", "A.1B", "@X"] {
+            assert_eq!(
+                ComponentValueSet::new(String::from(bad), ComponentSelection::Empty, None, None)
+                    .unwrap_err(),
+                Error::InvalidNestedNcNameIdentifier(String::from(bad))
+            );
+        }
+    }
+
+    #[test]
+    fn component_value_set_deserialize_enforces_the_nested_ncname_grammar() {
+        // ComponentValueSet's Deserialize declares a positional `Raw` and routes through new().
+        // postcard is positional, so a tuple of the field types carrying an off-grammar id proves
+        // the wire path re-runs the id check, while a valid dotted-path value round-trips.
+        let raw = (String::from("A..B"), ComponentSelection::Empty, None::<bool>, None::<bool>);
+        assert!(
+            postcard::from_bytes::<ComponentValueSet>(&postcard::to_allocvec(&raw).unwrap())
+                .is_err()
+        );
+        crate::test_support::round_trip(
+            &ComponentValueSet::new(
+                String::from("CONTACT.ADDRESS.STREET"),
+                ComponentSelection::Empty,
+                None,
+                None,
+            )
+            .unwrap(),
+        );
+    }
+
+    #[test]
+    fn component_value_set_accessors_expose_stated_fields() {
+        let selection = ComponentSelection::Empty;
+        let set = ComponentValueSet::new(
+            String::from("CONTACT.ADDRESS.STREET"),
+            selection.clone(),
+            Some(false),
+            Some(true),
+        )
+        .unwrap();
+        assert_eq!(set.id(), "CONTACT.ADDRESS.STREET");
+        assert_eq!(set.selection(), &selection);
+        assert_eq!(set.include(), Some(false));
+        assert_eq!(set.remove_prefix(), Some(true));
+        assert!(!set.effective_is_included());
     }
 
     #[test]
     fn cube_region_round_trips_preserving_selection_order() {
         let region = CubeRegion {
             key_values: vec![cube_key("FREQ", "A"), cube_key("REF_AREA", "EU")],
-            components: vec![ComponentValueSet {
-                id: String::from("OBS_STATUS"),
-                selection: ComponentSelection::Empty,
-                include: None,
-                remove_prefix: None,
-            }],
+            components: vec![
+                ComponentValueSet::new(
+                    String::from("OBS_STATUS"),
+                    ComponentSelection::Empty,
+                    None,
+                    None,
+                )
+                .unwrap(),
+            ],
             include: Some(true),
             annotations: Vec::new(),
         };
@@ -2276,8 +2683,8 @@ mod tests {
         let restored: CubeRegion = postcard::from_bytes(&bytes).unwrap();
         assert_eq!(restored, region);
         // Wire order of the dimension selections is preserved.
-        assert_eq!(restored.key_values[0].id, "FREQ");
-        assert_eq!(restored.key_values[1].id, "REF_AREA");
+        assert_eq!(restored.key_values[0].id(), "FREQ");
+        assert_eq!(restored.key_values[1].id(), "REF_AREA");
     }
 
     #[test]
@@ -2325,12 +2732,13 @@ mod tests {
     }
 
     fn data_key_value(id: &str, value: &str) -> DataKeyValue {
-        DataKeyValue {
-            id: id.to_string(),
-            values: SimpleKeyValues::new(vec![value.to_string()]).unwrap(),
-            include: FixedInclude::new(None).unwrap(),
-            remove_prefix: None,
-        }
+        DataKeyValue::new(
+            id.to_string(),
+            SimpleKeyValues::new(vec![value.to_string()]).unwrap(),
+            FixedInclude::new(None).unwrap(),
+            None,
+        )
+        .unwrap()
     }
 
     #[test]
@@ -2383,31 +2791,72 @@ mod tests {
     fn data_key_value_carries_3_1_multi_value_superset() {
         // The 3.1 unbounded shape (FREQ = A or M or Q) is the carried superset; 3.0's single value
         // is the degenerate one-element case.
-        let multi = DataKeyValue {
-            id: String::from("FREQ"),
-            values: SimpleKeyValues::new(vec![
-                String::from("A"),
-                String::from("M"),
-                String::from("Q"),
-            ])
-            .unwrap(),
-            include: FixedInclude::new(Some(true)).unwrap(),
-            remove_prefix: None,
-        };
-        assert_eq!(multi.values.as_slice().len(), 3);
+        let multi = DataKeyValue::new(
+            String::from("FREQ"),
+            SimpleKeyValues::new(vec![String::from("A"), String::from("M"), String::from("Q")])
+                .unwrap(),
+            FixedInclude::new(Some(true)).unwrap(),
+            None,
+        )
+        .unwrap();
+        assert_eq!(multi.values().as_slice().len(), 3);
         crate::test_support::round_trip(&multi);
+    }
+
+    #[test]
+    fn data_key_value_validates_the_single_ncname_grammar() {
+        let key = data_key_value("FREQ", "A");
+        assert_eq!(key.id(), "FREQ");
+        // SingleNCNameIDType is the NCName pattern: a leading digit, @, $, an embedded dot, and the
+        // empty string are all rejected.
+        for bad in ["", "1BAD", "@X", "EUR$", "A.B"] {
+            assert_eq!(
+                DataKeyValue::new(
+                    String::from(bad),
+                    SimpleKeyValues::new(vec![String::from("A")]).unwrap(),
+                    FixedInclude::new(None).unwrap(),
+                    None,
+                )
+                .unwrap_err(),
+                Error::InvalidNcNameIdentifier(String::from(bad))
+            );
+        }
+    }
+
+    #[test]
+    fn data_key_value_deserialize_enforces_the_single_ncname_grammar() {
+        // DataKeyValue's Deserialize declares a positional `Raw` and routes through new(). postcard
+        // is positional, so a tuple of the field types carrying an off-grammar id proves the wire
+        // path re-runs the id check, while a valid value round-trips.
+        let raw = (String::from("1BAD"), vec![String::from("A")], None::<bool>, None::<bool>);
+        assert!(
+            postcard::from_bytes::<DataKeyValue>(&postcard::to_allocvec(&raw).unwrap()).is_err()
+        );
+        crate::test_support::round_trip(&data_key_value("FREQ", "A"));
+    }
+
+    #[test]
+    fn data_key_value_accessors_expose_stated_fields() {
+        let values = SimpleKeyValues::new(vec![String::from("A")]).unwrap();
+        let include = FixedInclude::new(Some(true)).unwrap();
+        let key =
+            DataKeyValue::new(String::from("FREQ"), values.clone(), include, Some(true)).unwrap();
+        assert_eq!(key.id(), "FREQ");
+        assert_eq!(key.values(), &values);
+        assert_eq!(key.include(), include);
+        assert_eq!(key.remove_prefix(), Some(true));
     }
 
     #[test]
     fn data_key_value_include_rejects_stated_false_on_the_wire() {
         // Bubbling demonstration, not a composite-own proof: the fixed-include invariant is
-        // `FixedInclude`'s (proven in fixed.rs). `DataKeyValue` derives Deserialize over
-        // `{ id, values, include, remove_prefix }`, its `include` being the `FixedInclude` wrapper
-        // (transparent over `Option<bool>`) that rejects a stated `false`, and `values` the non-empty
-        // `SimpleKeyValues` (transparent over `Vec<String>`). postcard is positional, so a tuple of
-        // those field types with a non-empty value list (so `SimpleKeyValues` accepts) and
-        // `include = Some(false)` decodes at the field level but is rejected only by `FixedInclude`,
-        // which `DataKeyValue`'s derive propagates.
+        // `FixedInclude`'s (proven in fixed.rs). `DataKeyValue`'s Deserialize routes through new()
+        // over a positional `Raw { id, values, include, remove_prefix }`, its `include` being the
+        // `FixedInclude` wrapper (transparent over `Option<bool>`) that rejects a stated `false`, and
+        // `values` the non-empty `SimpleKeyValues` (transparent over `Vec<String>`). postcard is
+        // positional, so a tuple of those field types with a valid id, a non-empty value list (so
+        // `SimpleKeyValues` accepts) and `include = Some(false)` decodes at the field level but is
+        // rejected only by `FixedInclude`, which the custom Deserialize propagates.
         // A valid tuple of the same field types decodes — guards this proof's shape against field-order drift.
         let ok = (String::from("FREQ"), vec![String::from("A")], None::<bool>, None::<bool>);
         assert!(postcard::from_bytes::<DataKeyValue>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
@@ -2420,12 +2869,15 @@ mod tests {
     fn data_key_round_trips_with_validity_and_annotations() {
         let key = DataKey {
             key_values: vec![data_key_value("FREQ", "A")],
-            components: vec![DataComponentValueSet {
-                id: String::from("OBS_STATUS"),
-                selection: DataComponentSelection::Empty,
-                include: None,
-                remove_prefix: None,
-            }],
+            components: vec![
+                DataComponentValueSet::new(
+                    String::from("OBS_STATUS"),
+                    DataComponentSelection::Empty,
+                    None,
+                    None,
+                )
+                .unwrap(),
+            ],
             include: FixedInclude::new(Some(true)).unwrap(),
             annotations: Vec::new(),
             valid_from: Some(SdmxTimePeriod::new(String::from("2020")).unwrap()),
@@ -2466,39 +2918,110 @@ mod tests {
 
     #[test]
     fn data_component_selection_time_range_arm_round_trips() {
-        let set = DataComponentValueSet {
-            id: String::from("TIME_PERIOD"),
-            selection: DataComponentSelection::TimeRange(TimeRange {
+        let set = DataComponentValueSet::new(
+            String::from("TIME_PERIOD"),
+            DataComponentSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::Before(period("2024")),
                 valid_from: None,
                 valid_to: None,
             }),
-            include: None,
-            remove_prefix: None,
-        };
+            None,
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&set);
     }
 
     #[test]
     fn component_selection_time_range_arm_round_trips() {
-        let set = ComponentValueSet {
-            id: String::from("TIME_PERIOD"),
-            selection: ComponentSelection::TimeRange(TimeRange {
+        let set = ComponentValueSet::new(
+            String::from("TIME_PERIOD"),
+            ComponentSelection::TimeRange(TimeRange {
                 kind: TimeRangeKind::Before(period("2024")),
                 valid_from: None,
                 valid_to: None,
             }),
-            include: None,
-            remove_prefix: None,
-        };
+            None,
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&set);
     }
 
     #[test]
+    fn data_component_value_set_validates_the_nested_ncname_grammar() {
+        // NestedNCNameIDType accepts a single NCName and a dotted path of NCName segments.
+        for ok in ["STREET", "CONTACT.ADDRESS.STREET"] {
+            assert_eq!(
+                DataComponentValueSet::new(
+                    String::from(ok),
+                    DataComponentSelection::Empty,
+                    None,
+                    None,
+                )
+                .unwrap()
+                .id(),
+                ok
+            );
+        }
+        // A leading/trailing/doubled dot, a leading digit, and the empty string are all rejected.
+        for bad in ["", "1BAD", ".A", "A.", "A..B", "A.1B", "@X"] {
+            assert_eq!(
+                DataComponentValueSet::new(
+                    String::from(bad),
+                    DataComponentSelection::Empty,
+                    None,
+                    None,
+                )
+                .unwrap_err(),
+                Error::InvalidNestedNcNameIdentifier(String::from(bad))
+            );
+        }
+    }
+
+    #[test]
+    fn data_component_value_set_deserialize_enforces_the_nested_ncname_grammar() {
+        // DataComponentValueSet's Deserialize declares a positional `Raw` and routes through new().
+        // postcard is positional, so a tuple of the field types carrying an off-grammar id proves
+        // the wire path re-runs the id check, while a valid dotted-path value round-trips.
+        let raw = (String::from("A..B"), DataComponentSelection::Empty, None::<bool>, None::<bool>);
+        assert!(
+            postcard::from_bytes::<DataComponentValueSet>(&postcard::to_allocvec(&raw).unwrap())
+                .is_err()
+        );
+        crate::test_support::round_trip(
+            &DataComponentValueSet::new(
+                String::from("CONTACT.ADDRESS.STREET"),
+                DataComponentSelection::Empty,
+                None,
+                None,
+            )
+            .unwrap(),
+        );
+    }
+
+    #[test]
+    fn data_component_value_set_accessors_expose_stated_fields() {
+        let selection = DataComponentSelection::Empty;
+        let set = DataComponentValueSet::new(
+            String::from("CONTACT.ADDRESS.STREET"),
+            selection.clone(),
+            Some(false),
+            Some(true),
+        )
+        .unwrap();
+        assert_eq!(set.id(), "CONTACT.ADDRESS.STREET");
+        assert_eq!(set.selection(), &selection);
+        assert_eq!(set.include(), Some(false));
+        assert_eq!(set.remove_prefix(), Some(true));
+        assert!(!set.effective_is_included());
+    }
+
+    #[test]
     fn data_component_value_set_values_arm_round_trips_and_rejects_empty() {
-        let set = DataComponentValueSet {
-            id: String::from("CURRENCY"),
-            selection: DataComponentSelection::Values(
+        let set = DataComponentValueSet::new(
+            String::from("CURRENCY"),
+            DataComponentSelection::Values(
                 DataComponentValues::new(vec![DataComponentValue {
                     value: String::from("EUR"),
                     cascade: Some(Cascade::IncludeChildren),
@@ -2506,9 +3029,10 @@ mod tests {
                 }])
                 .unwrap(),
             ),
-            include: None,
-            remove_prefix: None,
-        };
+            None,
+            None,
+        )
+        .unwrap();
         crate::test_support::round_trip(&set);
         // The Values deserialize path routes through new(), so an empty list is rejected on the
         // wire, not synthesised as Values([]). Transparent over `Vec<DataComponentValue>`, so an
