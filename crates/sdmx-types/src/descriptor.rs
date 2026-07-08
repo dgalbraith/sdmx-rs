@@ -21,10 +21,11 @@ The collections are `Vec`, not maps (D-0051): wire order is preserved and lookup
 view, not a key. The attribute list stores one interleaved `Vec<AttributeListMember>` because the
 wire is a single repeated `Attribute | MetadataAttributeUsage` choice; `attributes()`/`usages()` are
 filtered views over it. `Group`'s id is required and user-chosen, so it carries full
-`IdentifiableMetadata` and is a derived pub-field carrier (both fields self-validate, §7). Identical
-across 3.0 and 3.1 (D-0046).
+`IdentifiableMetadata` and is a derived pub-field carrier (both fields self-validate, §7).
+[`GroupDimensions`] items validate `NCNameIDType` at construction (D-0077); referential integrity
+stays above the type level (D-0020). Identical across 3.0 and 3.1 (D-0046).
 
-Decisions: D-0019, D-0020, D-0029, D-0046, D-0049, D-0050, D-0051, D-0052.
+Decisions: D-0019, D-0020, D-0029, D-0046, D-0049, D-0050, D-0051, D-0052, D-0077.
 "#
 )]
 
@@ -38,7 +39,7 @@ use crate::{
     error::{Error, to_de_error},
     measure::Measure,
     metadata::IdentifiableMetadata,
-    validate::validate_fixed,
+    validate::{validate_fixed, validate_ncname},
 };
 
 // ---------------------------------------------------------------------------
@@ -54,24 +55,30 @@ use crate::{
 /// - **Editions**: SDMX 3.0 and 3.1
 ///
 /// Wraps the `GroupDimension+` of a group. The schema requires at least one dimension reference, so
-/// the constructor rejects an empty list. The ids are structural references, not re-validated.
+/// the constructor rejects an empty list, and each id validates against `NCNameIDType` (the
+/// `DimensionReference` element's type, both editions); whether each names a dimension the key
+/// descriptor declares stays a higher-layer concern (D-0020).
 ///
 /// ## Guarantees
 ///
-/// Always holds at least one dimension id.
+/// Always holds at least one dimension id, every id `NCNameIDType`-valid.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct GroupDimensions(Vec<String>);
 
 impl GroupDimensions {
-    /// Builds a group's dimension-reference list.
+    /// Builds a group's dimension-reference list, validating each id against SDMX `NCNameIDType`.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::EmptyGroupDimensions`] if `dimension_ids` is empty.
+    /// Returns [`Error::EmptyGroupDimensions`] if `dimension_ids` is empty, or
+    /// [`Error::InvalidNcNameIdentifier`] if any id is not a valid `NCNameIDType` lexeme.
     pub fn new(dimension_ids: Vec<String>) -> Result<Self, Error> {
         if dimension_ids.is_empty() {
             return Err(Error::EmptyGroupDimensions);
+        }
+        for id in &dimension_ids {
+            validate_ncname(id)?;
         }
         Ok(Self(dimension_ids))
     }
@@ -689,20 +696,35 @@ mod tests {
     // --- GroupDimensions / Group ---
 
     #[test]
-    fn group_dimensions_reject_empty() {
+    fn group_dimensions_reject_empty_list_and_off_grammar_items() {
         assert_eq!(GroupDimensions::new(vec![String::from("FREQ")]).unwrap().as_slice().len(), 1);
         assert_eq!(GroupDimensions::new(Vec::new()).unwrap_err(), Error::EmptyGroupDimensions);
+        // The list-level invariant and the per-item grammar are distinct checks: a non-empty list
+        // still rejects an off-NCName item (empty item included).
+        assert_eq!(
+            GroupDimensions::new(vec![String::from("FREQ"), String::new()]).unwrap_err(),
+            Error::InvalidNcNameIdentifier(String::new())
+        );
+        assert_eq!(
+            GroupDimensions::new(vec![String::from("1BAD")]).unwrap_err(),
+            Error::InvalidNcNameIdentifier(String::from("1BAD"))
+        );
     }
 
     #[test]
-    fn group_dimensions_deserialize_enforces_non_empty() {
+    fn group_dimensions_deserialize_enforces_list_and_item_grammar() {
         // GroupDimensions' Deserialize declares an inner `Raw = Vec<String>` (it does
         // `Vec::<String>::deserialize` then `Self::new(..)`), and its transparent Serialize encodes
-        // as that bare vector. postcard is positional, so an empty `Vec<String>` decodes into new(),
-        // which rejects it, while a non-empty one round-trips.
+        // as that bare vector. postcard is positional, so an empty `Vec<String>` or an off-grammar
+        // item decodes into new(), which rejects it, while a valid one round-trips.
         let empty: Vec<String> = Vec::new();
         assert!(
             postcard::from_bytes::<GroupDimensions>(&postcard::to_allocvec(&empty).unwrap())
+                .is_err()
+        );
+        let off_grammar = vec![String::from("1BAD")];
+        assert!(
+            postcard::from_bytes::<GroupDimensions>(&postcard::to_allocvec(&off_grammar).unwrap())
                 .is_err()
         );
         let dimensions = GroupDimensions::new(vec![String::from("FREQ")]).unwrap();
@@ -853,14 +875,15 @@ mod tests {
 
     #[test]
     fn attribute_list_validates_fixed_id_and_non_empty_with_filtered_views() {
-        let usage = MetadataAttributeUsage {
-            metadata_attribute_ref: String::from("CONTACT"),
-            relationship: AttributeRelationship::Dataflow,
-            annotations: Vec::new(),
-            link: None,
-            urn: None,
-            uri: None,
-        };
+        let usage = MetadataAttributeUsage::new(
+            String::from("CONTACT"),
+            Vec::new(),
+            None,
+            None,
+            None,
+            AttributeRelationship::Dataflow,
+        )
+        .unwrap();
         let list = AttributeList::new(
             Some(String::from("AttributeDescriptor")),
             vec![

@@ -12,8 +12,10 @@
 `IDType`, so it re-validates its own id, owns a validated `new()`, has private fields, and carries a
 custom `Deserialize` (§7). The re-validation is a harmless redundancy (every `NCName` is a valid
 `IDType`); the two-layer errors are intentional (an `@`-id reports `InvalidIdentifier` from the
-base, a `1abc`-id reports `InvalidNcNameIdentifier` here). `parent_id` is a reference, structural
-only (D-0020), not NCName-validated.
+base, a `1abc`-id reports `InvalidNcNameIdentifier` here). A stated `parent_id` validates
+`NCNameIDType` too (D-0077 — the editions' `Parent` declarations, `SingleNCNameIDType` in 3.0 and
+`NCNameIDType` in 3.1, share one pattern, so the union IS the tier); whether it names a concept in
+the scheme stays a higher-layer concern (D-0020).
 
 The `CoreRepresentation` is modelled with the same `Representation` type as components (D-0028), and
 its position rules are the Basic tier (D-0048): the same `validate_basic_representation` the
@@ -26,7 +28,7 @@ attribute and measure constructors use.
 `ConceptScheme` follows `Codelist`'s wrapper shape: a private `scheme`, a fallible `new()` that
 re-validates the scheme id as `NCNameIDType`, and a custom `Deserialize` routing through it.
 
-Decisions: D-0020, D-0023, D-0028, D-0048.
+Decisions: D-0020, D-0023, D-0028, D-0048, D-0077.
 "#
 )]
 
@@ -115,14 +117,15 @@ pub struct Concept {
 }
 
 impl Concept {
-    /// Builds a concept, re-validating its id against SDMX `NCNameIDType` and its core
-    /// representation against the Basic-tier position rules.
+    /// Builds a concept, re-validating its id (and a stated `parent_id`) against SDMX
+    /// `NCNameIDType` and its core representation against the Basic-tier position rules. An
+    /// absent parent has nothing to validate.
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidNcNameIdentifier`] if the id is not a valid `NCNameIDType`, or
-    /// [`Error::InvalidTextTypeForComponent`] if the core representation states a `textType`
-    /// outside the Basic subset.
+    /// Returns [`Error::InvalidNcNameIdentifier`] if the id or a stated `parent_id` is not a
+    /// valid `NCNameIDType`, or [`Error::InvalidTextTypeForComponent`] if the core
+    /// representation states a `textType` outside the Basic subset.
     pub fn new(
         metadata: NameableMetadata,
         parent_id: Option<String>,
@@ -130,12 +133,14 @@ impl Concept {
         iso_concept_reference: Option<IsoConceptReference>,
     ) -> Result<Self, Error> {
         validate_ncname(metadata.id())?;
+        if let Some(parent_id) = &parent_id {
+            validate_ncname(parent_id)?;
+        }
         validate_basic_representation("Concept", core_representation.as_ref())?;
         Ok(Self { metadata, parent_id, core_representation, iso_concept_reference })
     }
 
-    /// The id of the parent concept in a hierarchy, if any. A structural reference, not
-    /// re-validated.
+    /// The id of the parent concept in a hierarchy, if any.
     #[must_use]
     pub fn parent_id(&self) -> Option<&str> {
         self.parent_id.as_deref()
@@ -477,6 +482,27 @@ mod tests {
         // The NCName id tightening is Concept::new's (composite over the nested nameable id): a
         // leading-digit id passes IDType but fails NCName.
         assert!(Concept::new(nameable("1FREQ"), None, None, None).is_err());
+    }
+
+    #[test]
+    fn concept_new_enforces_ncname_parent() {
+        // A stated parent validates the same NCName tier as the concept's own id (the editions'
+        // Parent declarations share one pattern, so the union IS the tier); absent has nothing
+        // to validate (covered by every None-parent construction above).
+        for bad in ["", "1PARENT", "@X", "A.B"] {
+            assert_eq!(
+                Concept::new(nameable("FREQ"), Some(String::from(bad)), None, None).unwrap_err(),
+                Error::InvalidNcNameIdentifier(String::from(bad))
+            );
+        }
+        // The wire path re-runs the check through the same Raw shape as the id proof above.
+        let raw = (
+            nameable("FREQ"),
+            Some(String::from("1PARENT")),
+            None::<Representation>,
+            None::<IsoConceptReference>,
+        );
+        assert!(postcard::from_bytes::<Concept>(&postcard::to_allocvec(&raw).unwrap()).is_err());
     }
 
     #[test]

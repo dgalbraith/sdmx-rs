@@ -192,11 +192,12 @@ Types with no invariants (reference structs, `Annotation`, `SimpleComponentValue
 
 **The custom-vs-derived test is sharper than "invariant-bearing → custom."** Derived `Deserialize` calls each field's own `Deserialize` in turn; it bypasses nothing. It is therefore *correct* for any type whose every field enforces its own invariants, because the composite is enforced for free by the inner impls. A custom impl is required only when the invariant is **between fields** — a relationship that field-by-field deserialisation cannot see. Concretely:
 
-- **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedInclude` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `Code` — which merely *composes* `NameableMetadata` with pub fields — uses derived `Deserialize`, delegating correctly to those inner custom impls; `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) likewise derives. No extra rule exists at the composing level for these, so a hand-written impl would add nothing.
-- **Tightened-within-field invariant → custom on the wrapper.** Several types carry a *stricter* id rule than their inner metadata enforces (NCNameIDType, not just IDType — D-0023), so the tighter check lives on the wrapper's own validated `new()` and a **custom `Deserialize`** that routes through it: the scheme *items* `Concept`/`Agency` (vs. their inner `NameableMetadata`); and the scheme *wrappers* `Codelist`/`ConceptScheme` (whose scheme id is NCName, vs. the IDType the inner `ItemScheme`/`MaintainableMetadata` enforces). The *components* `Dimension`/`TimeDimension`/`Attribute`/`Measure` (D-0025/D-0029) carry their NCName rule on their **own** `ComponentMetadata` leaf instead (the component id is `use="optional"`, so the check is conditional-on-stated and lives where the field lives — D-0057); their custom impls remain for the per-position representation rules (D-0048). All are NOT in the derive list above even though they look structurally like their derived cousins (`Code`, `AgencyScheme`). The inner type cannot know it sits inside a stricter wrapper — hence the check climbs one level.
+- **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedInclude` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) derives: no extra rule exists at its composing level, so a hand-written impl would add nothing.
+- **Tightened-within-field invariant → custom on the wrapper.** Several types carry a *stricter* id rule than their inner metadata enforces (NCNameIDType, not just IDType — D-0023), so the tighter check lives on the wrapper's own validated `new()` and a **custom `Deserialize`** that routes through it: the scheme *items* `Concept`/`Agency` (vs. their inner `NameableMetadata`); and the scheme *wrappers* `Codelist`/`ConceptScheme` (whose scheme id is NCName, vs. the IDType the inner `ItemScheme`/`MaintainableMetadata` enforces). The *components* `Dimension`/`TimeDimension`/`Attribute`/`Measure` (D-0025/D-0029) carry their NCName rule on their **own** `ComponentMetadata` leaf instead (the component id is `use="optional"`, so the check is conditional-on-stated and lives where the field lives — D-0057); their custom impls remain for the per-position representation rules (D-0048). All are NOT in the derive list above even though they look structurally like their derived cousins (`AgencyScheme`). The inner type cannot know it sits inside a stricter wrapper — hence the check climbs one level.
+- **Local-reference lexical tier → custom on the referencing type (D-0077).** A local reference is bare `NCNameIDType`/`IDType` wire content no inner metadata sees, so the referencing type validates it in `new()` and routes `Deserialize` through it: `Code` (a stated `parent_id` at the editions' union tier, `IDType`), `Concept` (parent, NCName — alongside its own tightened id above), `DimensionRef`, `MetadataAttributeUsage`, `GroupId`, and the per-item checks of `MeasureRelationship`/`GroupDimensions`/`DimensionConstraint`. `Code` is therefore not in the derive list above: its own id needs nothing stricter than the base `IDType`, but its parent reference is an invariant its fields do not enforce.
 - **Cross-field invariant → custom on the composite.** The DSD descriptor lists — `DimensionList` (`Dimension+`), `AttributeList` (choice ≥1, fixed id), `MeasureList` (`Measure+`), all D-0049 — own relationships *between* their fields that the XSD enforces mechanically (`minOccurs`, fixed-value mismatch), so they require custom impls. `DataStructureDefinition` itself, post-D-0049, composes *self-enforcing* descriptors and carries **no** cross-field invariant — so by this section's own sharper test it is a pub-field carrier with derived `Deserialize` (the A1 contradiction was resolved by changing both sides: the invariant moved into `DimensionList::new()`, and this section's earlier listing of the DSD in the custom category was the outdated section). `ItemScheme<I>` left this category under D-0051: with items in an ordered `Vec` there is no derived map key and no key/id invariant, so it derives too. (The dimension `position`-vs-order rule is *not* such an invariant: the spec states it only in prose, so under D-0031 it is a lint, not a construction rejection — see §5.6/D-0022.)
 
-Caveat for future maintainers: a derived `Deserialize` on `Code` is sound **only while it carries no invariant stricter than its fields enforce, and no cross-field invariant.** If `Code` later gains a cross-field rule (e.g. `parent_id` must reference an existing sibling code), that rule belongs in the enclosing `ItemScheme`'s custom impl — which can see siblings — not in a derive on the item. (`Concept`/`Agency` already crossed this line via their tighter id rule, hence their custom impls.) Do not add such an invariant to a derived type without converting it (or its container) to a custom impl.
+Caveat for future maintainers: a derived `Deserialize` is sound **only while the type carries no invariant stricter than its fields enforce, and no cross-field invariant.** (`Code` illustrates the boundary from both sides: it derived until D-0077 gave its `parent_id` a lexical tier its fields could not see, and it converted.) A genuinely *cross-object* rule — e.g. `parent_id` must reference an existing sibling code — belongs in the enclosing `ItemScheme`'s custom impl, which can see siblings, not in a derive on the item; today that rule is referential integrity, deferred wholesale (D-0020). Do not add such an invariant to a derived type without converting it (or its container) to a custom impl.
 
 The `Serialize` direction is unaffected by this decision: derived `Serialize` reads fields directly and requires no special handling in either case.
 
@@ -422,7 +423,7 @@ All four metadata structs use private fields and `Result`-returning constructors
 | `validate_ncname`        | `NCNameIDType`       | `[A-Za-z][A-Za-z0-9_\-]*`       | re-checked in the constructor of: scheme items `Agency`/`Concept`; components `Dimension`/`TimeDimension`/`Attribute`/`Measure` (their ids are `use="optional"` — checked **when stated**, in `ComponentMetadata::new()`, D-0057); scheme wrappers `Codelist`/`ConceptScheme` |
 | `validate_nested_ncname` | `NestedNCNameIDType` | `[A-Za-z][A-Za-z0-9_\-]*(\.…)*` | `MaintainableMetadata.agency`                                |
 
-`IdentifiableMetadata::new()` runs `validate_id` (the loosest tier every artefact shares). The NCName-tier types re-validate their own stricter id in their own constructors (§5.5/§5.6). The base IDType check stays even for them: every NCName is a valid IDType, so it is harmless redundancy and avoids an `IdKind` parameter. **The maintainable artefacts are deliberately split** — `Codelist`/`ConceptScheme` tighten to NCName, but DSD/`Dataflow`/`DataConstraint`/`AgencyScheme` do not (the spec leaves their ids at `IDType`); this mirrors the spec, not an inconsistency. Embedded reference ids and `Parent` fields are *not* re-validated here — D-0020 governs them (validate at declaration, structural-only at reference).
+`IdentifiableMetadata::new()` runs `validate_id` (the loosest tier every artefact shares). The NCName-tier types re-validate their own stricter id in their own constructors (§5.5/§5.6). The base IDType check stays even for them: every NCName is a valid IDType, so it is harmless redundancy and avoids an `IdKind` parameter. **The maintainable artefacts are deliberately split** — `Codelist`/`ConceptScheme` tighten to NCName, but DSD/`Dataflow`/`DataConstraint`/`AgencyScheme` do not (the spec leaves their ids at `IDType`); this mirrors the spec, not an inconsistency. Local reference ids and stated `Parent` fields validate their own site's lexical tier at construction too (D-0077 — at the union of the editions' grammars where the tiers diverge), the constraint selection-node ids included at their `SingleNCNameIDType`/`NestedNCNameIDType` tiers (D-0077 consequence 6); what D-0020 keeps deferred is *referential integrity* — whether the lexeme names a declared component.
 
 ```rust
 pub struct IdentifiableMetadata {
@@ -898,20 +899,29 @@ impl<I: SchemeItem> MaintainableArtefact for ItemScheme<I> {
     fn structure_url(&self) -> Option<&str> { self.metadata.structure_url() }
 }
 
-// There are TWO scheme-item patterns, decided by the item's spec id lexical type (D-0023):
+// The scheme items are all invariant-bearing, but for two different reasons (D-0023/D-0077):
 //
-//   • CARRIER pattern (Code): id is `IDType` — the loosest tier, already enforced by the
-//     base IdentifiableMetadata::new(). Nothing stricter to add, so Code stays a transparent
-//     carrier: pub fields, derived Deserialize, no constructor of its own.
-//   • VALIDATED-ITEM pattern (Concept, Agency): id is `NCNameIDType` — STRICTER than the base
-//     IDType check. The item must re-validate its own id, so it becomes invariant-bearing:
-//     private fields, a validated new(), and custom Deserialize (§7). See below.
+//   • OWN-ID tightening (Concept, Agency): id is `NCNameIDType` — STRICTER than the base
+//     IDType check, so the item re-validates its own id in a validated new() (§7). See below.
+//   • LOCAL-REFERENCE tier (Code): its own id is `IDType`, the loosest tier, already enforced
+//     by the base IdentifiableMetadata::new() — nothing stricter to add there. But a stated
+//     parent_id is a local reference with a lexical tier of its own (D-0077): `IDType`, the
+//     union of the editions' divergent Parent declarations (SingleNCNameIDType in 3.0, IDType
+//     in 3.1; a 3.0 serialisation tightening further is the writer's obligation). So Code owns
+//     a validated new() too.
 //
-// Code is the carrier exemplar:
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct Code {
-    pub metadata: NameableMetadata,
-    pub parent_id: Option<String>,
+    metadata: NameableMetadata,
+    parent_id: Option<String>, // validated IDType when stated (union tier, D-0077)
+}
+
+impl Code {
+    pub fn new(metadata: NameableMetadata, parent_id: Option<String>) -> Result<Self, Error> {
+        if let Some(parent_id) = &parent_id { validate_id(parent_id)?; }
+        Ok(Self { metadata, parent_id })
+    }
+    pub fn parent_id(&self) -> Option<&str> { self.parent_id.as_deref() }
 }
 
 impl IdentifiableArtefact for Code {
@@ -1028,9 +1038,8 @@ impl IdentifiableArtefact for Codelist {
     fn links(&self) -> &[Link] { self.scheme.links() }
 }
 
-// Concept is the VALIDATED-ITEM exemplar (D-0023): its id is NCNameIDType, stricter than the
-// base IDType check, so it owns a validated new() and private fields. This is NOT the same
-// shape as Code — do not read "scheme item" as "transparent carrier".
+// Concept is the OWN-ID-tightening exemplar (D-0023): its id is NCNameIDType, stricter than
+// the base IDType check, so it owns a validated new() and private fields.
 pub struct Concept {
     metadata: NameableMetadata, // private — the new() write path is the only way in
     parent_id: Option<String>,
@@ -1049,8 +1058,10 @@ impl Concept {
         // IdentifiableMetadata::new() already passed it as IDType; this tightens to NCNameIDType.
         // Harmless redundancy (every NCName is a valid IDType); two-layer errors are intentional
         // (an `@`-id reports InvalidIdentifier from the base, a `1abc`-id reports InvalidNcNameIdentifier
-        // here). parent_id is a REFERENCE — structural-only per D-0020, not NCName-validated.
+        // here). A stated parent_id validates the same NCName tier (D-0077 — both editions'
+        // Parent declarations share the pattern); whether it resolves stays deferred (D-0020).
         validate_ncname(metadata.id())?;
+        if let Some(parent_id) = &parent_id { validate_ncname(parent_id)?; }
         // CoreRepresentation position rules: Basic tier, like Attribute/Measure (D-0048) —
         // Codelist or ValueList enumeration; textType ∈ Basic; format textType ∈ Code.
         validate_basic_representation("Concept", core_representation.as_ref())?;
@@ -1107,8 +1118,9 @@ pub struct Contact {
 //     still does NOT re-validate NCName — the declared type is IDType; the fixed-value check is
 //     a different, mechanical rule. (Required + fixed ⟹ no statedness question here.)
 // Do not "consistency-fix" AgencyScheme into NCName: the asymmetry is the spec's, not an oversight.
-// Independently, the contained ITEMS carry their own id rule: Code = IDType (carrier), but
-// Concept/Agency = NCNameIDType (validated items, above).
+// Independently, the contained ITEMS carry their own id rule: Code = IDType (nothing stricter
+// than the base check; its new() exists for the parent reference, D-0077), but Concept/Agency =
+// NCNameIDType (own-id tightening, above).
 
 // ===== ValueList (D-0047) =====
 // A MAINTAINABLE artefact (ValueListBaseType restricts MaintainableType: Name+ required; its
@@ -1466,18 +1478,19 @@ impl Dimension {
 // applies to Attribute and Measure; TimeDimension's effective id is "TIME_PERIOD" (fixed).
 
 // The data-carrying relationship variants wrap private-field newtypes so the
-// invariant (non-empty group id / non-empty dimension list) is enforced by
+// invariant (IDType-valid group id / non-empty dimension list) is enforced by
 // construction, not by convention: `AttributeRelationship::Dimensions(..)` cannot
 // be built without a `DimensionIds`, which only its validating constructor produces.
 // This closes the D-0005 gap — a raw `Dimensions(vec![])` is uncallable, and the
-// custom Deserialize on each newtype nforces the constraint on the deserialisation
-// path too. Referential integrity (do these ids name real components in the DSD?) is
+// custom Deserialize on each newtype enforces the constraint on the deserialisation
+// path too. The group reference validates its lexical tier, IDType (D-0077).
+// Referential integrity (do these ids name real components in the DSD?) is
 // NOT checked here — see D-0020; that is a cross-object concern above the type level.
-pub struct GroupId(String);        // private field; constructor rejects empty
+pub struct GroupId(String);        // private field; constructor validates IDType
 
 impl GroupId {
     pub fn new(id: String) -> Result<Self, Error> {
-        if id.is_empty() { return Err(Error::EmptyGroupId); }
+        validate_id(&id)?; // D-0077 — the empty lexeme is just one off-grammar case
         Ok(Self(id))
     }
     pub fn as_str(&self) -> &str { &self.0 }
@@ -1489,14 +1502,23 @@ impl GroupId {
 // (xs:boolean, default "false") — whether the attribute's value may vary when this dimension
 // is wildcarded. STATEDNESS stored (D-0052): None ⟺ absent; the default is the
 // effective_is_optional() view. Earlier drafts stored bare Strings, silently dropping the
-// attribute — the report-5 V-1 superset hole. The id is structural-only (D-0020).
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// attribute — the report-5 V-1 superset hole. The id validates its lexical tier, the
+// NCNameIDType base of the spec type (D-0077), so DimensionRef is invariant-bearing:
+// private fields, a validated new(), Raw-shape Deserialize.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct DimensionRef {
-    pub id: String,
-    pub optional: Option<bool>,
+    id: String,
+    optional: Option<bool>,
 }
 
 impl DimensionRef {
+    pub fn new(id: String, optional: Option<bool>) -> Result<Self, Error> {
+        validate_ncname(&id)?; // D-0077
+        Ok(Self { id, optional })
+    }
+    pub fn id(&self) -> &str { &self.id }
+    /// STATED view: the flag exactly as the wire carried it.
+    pub fn optional(&self) -> Option<bool> { self.optional }
     /// EFFECTIVE view (D-0052): the schema default is "false".
     pub fn effective_is_optional(&self) -> bool { self.optional.unwrap_or(false) }
 }
@@ -1554,12 +1576,13 @@ pub enum Usage {
 // the effective view, and stated_id() is the raw accessor.
 // spec MeasureRelationshipType (D-0050): the measures an attribute applies to — `Measure`
 // (NCName LOCAL refs) 1..unbounded, so the bespoke non-empty newtype pattern applies (D-0034);
-// refs are structural-only (D-0020).
-pub struct MeasureRelationship(Vec<String>); // private field; constructor rejects empty
+// each item validates its NCName tier (D-0077); resolution stays deferred (D-0020).
+pub struct MeasureRelationship(Vec<String>); // private field; new() rejects empty + off-tier items
 
 impl MeasureRelationship {
     pub fn new(measure_ids: Vec<String>) -> Result<Self, Error> {
         if measure_ids.is_empty() { return Err(Error::EmptyMeasureRelationship); }
+        for id in &measure_ids { validate_ncname(id)?; } // D-0077
         Ok(Self(measure_ids))
     }
     pub fn as_slice(&self) -> &[String] { &self.0 }
@@ -1715,12 +1738,13 @@ impl DimensionList {
 // Custom Deserialize calls DimensionList::new() (§7 cross-field rule: the non-empty list).
 
 // Group dimension references: GroupDimension+ → bespoke non-empty newtype (D-0034 pattern);
-// the referenced dimension ids are structural-only (D-0020).
-pub struct GroupDimensions(Vec<String>); // private field; constructor rejects empty
+// each item validates its NCName tier (D-0077); resolution stays deferred (D-0020).
+pub struct GroupDimensions(Vec<String>); // private field; new() rejects empty + off-tier items
 
 impl GroupDimensions {
     pub fn new(dimension_ids: Vec<String>) -> Result<Self, Error> {
         if dimension_ids.is_empty() { return Err(Error::EmptyGroupDimensions); }
+        for id in &dimension_ids { validate_ncname(id)?; } // D-0077
         Ok(Self(dimension_ids))
     }
     pub fn as_slice(&self) -> &[String] { &self.0 }
@@ -1743,15 +1767,16 @@ pub struct Group {
 // LocalRepresentation are excluded (maxOccurs="0"); encoded by field omission. What remains:
 // the local ref + a full AttributeRelationship. Annotable (D-0033 bare field). The wire admits
 // AT MOST ONE Link here (minOccurs="0", maxOccurs defaulting to 1 — unlike the unbounded Link
-// everywhere else): Option, not Vec, so a second link is unrepresentable. Invariant-free
-// pub-field carrier, derived Deserialize. The MSD artefact itself stays out of 0010 scope —
-// the local reference does not pull it in (D-0020).
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// everywhere else): Option, not Vec, so a second link is unrepresentable. The local ref
+// validates its NCName tier (D-0077), so the type is invariant-bearing: private fields, a
+// validated new(), accessors, Raw-shape Deserialize. The MSD artefact itself stays out of 0010
+// scope — the local reference does not pull it in (D-0020).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct MetadataAttributeUsage {
-    pub metadata_attribute_ref: String,      // NCName local ref into the MSD — structural-only
-    pub relationship: AttributeRelationship, // the same spec type Attribute carries
-    pub annotations: Vec<Annotation>,
-    pub link: Option<Link>,
+    metadata_attribute_ref: String,      // NCName local ref into the MSD — validated (D-0077)
+    relationship: AttributeRelationship, // the same spec type Attribute carries
+    annotations: Vec<Annotation>,
+    link: Option<Link>,
 }
 
 // The wire's attribute list is ONE repeated choice (Attribute | MetadataAttributeUsage), so
@@ -1897,13 +1922,15 @@ impl DataStructureDefinition {
 // references an EVOLVING data structure (see `evolving_structure`, §5.6) with a wildcarded
 // minor version — that coupling is prose, so it is a catalogued LINT (D-0031), never a
 // construction rejection. DimensionConstraintType = Dimension (common:IDType) 1..unbounded —
-// mechanical, so the bespoke non-empty newtype pattern applies. The ids are REFERENCES to
-// dimensions, so structural-only validation (D-0020), not NCName-checked.
-pub struct DimensionConstraint(Vec<String>); // private field; constructor rejects empty
+// mechanical, so the bespoke non-empty newtype pattern applies. Each item validates its own
+// IDType tier (D-0077 — the element's declared type, correctly NOT NCName); whether it names
+// a dimension the referenced structure declares stays deferred (D-0020).
+pub struct DimensionConstraint(Vec<String>); // private field; new() rejects empty + off-tier items
 
 impl DimensionConstraint {
     pub fn new(dimension_ids: Vec<String>) -> Result<Self, Error> {
         if dimension_ids.is_empty() { return Err(Error::EmptyDimensionConstraint); }
+        for id in &dimension_ids { validate_id(id)?; } // D-0077
         Ok(Self(dimension_ids))
     }
     pub fn as_slice(&self) -> &[String] { &self.0 }
@@ -2583,8 +2610,8 @@ pub enum Error {
     #[error("Invalid attribute relationship: an AttributeRelationship::Dimensions must reference at least one dimension id.")]
     EmptyAttributeDimensions,
 
-    #[error("Invalid attribute relationship: an AttributeRelationship::Group must reference a non-empty group id.")]
-    EmptyGroupId,
+    // No EmptyGroupId: an empty group reference is just one off-grammar IDType lexeme,
+    // reported by InvalidIdentifier like every identifier site (D-0077).
 
     #[error("Invalid dimension constraint: a DimensionConstraint must reference at least one dimension id.")]
     EmptyDimensionConstraint,
@@ -2800,7 +2827,7 @@ This design corresponds directly to **Phase 1: Core Domain Types**.
 
 ### Future Layers (out of Phase-1 scope)
 
-**Cross-artefact referential integrity lives above this crate, not in the type constructors.** Per D-0020, `sdmx-types` validates identifiers *at declaration* (lexical-type-correct) and treats every embedded reference as *structural-only*. It never resolves a reference against sibling objects because the version-agnostic, `no_std` types crate has no message-level context to resolve against. The architectural home for referential checks (e.g., "does this attribute's `Dimensions([...])` name real dimensions in the DSD?") and catalogued lints (§5.11) is a **separate pass over a message-level container** of resolved artefacts. This is a later-phase concern that composes the Phase-1 types rather than altering them.
+**Cross-artefact referential integrity lives above this crate, not in the type constructors.** Per D-0020 as narrowed by D-0077, `sdmx-types` validates identifiers lexically wherever they occur — at declaration and at local reference sites alike (each against its own site's tier) — but *never resolves* a reference against sibling objects, because the version-agnostic, `no_std` types crate has no message-level context to resolve against. The architectural home for referential checks (e.g., "does this attribute's `Dimensions([...])` name real dimensions in the DSD?") and catalogued lints (§5.11) is a **separate pass over a message-level container** of resolved artefacts. This is a later-phase concern that composes the Phase-1 types rather than altering them.
 
 The EPAM/Metadata-Technology `sdmxsource` Java reference implementation validates this two-tier boundary: its self-contained invariants are enforced in bean constructors (the exact analogue of our validated `new()`), while cross-references are resolved and validated in a *separate* pass over its `SdmxBeans` container, materialising a resolved object graph. The imported lesson is strictly structural — this resolution and linting tier belongs at the message-container level when it is built in Phase 2+.
 

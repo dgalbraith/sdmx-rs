@@ -1,19 +1,20 @@
 //! Codes, codelists, and codelist extensions.
 //!
-//! A [`Codelist`] is a maintainable scheme of [`Code`]s. A code is the carrier exemplar: its id is
-//! the loosest `IDType`, already enforced by the base metadata, so it adds no invariant and stays a
-//! transparent pub-field carrier. A codelist may also *extend* other codelists, selecting members
-//! to include or exclude ([`CodelistExtension`]).
+//! A [`Codelist`] is a maintainable scheme of [`Code`]s. A code's own id is the loosest `IDType`,
+//! already enforced by the base metadata; its optional parent reference validates at construction.
+//! A codelist may also *extend* other codelists, selecting members to include or exclude
+//! ([`CodelistExtension`]).
 #![cfg_attr(
     design_docs,
     doc = r#"
 ## Design Notes
 
-Two scheme-item patterns, decided by the item's spec id lexical type (D-0023). `Code` is the CARRIER
-exemplar: its id is `IDType`, the loosest tier already enforced by `IdentifiableMetadata::new()`, so
-there is nothing stricter to add and it stays a pub-field carrier with derived `Deserialize` and no
-constructor of its own. (`Concept`/`Agency`, whose ids are `NCNameIDType`, are the validated-item
-pattern instead.)
+The item's own id decides nothing stricter here (D-0023): a `Code` id is `IDType`, the loosest tier
+already enforced by `IdentifiableMetadata::new()`. What makes `Code` invariant-bearing — private
+fields, fallible `new()`, Raw-shape `Deserialize`, like `Concept`/`Agency` (whose own ids are the
+stricter `NCNameIDType`) — is its stated `parent_id`, a local reference whose lexical tier validates
+at construction (D-0077). The parent tier is `IDType`, the union of the editions' divergent `Parent`
+declarations; see the type's Design Notes.
 
 `Codelist`'s `scheme` field is private not for item storage (invariant-free) but because the WRAPPER
 owns the NCName scheme-id invariant: `CodelistBaseType` restricts the id to `NCNameIDType`, stricter
@@ -26,7 +27,7 @@ NOT (its id is `IDType` `fixed="AGENCIES"`).
 (D-0018). It lives here because the codelist-extension member values are its first consumer; the
 constraint types reuse it.
 
-Decisions: D-0018, D-0023, D-0054.
+Decisions: D-0018, D-0023, D-0054, D-0077.
 "#
 )]
 
@@ -43,7 +44,7 @@ use crate::{
     metadata::{MaintainableMetadata, NameableMetadata},
     reference::CodelistReference,
     scheme::{ItemScheme, SchemeItem},
-    validate::validate_ncname,
+    validate::{validate_id, validate_ncname},
 };
 
 // ---------------------------------------------------------------------------
@@ -233,9 +234,15 @@ pub struct CodelistExtension {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/CodeType.3.1.md"))]
 #[cfg_attr(design_docs, doc = "")]
 ///
-/// The carrier exemplar: a code's id is `IDType` (the loosest tier, already validated by the inner
-/// [`NameableMetadata`]), so it adds no invariant and exposes public fields with a derived
-/// `Deserialize`. `parent_id` references another code in the same list for a simple hierarchy.
+/// A code's own id is `IDType` (the loosest tier, already validated by the inner
+/// [`NameableMetadata`]). `parent_id` references another code in the same list for a simple
+/// hierarchy and validates against `IDType` when stated — the union of the two editions'
+/// divergent `Parent` tiers; whether it names a code in the list stays a higher-layer concern
+/// (D-0020).
+///
+/// ## Guarantees
+///
+/// A stated `parent_id` is `IDType`-valid.
 ///
 /// # Examples
 ///
@@ -251,7 +258,7 @@ pub struct CodelistExtension {
 /// }])?;
 /// let identifiable =
 ///     IdentifiableMetadata::new(String::from("A"), None, None, Vec::new(), Vec::new())?;
-/// let code = Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None };
+/// let code = Code::new(NameableMetadata::new(identifiable, names, None), None)?;
 /// assert_eq!(code.id(), "A");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
@@ -261,20 +268,52 @@ pub struct CodelistExtension {
 ## Design Notes
 
 `CodeType` diverges across editions only in the `Parent` element's declared type
-(`SingleNCNameIDType` in 3.0, `IDType` in 3.1), the two fragments above. The store is unaffected:
-`parent_id` is held as an unvalidated structural reference (`Option<String>`, D-0020) either way, so
-the superset carrier needs no per-edition branch.
+(`SingleNCNameIDType` in 3.0, `IDType` in 3.1), the two fragments above. The store still needs no
+per-edition branch: the construction contract rejects a lexeme iff every supported edition rejects
+it (D-0077), so a stated `parent_id` validates at the union of the two grammars — `IDType` — and a
+3.0 serialisation tightening to `SingleNCNameIDType` is the writer's obligation.
 
-Decisions: D-0020, D-0023.
+Decisions: D-0020, D-0023, D-0077.
 "#
 )]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Code {
-    /// The code's nameable metadata (id, names, descriptions, annotations, links).
-    pub metadata: NameableMetadata,
-    /// The id of the parent code in a simple hierarchy, if any. A structural reference, not
-    /// re-validated.
-    pub parent_id: Option<String>,
+    metadata: NameableMetadata,
+    parent_id: Option<String>,
+}
+
+impl Code {
+    /// Builds a code, validating a stated `parent_id` against SDMX `IDType` (the union of the two
+    /// editions' `Parent` tiers). An absent parent has nothing to validate.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidIdentifier`] if `parent_id` is `Some` and not a valid `IDType`
+    /// lexeme.
+    pub fn new(metadata: NameableMetadata, parent_id: Option<String>) -> Result<Self, Error> {
+        if let Some(parent_id) = &parent_id {
+            validate_id(parent_id)?;
+        }
+        Ok(Self { metadata, parent_id })
+    }
+
+    /// The id of the parent code in a simple hierarchy, if any.
+    #[must_use]
+    pub fn parent_id(&self) -> Option<&str> {
+        self.parent_id.as_deref()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Code {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            metadata: NameableMetadata,
+            parent_id: Option<String>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(raw.metadata, raw.parent_id).map_err(to_de_error)
+    }
 }
 
 impl IdentifiableArtefact for Code {
@@ -508,7 +547,7 @@ mod tests {
         .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
-        Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
+        Code::new(NameableMetadata::new(identifiable, names, None), None).unwrap()
     }
 
     /// A nameable leaf with every optional field populated, for the delegation matrices.
@@ -594,15 +633,48 @@ mod tests {
         assert_eq!(codelist.service_url(), Some("https://service"));
         assert_eq!(codelist.structure_url(), Some("https://structure"));
 
-        // The Code carrier forwards its identifiable and nameable accessors to its own metadata.
-        let carrier = Code { metadata: full_nameable("A"), parent_id: Some(String::from("ROOT")) };
-        assert_eq!(carrier.id(), "A");
-        assert_eq!(carrier.urn(), Some("urn:x"));
-        assert_eq!(carrier.uri(), Some("uri"));
-        assert_eq!(carrier.annotations().len(), 1);
-        assert_eq!(carrier.links().len(), 1);
-        assert_eq!(carrier.names().first(), "Frequency");
-        assert_eq!(carrier.descriptions().map(LocalisedString::first), Some("How often"));
+        // Code forwards its identifiable and nameable accessors to its own metadata.
+        let code = Code::new(full_nameable("A"), Some(String::from("ROOT"))).unwrap();
+        assert_eq!(code.id(), "A");
+        assert_eq!(code.urn(), Some("urn:x"));
+        assert_eq!(code.uri(), Some("uri"));
+        assert_eq!(code.annotations().len(), 1);
+        assert_eq!(code.links().len(), 1);
+        assert_eq!(code.names().first(), "Frequency");
+        assert_eq!(code.descriptions().map(LocalisedString::first), Some("How often"));
+        assert_eq!(code.parent_id(), Some("ROOT"));
+    }
+
+    #[test]
+    fn code_validates_a_stated_parent_at_the_idtype_union() {
+        // The union of the editions' Parent tiers is IDType: lexemes valid in 3.1 but not in
+        // 3.0's SingleNCNameIDType (a leading digit, @, $) must construct — this locks the
+        // union boundary against a regression to the stricter NCName tier.
+        for union_only in ["1PARENT", "@INTERNAL", "EUR$"] {
+            let code = Code::new(full_nameable("A"), Some(String::from(union_only))).unwrap();
+            assert_eq!(code.parent_id(), Some(union_only));
+        }
+        // An absent parent has nothing to validate; off-IDType lexemes are rejected.
+        assert_eq!(Code::new(full_nameable("A"), None).unwrap().parent_id(), None);
+        for bad in ["", "a b", "a.b"] {
+            assert_eq!(
+                Code::new(full_nameable("A"), Some(String::from(bad))).unwrap_err(),
+                Error::InvalidIdentifier(String::from(bad))
+            );
+        }
+    }
+
+    #[test]
+    fn code_deserialize_enforces_the_parent_grammar() {
+        // Code's Deserialize declares `Raw { metadata: NameableMetadata, parent_id: Option<String> }`
+        // and routes through new(). postcard is positional, so a tuple of those field types carrying
+        // an off-grammar parent proves the wire path re-runs the check, while a valid value
+        // round-trips.
+        let raw = (full_nameable("A"), Some(String::from("a b")));
+        assert!(postcard::from_bytes::<Code>(&postcard::to_allocvec(&raw).unwrap()).is_err());
+        crate::test_support::round_trip(
+            &Code::new(full_nameable("A"), Some(String::from("@INTERNAL"))).unwrap(),
+        );
     }
 
     #[test]

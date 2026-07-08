@@ -101,8 +101,7 @@ pub trait SchemeItem: IdentifiableArtefact {}
 ///     text: String::from("Annual"),
 /// }])?;
 /// let code_id = IdentifiableMetadata::new(String::from("A"), None, None, Vec::new(), Vec::new())?;
-/// scheme
-///     .push(Code { metadata: NameableMetadata::new(code_id, code_names, None), parent_id: None });
+/// scheme.push(Code::new(NameableMetadata::new(code_id, code_names, None), None)?);
 /// assert_eq!(scheme.get("A").map(IdentifiableArtefact::id), Some("A"));
 /// assert!(!scheme.is_partial());
 /// # Ok::<(), sdmx_types::Error>(())
@@ -251,7 +250,7 @@ mod tests {
         .unwrap();
         let identifiable =
             IdentifiableMetadata::new(id.into(), None, None, Vec::new(), Vec::new()).unwrap();
-        Code { metadata: NameableMetadata::new(identifiable, names, None), parent_id: None }
+        Code::new(NameableMetadata::new(identifiable, names, None), None).unwrap()
     }
 
     #[test]
