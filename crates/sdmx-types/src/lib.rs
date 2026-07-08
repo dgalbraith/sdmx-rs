@@ -69,6 +69,7 @@ mod organisation;
 mod reference;
 mod representation;
 mod scheme;
+mod sealed;
 mod validate;
 mod valuelist;
 

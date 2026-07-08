@@ -147,7 +147,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0064](#d-0064) | Constraints                 | TimeRange remodelled to { kind, valid_from, valid_to }; carries TimeRangeValueType's wrapper validFrom/validTo, the validity arm D-0038 missed                                                                                    |
 | [D-0065](#d-0065) | Conventions                 | Hash/Eq/PartialEq derived uniformly wherever float-free; SdmxVersion hand-writes Hash over its raw string (Eq/Hash contract) (amended by [D-0070](#d-0070))                                                                       |
 | [D-0066](#d-0066) | Localisation                | LocalisedString element is the named LocalisedText { language, text }, not an anonymous tuple; pub-field carrier; amends [D-0059](#d-0059)'s store shape                                                                          |
-| [D-0067](#d-0067) | Item schemes                | ItemScheme kept a public, invariant-light generic carrier; the wrappers own the construction invariants, so exposure bypasses no validation                                                                                       |
+| [D-0067](#d-0067) | Item schemes                | ItemScheme kept a public, invariant-light generic carrier; the wrappers own the construction invariants, so exposure bypasses no validation (amended by [D-0078](#d-0078))                                                        |
 | [D-0068](#d-0068) | Serialisation               | Internal serde projection never converges to the wire; round-trip verified through a non-wire format, serde_json dropped; resolves [D-0063](#d-0063)'s deferral                                                                   |
 | [D-0069](#d-0069) | Architecture                | Reference, version, and time-period grammars are model surface gating the 0.1.0 publish; the wire mapping stays with the parser/writer                                                                                            |
 | [D-0070](#d-0070) | Lexical types               | SdmxVersion raw-free: canonical grammar, statedness-preserving decomposition; amends [D-0027](#d-0027)/[D-0060](#d-0060)/[D-0065](#d-0065)                                                                                        |
@@ -158,8 +158,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0075](#d-0075) | Conventions                 | Schema-unbounded integers take u32 width where the value is a count or version component; the bound is a recorded deviation; lexeme newtypes where the value is the datum                                                         |
 | [D-0076](#d-0076) | Data structure              | Format-facet validity moves into the field types: time_interval takes the SdmxDuration newtype, the positiveInteger facets and MaxOccurs::Count take NonZeroU32; min_occurs stays u32                                             |
 | [D-0077](#d-0077) | Identifiers                 | Local reference ids validate their lexical tier at construction (edition union where divergent); D-0020 narrows to referential integrity; DimensionRef/MetadataAttributeUsage/Code promoted                                       |
+| [D-0078](#d-0078) | Conventions                 | Constructor entry path + aggregate exhaustive-surface cost recorded; SchemeItem and the four artefact traits sealed (unsealing on demand is the non-breaking path)                                                                |
 
-<!-- Next ID: D-0078 -->
+<!-- Next ID: D-0079 -->
 
 ## Entries
 
@@ -1587,9 +1588,11 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0067 — ItemScheme kept a public, invariant-light generic carrier
 
+> **Consequence (3) amended 2026-07-08 by [D-0078](#d-0078).** "Sealing is off the table unless an invariant is later added to the carrier itself" is withdrawn for the traits: D-0078 seals `SchemeItem` (and the four artefact traits) on evolution grounds — openness would spend the room to grow a spec-coupled trait, and the choice is asymmetric (unsealing later is non-breaking; sealing once downstream implementations can exist is not). This entry's own decision — `ItemScheme<I>` stays public — is untouched, and the generic processing it protects survives sealing (bounds and calls remain open; only external implementations close).
+
 | **Area**     | Item schemes |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (consequence (3) amended by [D-0078](#d-0078)) |
 | **Keywords** | item-scheme, visibility, public-api, generics, carrier, wrapper-invariants, extensibility, sealing |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §3 |
 | **Related**  | [D-0032](#d-0032), [D-0051](#d-0051), [D-0062](#d-0062) |
@@ -1791,5 +1794,24 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: The wire validates every reference lexeme in place, so declaration-side validation covers nothing at the reference site, and a writer emitting an off-tier lexeme produces schema-invalid documents from constructors that cannot fail — the representability class [D-0076](#d-0076) closed for the facets. The union floor is forced, not chosen: a constructor stricter than the loosest edition's grammar could not build values that edition's schema-valid wire carries, breaking round-trip. Constructor placement over field newtypes because the invariant does not travel — no API consumes a statically-valid NCName, uniform newtyping would retype the collection newtypes' delivered `Vec<String>` views, and the guarantee wanted is a property of assembly, which the identifier-validator family ([D-0023](#d-0023)) already provides at every declaration site.
 
 **Consequences**: (1) `DimensionRef`, `MetadataAttributeUsage`, and `Code` cross the §7 carrier→invariant-bearing line (the [D-0023](#d-0023) `Concept`/`Agency` promotion pattern): private fields, fallible `new()`, accessors, Raw-shape `Deserialize`; their carrier classifications in [D-0050](#d-0050)/[D-0058](#d-0058) and D-0023's `Code`-stays-derive-only clause are amended. (2) `GroupId`'s empty special-case dissolves: `Error::EmptyGroupId` is removed and the empty lexeme reports `InvalidIdentifier`, like every identifier site; the collection-emptiness variants (`EmptyMeasureRelationship` and kin) are list-cardinality invariants and stand. (3) The identifier-failure `Display` messages delimit the offending lexeme, so the empty lexeme renders unambiguously. (4) [D-0046](#d-0046)'s Parent-divergence row is re-grounded: carried by union-tier validation, no longer by non-validation. (5) `Item.Parent` and `Organisation.Parent` have no modelled carrier, so nothing validates; a future carrier adopts this rule at its own tier union. (6) The constraint selection-node ids ([D-0051](#d-0051)'s `pub id: String` fields) are local references within this rule: the `CubeRegionKey`/`DataKeyValue` ids validate `SingleNCNameIDType` (the `NCNameIDType` pattern, per the schema's own documentation) and the `ComponentValueSet`/`DataComponentValueSet` ids validate `NestedNCNameIDType` (the dotted tier — a nested metadata-attribute path such as `CONTACT.ADDRESS.STREET` is one lexeme), both editions. (7) The enforcement surface for the writer's per-edition strictness is the writer's design question, deferred until that surface exists; the tier validators stay crate-private.
+
+---
+
+### D-0078 — Constructor entry path and aggregate exhaustive-surface cost recorded; the scheme and artefact traits sealed
+
+| **Area**     | Conventions |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | api-stability, semver, constructors, builders, sealing, traits, public-api, non-exhaustive |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §3, §7 |
+| **Related**  | [D-0021](#d-0021), [D-0062](#d-0062), [D-0067](#d-0067) |
+
+**Observation**: The API-evolution posture exists in three parts, two recorded and priced — exhaustive enums whose growth is a deliberate, surfacing break ([D-0021](#d-0021)) and the field-visibility rule (ADR-0021) — and one practised but recorded nowhere: positional, validated constructors as the entry path to every invariant-bearing type. No entry states what the three compose into: any spec addition, anywhere on the surface (a new element, variant, or failure), is a major-version event. Separately, `SchemeItem` and the four artefact traits (`IdentifiableArtefact`, `NameableArtefact`, `VersionableArtefact`, `MaintainableArtefact`) are openly implementable, recorded as reversible ("the marker remains sealable in a later phase if needed", §7). The openness was a considered accommodation — downstream gap-filling ahead of the crate modelling further schemes, with `SdmxSerialize` as the boundary that matters (§3, [D-0067](#d-0067)) — but the reversibility claim does not survive downstream implementations becoming possible: sealing then breaks every one of them.
+
+**Decision**: (1) Constructors are the entry path: every invariant-bearing type is built through its positional, validated `new()`; a builder layer, if one ever lands, is a later additive convenience over the constructors, never a replacement for them. (2) The aggregate cost of the exhaustive surface is accepted: spec growth is a deliberate, surfacing major-version event, uniformly — the crate prefers compile-time surfacing over silent absorption at every layer, not only the enum layer D-0021 priced. (3) `SchemeItem` and the four artefact traits are sealed behind a crate-private `Sealed` supertrait (the `SdmxSerialize` pattern): fully usable downstream in bounds and calls, implementable only in this crate. Unsealing on demonstrated demand is the recorded non-breaking path back.
+
+**Rationale**: The three posture parts compose into one contract, and pricing it once keeps every future addition deliberate rather than accidental. The sealing is settled by asymmetry: unsealing later breaks nobody (implementors gain a possibility; users of bounds and calls are untouched), while sealing after downstream implementations exist breaks each one — so sealing now is the only choice that preserves both futures, including the original accommodation itself. It also keeps what §3 actually valued: generic processing over `I: SchemeItem` bounds survives sealing entirely; only external implementations close, a surface the crate intends to fill as further schemes are modelled.
+
+**Consequences**: (1) [D-0067](#d-0067)'s consequence (3) is amended: sealing lands on evolution grounds, not the invariant grounds that entry scoped; its decision that `ItemScheme<I>` stays public is untouched. (2) The §3 sealing policy gains the evolution axis — seal when openness would let a caller break an invariant you are responsible for, or would spend the room to grow a spec-coupled trait — and §7's reversibility claim is corrected. (3) A crate-private `sealed` module carries the bound; the five traits' rustdoc states the contract. (4) A trait member added on spec growth breaks no external implementor, because none can exist; consumers using bounds and calls are unaffected. (5) A future builder layer is additive (a MINOR event) by clause (1).
 
 ---

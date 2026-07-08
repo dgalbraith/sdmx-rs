@@ -95,13 +95,13 @@ SDMX metadata contains multilingual text (e.g. Names and Descriptions). We defin
 
 Many SDMX structures represent schemes containing items (e.g. `Codelist` contains `Code`s, `ConceptScheme` contains `Concept`s). Rather than duplicating the scheme administration fields, we define a generic `ItemScheme<I>` framework.
 
-`ItemScheme<I>` requires `I: SchemeItem`, where `SchemeItem` is an open (unsealed) marker supertrait over `IdentifiableArtefact`:
+`ItemScheme<I>` requires `I: SchemeItem`, where `SchemeItem` is a sealed marker supertrait over `IdentifiableArtefact` (D-0078):
 
 ```rust
-pub trait SchemeItem: IdentifiableArtefact {}
+pub trait SchemeItem: IdentifiableArtefact + sealed::Sealed {}
 ```
 
-`SchemeItem` is deliberately left open — it is an inbound structural bound ("this type can supply its own id for use as a map key"), not an outbound capability assertion. There is no invariant or boundary that breaks if a downstream crate implements `SchemeItem` on its own identifiable type; `I: IdentifiableArtefact` already guarantees the only thing `ItemScheme` needs. This is the opposite policy to `SdmxSerialize`, which is sealed because self-approval would defeat the serialisation boundary's purpose. The asymmetry is intentional: seal only when openness would let a caller break an invariant you are responsible for. A downstream custom scheme item works in-memory but cannot cross into `sdmx-writers` without explicit `SdmxSerialize` approval — extensibility where it is harmless, sealing where it matters.
+`SchemeItem` and the four artefact traits are sealed (D-0078), on different grounds than `SdmxSerialize`: that trait is sealed because self-approval would defeat the serialisation boundary's purpose, while these are sealed because they are spec-coupled — the spec demonstrably grows trait-relevant members — and only a trait no one else can implement can grow with it without breaking anyone. The sealing policy has two prongs: seal when openness would let a caller break an invariant you are responsible for, or when it would spend the room to grow a spec-coupled trait. Sealing costs downstream nothing it uses — generic processing over `I: SchemeItem` bounds, calls, and every trait method remain fully available; only external implementations close, and that surface (item types the crate has not yet modelled) is the crate's own roadmap. Unsealing on demonstrated demand is the non-breaking path back.
 
 `ItemScheme<I>` stores its items as an **ordered `Vec` in wire order** (D-0051). The earlier private-map design existed to make key/id desync impossible by construction; with no derived key there is nothing to desync, so the rationale no longer applies — `ItemScheme` is a transparent pub-field carrier (every field self-enforcing; ADR-0021's sharper test) with derived `Deserialize`:
 
@@ -824,7 +824,7 @@ impl MaintainableArtefact for MaintainableMetadata {
 
 #### 5.5 Generic Item Scheme & Concrete Structs
 
-`ItemScheme<I>` is a transparent pub-field carrier with derived `Serialize` **and** `Deserialize` (D-0051): with items stored as an ordered `Vec`, there is no derived map key and therefore no key/id desync to defend against — every field enforces its own invariants, which is exactly §7's sharper test for the derive. `SchemeItem` is implemented explicitly per item type (not via a blanket impl) so scheme membership is a deliberate opt-in and the marker remains sealable in a later phase if needed.
+`ItemScheme<I>` is a transparent pub-field carrier with derived `Serialize` **and** `Deserialize` (D-0051): with items stored as an ordered `Vec`, there is no derived map key and therefore no key/id desync to defend against — every field enforces its own invariants, which is exactly §7's sharper test for the derive. `SchemeItem` is implemented explicitly per item type (not via a blanket impl) so scheme membership is a deliberate opt-in; the marker is sealed (D-0078), so the trait can grow with the spec with no external implementation to break.
 
 `Codelist`'s `scheme` field is private — not for item storage (invariant-free) but because the *wrapper* owns the NCName scheme-id invariant; it delegates the full trait hierarchy and forwards the item-access methods (`get`, `iter`, `push`).
 
