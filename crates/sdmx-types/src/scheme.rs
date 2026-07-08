@@ -17,13 +17,15 @@ order and any duplicates are preserved (a duplicate id is schema-invalid under t
 lint, never collapsed). `get` is a first-match Layer-2 view.
 
 `SchemeItem` is implemented explicitly per item type (no blanket impl) so scheme membership is a
-deliberate opt-in and the marker stays sealable in a later phase if needed.
+deliberate opt-in; the marker is sealed through the crate-private `sealed::Sealed` supertrait
+(D-0078), so it can grow with the spec with no external implementation to break, while staying
+fully usable in downstream bounds and calls.
 
 `ItemScheme` implements the full artefact hierarchy by delegating to its own `metadata`; the
 concrete wrappers (`Codelist`, ...) delegate through THESE trait methods, not the private metadata
 field, so a wrapper need not share a module with `ItemScheme`.
 
-Decisions: D-0032, D-0051, D-0052.
+Decisions: D-0032, D-0051, D-0052, D-0078.
 "#
 )]
 
@@ -37,6 +39,7 @@ use crate::{
     lexical::SdmxVersion,
     localised::LocalisedString,
     metadata::MaintainableMetadata,
+    sealed,
 };
 
 // ---------------------------------------------------------------------------
@@ -54,7 +57,10 @@ use crate::{
 /// A supertrait of [`IdentifiableArtefact`] with no added methods: it records the deliberate
 /// decision that a type is a scheme item. Implemented explicitly for [`Code`](crate::Code),
 /// [`Concept`](crate::Concept), and [`Agency`](crate::Agency); there is no blanket impl.
-pub trait SchemeItem: IdentifiableArtefact {}
+///
+/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// within `sdmx-types`.
+pub trait SchemeItem: IdentifiableArtefact + sealed::Sealed {}
 
 // ---------------------------------------------------------------------------
 // ItemScheme

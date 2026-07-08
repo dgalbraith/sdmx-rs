@@ -15,7 +15,11 @@ types compose a metadata leaf (§5.4) and delegate to it. Traits rather than tra
 accessors monomorphise, so there is no vtable or heap cost. The defaults applied here are the
 Layer-2 effective views over the statedness the metadata leaves store (Layer 1).
 
-Decisions: D-0024, D-0031, D-0035, D-0052.
+The four traits are sealed through the crate-private `sealed::Sealed` supertrait (D-0078): only
+`sdmx-types` implements them, so they grow with the spec's artefact members without breaking any
+downstream implementation, while staying fully usable in downstream bounds and calls.
+
+Decisions: D-0024, D-0031, D-0035, D-0052, D-0078.
 "#
 )]
 
@@ -25,6 +29,7 @@ use crate::{
     annotation::{Annotation, Link},
     lexical::{SdmxVersion, VersionDisplay},
     localised::LocalisedString,
+    sealed,
 };
 
 /// An identifiable artefact: it has an id and may carry a URN, a URI, annotations, and links.
@@ -37,7 +42,10 @@ use crate::{
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/IdentifiableType.md"))]
 ///
 /// The base of the artefact hierarchy: every identifiable SDMX artefact exposes these accessors.
-pub trait IdentifiableArtefact {
+///
+/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// within `sdmx-types`.
+pub trait IdentifiableArtefact: sealed::Sealed {
     /// The artefact's effective id.
     fn id(&self) -> &str;
     /// The artefact's registry URN, if any.
@@ -60,7 +68,10 @@ pub trait IdentifiableArtefact {
 /// - **Element**: N/A (Abstract Type)
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/NameableType.md"))]
-pub trait NameableArtefact: IdentifiableArtefact {
+///
+/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// within `sdmx-types`.
+pub trait NameableArtefact: IdentifiableArtefact + sealed::Sealed {
     /// The artefact's localised names (guaranteed non-empty).
     fn names(&self) -> &LocalisedString;
     /// The artefact's localised descriptions, if any.
@@ -76,7 +87,10 @@ pub trait NameableArtefact: IdentifiableArtefact {
 /// - **Element**: N/A (Abstract Type)
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/VersionableType.md"))]
-pub trait VersionableArtefact: NameableArtefact {
+///
+/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// within `sdmx-types`.
+pub trait VersionableArtefact: NameableArtefact + sealed::Sealed {
     /// The artefact's version. `None` is the spec's "un-versioned" state, distinct from any
     /// version value.
     fn version(&self) -> Option<&SdmxVersion>;
@@ -126,7 +140,10 @@ default applying to a 3.0 payload exactly as to an absent 3.1 attribute.
 Decisions: D-0010, D-0046.
 "#
 )]
-pub trait MaintainableArtefact: VersionableArtefact {
+///
+/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// within `sdmx-types`.
+pub trait MaintainableArtefact: VersionableArtefact + sealed::Sealed {
     /// The maintenance agency id (`agencyID`).
     fn agency(&self) -> &str;
     /// `true` if this artefact carries only a *subset* of the localisations its agency
