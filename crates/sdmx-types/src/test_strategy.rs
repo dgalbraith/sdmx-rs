@@ -1457,10 +1457,10 @@ fn component_selection() -> impl Strategy<Value = ComponentSelection> {
     .boxed()
 }
 
-/// A `CubeRegionKey` dimension selection.
+/// A `CubeRegionKey` dimension selection (its id is `SingleNCNameIDType`, the `NCName` pattern).
 fn cube_region_key() -> impl Strategy<Value = CubeRegionKey> {
     (
-        (id_type_lexeme(), key_value_selection()),
+        (ncname_lexeme(), key_value_selection()),
         (
             proptest::option::of(any::<bool>()),
             proptest::option::of(any::<bool>()),
@@ -1469,12 +1469,14 @@ fn cube_region_key() -> impl Strategy<Value = CubeRegionKey> {
         ),
     )
         .prop_map(|((id, selection), (include, remove_prefix, valid_from, valid_to))| {
-            CubeRegionKey { id, selection, include, remove_prefix, valid_from, valid_to }
+            CubeRegionKey::new(id, selection, include, remove_prefix, valid_from, valid_to)
+                .expect("the id is a generated NCName lexeme")
         })
         .boxed()
 }
 
-/// A `ComponentValueSet` component selection (validity is prohibited here by omission).
+/// A `ComponentValueSet` component selection (its id is `NestedNCNameIDType`, dotted; validity is
+/// prohibited here by omission).
 fn component_value_set() -> impl Strategy<Value = ComponentValueSet> {
     (
         nested_ncname_lexeme(),
@@ -1482,11 +1484,9 @@ fn component_value_set() -> impl Strategy<Value = ComponentValueSet> {
         proptest::option::of(any::<bool>()),
         proptest::option::of(any::<bool>()),
     )
-        .prop_map(|(id, selection, include, remove_prefix)| ComponentValueSet {
-            id,
-            selection,
-            include,
-            remove_prefix,
+        .prop_map(|(id, selection, include, remove_prefix)| {
+            ComponentValueSet::new(id, selection, include, remove_prefix)
+                .expect("the id is a generated NestedNCName lexeme")
         })
         .boxed()
 }
@@ -1528,7 +1528,7 @@ fn data_component_selection() -> impl Strategy<Value = DataComponentSelection> {
     .boxed()
 }
 
-/// A `DataComponentValueSet` key-set component selection.
+/// A `DataComponentValueSet` key-set component selection (its id is `NestedNCNameIDType`, dotted).
 fn data_component_value_set() -> impl Strategy<Value = DataComponentValueSet> {
     (
         nested_ncname_lexeme(),
@@ -1536,25 +1536,22 @@ fn data_component_value_set() -> impl Strategy<Value = DataComponentValueSet> {
         proptest::option::of(any::<bool>()),
         proptest::option::of(any::<bool>()),
     )
-        .prop_map(|(id, selection, include, remove_prefix)| DataComponentValueSet {
-            id,
-            selection,
-            include,
-            remove_prefix,
+        .prop_map(|(id, selection, include, remove_prefix)| {
+            DataComponentValueSet::new(id, selection, include, remove_prefix)
+                .expect("the id is a generated NestedNCName lexeme")
         })
         .boxed()
 }
 
-/// A `DataKeyValue`: bare non-empty values with the schema-fixed include flag.
+/// A `DataKeyValue`: bare non-empty values with the schema-fixed include flag (its id is
+/// `SingleNCNameIDType`, the `NCName` pattern).
 fn data_key_value() -> impl Strategy<Value = DataKeyValue> {
     let values = proptest::collection::vec(any::<String>(), 1..=2)
         .prop_map(|values| SimpleKeyValues::new(values).expect("key values are non-empty"));
-    (id_type_lexeme(), values, fixed_include(), proptest::option::of(any::<bool>()))
-        .prop_map(|(id, values, include, remove_prefix)| DataKeyValue {
-            id,
-            values,
-            include,
-            remove_prefix,
+    (ncname_lexeme(), values, fixed_include(), proptest::option::of(any::<bool>()))
+        .prop_map(|(id, values, include, remove_prefix)| {
+            DataKeyValue::new(id, values, include, remove_prefix)
+                .expect("the id is a generated NCName lexeme")
         })
         .boxed()
 }

@@ -2103,38 +2103,67 @@ pub enum ComponentSelection {
 // The selection NODE types, named after the spec complexTypes (cf. DataConstraint ←
 // DataConstraintType): each carries its REQUIRED id (D-0051 — formerly the map key; id
 // grammars: SingleNCNameIDType for KeyValue, NestedNCNameIDType — dotted, e.g.
-// CONTACT.ADDRESS.STREET — for Component; structural-only, exactly as the keys were), the
-// value choice, and the MemberSelectionType attributes (D-0038; identical 3.0/3.1). No
-// cross-field invariant — every field is self-enforcing — so pub fields + derived Deserialize
-// (ADR-0021); the non-empty values newtypes and SdmxTimePeriod carry their own custom impls.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// CONTACT.ADDRESS.STREET — for Component), the value choice, and the MemberSelectionType
+// attributes (D-0038; identical 3.0/3.1). The id validates its lexical tier at construction
+// (D-0077 — referential integrity stays deferred, D-0020), so each node type is
+// invariant-bearing: private fields, a validated new(), accessors, Raw-shape Deserialize; the
+// non-empty values newtypes and SdmxTimePeriod carry their own custom impls.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct CubeRegionKey {              // spec CubeRegionKeyType
-    pub id: String,                     // required; references a dimension (D-0020 structural-only)
-    pub selection: KeyValueSelection,
+    id: String,                         // validated SingleNCNameIDType (D-0077); references a dimension
+    selection: KeyValueSelection,
     // Per-selection `include` (xs:boolean, schema DEFAULT true): STATEDNESS stored (D-0052) —
     // None ⟺ absent; the default is the effective view's business. Whether the values named
     // here are included in or excluded from the region.
-    pub include: Option<bool>,
+    include: Option<bool>,
     // `removePrefix` has NO schema default — absent-vs-stated is wire state, hence Option<bool>
     // (D-0031). Meaningful with CodelistExtension prefixes (should codes drop the extension
     // prefix); carried as verbatim wire data.
-    pub remove_prefix: Option<bool>,
+    remove_prefix: Option<bool>,
     // Selection-level validity window (StandardTimePeriodType → SdmxTimePeriod, D-0027).
     // KeyValue selections MAY carry these; Component selections may NOT (use="prohibited") —
     // so ComponentValueSet below has no such fields. Region-level validFrom/validTo are
     // likewise prohibited on CubeRegionType.
-    pub valid_from: Option<SdmxTimePeriod>,
-    pub valid_to: Option<SdmxTimePeriod>,
+    valid_from: Option<SdmxTimePeriod>,
+    valid_to: Option<SdmxTimePeriod>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+impl CubeRegionKey {
+    pub fn new(
+        id: String, selection: KeyValueSelection, include: Option<bool>,
+        remove_prefix: Option<bool>, valid_from: Option<SdmxTimePeriod>,
+        valid_to: Option<SdmxTimePeriod>,
+    ) -> Result<Self, Error> {
+        validate_ncname(&id)?; // D-0077 (SingleNCNameIDType = the NCNameIDType pattern)
+        Ok(Self { id, selection, include, remove_prefix, valid_from, valid_to })
+    }
+    pub fn id(&self) -> &str { &self.id }
+    // selection()/include()/remove_prefix()/valid_from()/valid_to() accessors mirror the fields.
+    /// EFFECTIVE view (D-0052): the schema default is "true".
+    pub fn effective_is_included(&self) -> bool { self.include.unwrap_or(true) }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct ComponentValueSet {          // spec ComponentValueSetType
-    pub id: String,                     // required; NestedNCNameIDType ref (structural-only)
-    pub selection: ComponentSelection,
-    pub include: Option<bool>,          // statedness stored (D-0052); as on CubeRegionKey
-    pub remove_prefix: Option<bool>,    // as on CubeRegionKey
+    id: String,                         // validated NestedNCNameIDType (D-0077)
+    selection: ComponentSelection,
+    include: Option<bool>,              // statedness stored (D-0052); as on CubeRegionKey
+    remove_prefix: Option<bool>,        // as on CubeRegionKey
     // NO valid_from/valid_to: ComponentValueSetType PROHIBITS them (both versions) — the
     // illegal state is made unrepresentable by field omission.
+}
+
+impl ComponentValueSet {
+    pub fn new(
+        id: String, selection: ComponentSelection, include: Option<bool>,
+        remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_nested_ncname(&id)?; // D-0077
+        Ok(Self { id, selection, include, remove_prefix })
+    }
+    pub fn id(&self) -> &str { &self.id }
+    /// EFFECTIVE view (D-0052): the schema default is "true".
+    pub fn effective_is_included(&self) -> bool { self.include.unwrap_or(true) }
 }
 
 // CubeRegion keeps PUBLIC fields (ADR-0021's visibility rule — no cross-field invariant),
@@ -2250,15 +2279,29 @@ impl SimpleKeyValues {
 }
 // Custom Deserialize calls SimpleKeyValues::new().
 
-// spec DataKeyValueType. `id` carried on the struct (D-0051; SingleNCNameIDType ref,
-// structural-only); `include` is fixed="true" → the FixedInclude wrapper (statedness stored,
-// stated-false unconstructible — D-0052); validFrom/validTo PROHIBITED → no fields.
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// spec DataKeyValueType. `id` carried on the struct (D-0051), validated SingleNCNameIDType at
+// construction (D-0077; referential integrity deferred, D-0020); `include` is fixed="true" → the
+// FixedInclude wrapper (statedness stored, stated-false unconstructible — D-0052); validFrom/validTo
+// PROHIBITED → no fields. The id invariant makes the node invariant-bearing: private fields, a
+// validated new(), accessors, Raw-shape Deserialize (which also carries the FixedInclude and
+// SimpleKeyValues within-field rejections).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct DataKeyValue {
-    pub id: String,
-    pub values: SimpleKeyValues,
-    pub include: FixedInclude,           // fixed="true" (D-0052); wrapper enforces it
-    pub remove_prefix: Option<bool>,  // inherited from MemberSelectionType (no default — D-0038)
+    id: String,                       // validated SingleNCNameIDType (D-0077)
+    values: SimpleKeyValues,
+    include: FixedInclude,            // fixed="true" (D-0052); wrapper enforces it
+    remove_prefix: Option<bool>,      // inherited from MemberSelectionType (no default — D-0038)
+}
+
+impl DataKeyValue {
+    pub fn new(
+        id: String, values: SimpleKeyValues, include: FixedInclude, remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_ncname(&id)?; // D-0077 (SingleNCNameIDType = the NCNameIDType pattern)
+        Ok(Self { id, values, include, remove_prefix })
+    }
+    pub fn id(&self) -> &str { &self.id }
+    // values()/include()/remove_prefix() accessors mirror the fields.
 }
 
 // spec DataComponentValueType: cascade + OPTIONAL xml:lang, but NO validity (prohibited) — the
@@ -2293,16 +2336,30 @@ pub enum DataComponentSelection {
     Empty,
 }
 
-// spec DataComponentValueSetType. `id` carried on the struct (D-0051; NestedNCNameIDType
-// ref, structural-only). Same node attributes as the cube ComponentValueSet: include
-// (schema default true → statedness stored, D-0052), removePrefix (no default → Option),
-// validity prohibited → no fields (D-0038 reasoning).
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// spec DataComponentValueSetType. `id` carried on the struct (D-0051), validated NestedNCNameIDType
+// at construction (D-0077; referential integrity deferred, D-0020). Same node attributes as the cube
+// ComponentValueSet: include (schema default true → statedness stored, D-0052), removePrefix (no
+// default → Option), validity prohibited → no fields (D-0038 reasoning). Invariant-bearing on the id:
+// private fields, a validated new(), accessors, Raw-shape Deserialize.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct DataComponentValueSet {
-    pub id: String,
-    pub selection: DataComponentSelection,
-    pub include: Option<bool>,        // statedness stored (D-0052); default true is a view
-    pub remove_prefix: Option<bool>,
+    id: String,                        // validated NestedNCNameIDType (D-0077)
+    selection: DataComponentSelection,
+    include: Option<bool>,             // statedness stored (D-0052); default true is a view
+    remove_prefix: Option<bool>,
+}
+
+impl DataComponentValueSet {
+    pub fn new(
+        id: String, selection: DataComponentSelection, include: Option<bool>,
+        remove_prefix: Option<bool>,
+    ) -> Result<Self, Error> {
+        validate_nested_ncname(&id)?; // D-0077
+        Ok(Self { id, selection, include, remove_prefix })
+    }
+    pub fn id(&self) -> &str { &self.id }
+    // selection()/include()/remove_prefix() accessors mirror the fields; effective_is_included()
+    // applies the schema default (true).
 }
 
 // Derives `Hash` for the same reason as the other reference structs (identity/map-key use).
@@ -2559,17 +2616,19 @@ operation actually lands.
 pub enum Error {
     // Three id-validation variants, one per spec lexical type (D-0023). The base/Code/generic
     // tier reports InvalidIdentifier (IDType); the NCNameIDType tier (Concept/Agency item ids,
-    // Codelist/ConceptScheme scheme ids, and component ids) reports InvalidNcNameIdentifier; the
-    // agencyID field reports InvalidAgencyIdentifier. The messages state the format only, not the
-    // producer set (which grows milestone by milestone), matching the sibling variants.
+    // Codelist/ConceptScheme scheme ids, component ids, and the single-NCName constraint selection
+    // ids) reports InvalidNcNameIdentifier; the NestedNCNameIDType tier (the agencyID field and the
+    // nested constraint selection ids) reports InvalidNestedNcNameIdentifier. The messages state the
+    // format only, not the producer set (which grows milestone by milestone), matching the sibling
+    // variants.
     #[error("Invalid artefact identifier: {0}. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
     #[error("Invalid NCName identifier: {0}. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 
-    #[error("Invalid agency identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
-    InvalidAgencyIdentifier(String),
+    #[error("Invalid nested NCName identifier: {0}. Must match SDMX NestedNCNameIDType format.")]
+    InvalidNestedNcNameIdentifier(String),
 
     // Lexical-newtype grammar failures (D-0027) — each validated newtype reports its own,
     // so a caller can tell which lexical type rejected the input.

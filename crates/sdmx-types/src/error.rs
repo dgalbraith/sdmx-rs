@@ -33,7 +33,7 @@ policy keeps the set honest: a variant lands only with its first producer, and a
 on a later minor bump.
 
 The identifier tiers back the distinct identifier-failure variants (`IDType` for `InvalidIdentifier`,
-`NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
+`NestedNCNameIDType` for `InvalidNestedNcNameIdentifier`); the lexical newtypes back the
 `Invalid{Decimal,Integer,Version,TimePeriod,Duration}` variants. The identifier variants serve
 declaration and local-reference sites alike (D-0077): an off-tier reference lexeme reports the same
 failure as an off-tier declared id, and the empty lexeme is just one off-grammar case, with no
@@ -57,13 +57,17 @@ pub enum Error {
     #[error("Invalid artefact identifier: `{0}`. Must match SDMX IDType format.")]
     InvalidIdentifier(String),
 
-    /// An `agencyID` failed the SDMX `NestedNCNameIDType` grammar (dotted `NCName`:
+    /// A lexeme failed the SDMX `NestedNCNameIDType` grammar (a dotted `NCName`:
     /// `[A-Za-z][A-Za-z0-9_\-]*(\.[A-Za-z][A-Za-z0-9_\-]*)*`).
     ///
-    /// Produced by [`MaintainableMetadata::new`](crate::MaintainableMetadata::new),
-    /// the only owner of the agency-identifier check.
-    #[error("Invalid agency identifier: `{0}`. Must match SDMX NestedNCNameIDType format.")]
-    InvalidAgencyIdentifier(String),
+    /// Produced by the two `NestedNCNameIDType` sites: the `agencyID` check in
+    /// [`MaintainableMetadata::new`](crate::MaintainableMetadata::new), and the nested constraint
+    /// selection-node ids [`ComponentValueSet::new`](crate::ComponentValueSet::new) and
+    /// [`DataComponentValueSet::new`](crate::DataComponentValueSet::new) (a dotted
+    /// metadata-attribute path such as `CONTACT.ADDRESS.STREET` is one lexeme). The lexeme is
+    /// delimited in the message so an empty identifier renders unambiguously.
+    #[error("Invalid nested NCName identifier: `{0}`. Must match SDMX NestedNCNameIDType format.")]
+    InvalidNestedNcNameIdentifier(String),
 
     /// An identifier failed the SDMX `NCNameIDType` grammar (`[A-Za-z][A-Za-z0-9_\-]*`):
     /// the middle tier, stricter than `IDType` (a leading digit, `@`, `$`, or `.` are all
@@ -77,10 +81,12 @@ pub enum Error {
     /// [`ComponentMetadata::new`](crate::ComponentMetadata::new) validates a stated component id,
     /// and the `NCNameIDType` local references validate here too:
     /// [`DimensionRef::new`](crate::DimensionRef::new),
-    /// [`MetadataAttributeUsage::new`](crate::MetadataAttributeUsage::new), and the
+    /// [`MetadataAttributeUsage::new`](crate::MetadataAttributeUsage::new), the
     /// [`MeasureRelationship::new`](crate::MeasureRelationship::new) /
-    /// [`GroupDimensions::new`](crate::GroupDimensions::new) items. The lexeme is delimited in
-    /// the message so an empty identifier renders unambiguously.
+    /// [`GroupDimensions::new`](crate::GroupDimensions::new) items, and the single-`NCName`
+    /// constraint selection-node ids [`CubeRegionKey::new`](crate::CubeRegionKey::new) and
+    /// [`DataKeyValue::new`](crate::DataKeyValue::new). The lexeme is delimited in the message so
+    /// an empty identifier renders unambiguously.
     #[error("Invalid NCName identifier: `{0}`. Must match SDMX NCNameIDType format.")]
     InvalidNcNameIdentifier(String),
 
