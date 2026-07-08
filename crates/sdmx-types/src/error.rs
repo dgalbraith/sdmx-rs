@@ -34,9 +34,9 @@ on a later minor bump.
 
 The identifier tiers back the distinct identifier-failure variants (`IDType` for `InvalidIdentifier`,
 `NestedNCNameIDType` for `InvalidAgencyIdentifier`); the lexical newtypes back the
-`Invalid{Decimal,Integer,Version,TimePeriod}` variants.
+`Invalid{Decimal,Integer,Version,TimePeriod,Duration}` variants.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052, D-0076.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, thiserror::Error)]
@@ -116,6 +116,13 @@ pub enum Error {
         "Invalid SDMX observational time period: {0}. Must match ObservationalTimePeriodType (a standard time period or a time range)."
     )]
     InvalidObservationalTimePeriod(String),
+
+    /// A value failed the `xs:duration` lexical grammar: an optional leading `-`, `P`, then
+    /// ordered date components (`nY nM nD`) and an optional `T` with ordered time components
+    /// (`nH nM n[.n]S`), at least one component overall, the fraction admitted only on seconds.
+    /// Produced by [`SdmxDuration::new`](crate::SdmxDuration::new).
+    #[error("Invalid xs:duration value: {0}.")]
+    InvalidDuration(String),
 
     /// A string failed a reference type's URN grammar: the full
     /// `urn:sdmx:org.sdmx.infomodel.<package>.<Class>=` form for the named class, with a

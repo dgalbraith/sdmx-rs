@@ -20,6 +20,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
+use core::num::NonZeroU32;
 
 use chrono::{DateTime, FixedOffset};
 use proptest::prelude::*;
@@ -40,10 +41,10 @@ use crate::{
     MaintainableMetadata, MaxOccurs, Measure, MeasureList, MeasureRelationship, MemberValue,
     MemberValues, MetadataAttributeUsage, NameableMetadata, ObservationalTimePeriod,
     ProvisionAgreementReference, ProvisionAgreementRefs, QueryableDataSource, ReleaseCalendar,
-    Representation, RepresentationChoice, SdmxDecimal, SdmxInteger, SdmxTimePeriod, SdmxVersion,
-    SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues, TextFormat,
-    TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage, ValueItem, ValueList,
-    ValueListReference, VersionRef, VersionableMetadata,
+    Representation, RepresentationChoice, SdmxDecimal, SdmxDuration, SdmxInteger, SdmxTimePeriod,
+    SdmxVersion, SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues,
+    TextFormat, TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage, ValueItem,
+    ValueList, ValueListReference, VersionRef, VersionableMetadata,
 };
 
 // ---------------------------------------------------------------------------
@@ -251,6 +252,23 @@ fn duration_lexeme() -> impl Strategy<Value = String> {
         (duration_date_part(), duration_time_part())
             .prop_map(|(date, time)| format!("P{date}T{time}")),
     ]
+}
+
+/// A valid `xs:duration` lexeme: the ordered-component grammar with the optional leading `-`
+/// that plain `xs:duration` admits (and the `TimeRangeType` chain's duration half does not).
+/// Boxed: a composition hub consumed by the format-facet strategies (see the module's
+/// stack-depth note on boxing at hubs).
+pub(crate) fn xs_duration_lexeme() -> BoxedStrategy<String> {
+    (any::<bool>(), duration_lexeme())
+        .prop_map(|(negative, body)| if negative { format!("-{body}") } else { body })
+        .boxed()
+}
+
+/// A typed `SdmxDuration` over generated `xs:duration` lexemes.
+fn sdmx_duration() -> BoxedStrategy<SdmxDuration> {
+    xs_duration_lexeme()
+        .prop_map(|lexeme| SdmxDuration::new(lexeme).expect("strategy emits valid xs:duration"))
+        .boxed()
 }
 
 /// A valid `TimeRangeType` lexeme: a full date or date-time start (optional timezone), `/`,
@@ -639,9 +657,14 @@ fn data_type_where(predicate: fn(DataType) -> bool) -> impl Strategy<Value = Dat
     proptest::sample::select(admitted)
 }
 
-/// A representation-level `maxOccurs`: a finite count or `unbounded`.
+/// An `xs:positiveInteger` facet count: any non-zero `u32` (the D-0075 width).
+fn facet_count() -> impl Strategy<Value = NonZeroU32> {
+    (1..=u32::MAX).prop_map(|count| NonZeroU32::new(count).expect("range starts at one"))
+}
+
+/// A representation-level `maxOccurs`: a finite non-zero count or `unbounded`.
 fn max_occurs() -> impl Strategy<Value = MaxOccurs> {
-    prop_oneof![any::<u32>().prop_map(MaxOccurs::Count), Just(MaxOccurs::Unbounded)]
+    prop_oneof![facet_count().prop_map(MaxOccurs::Count), Just(MaxOccurs::Unbounded)]
 }
 
 /// An uncoded facet bundle whose `textType` draws from the given position subset;
@@ -659,16 +682,16 @@ fn text_format(
             proptest::option::of(sdmx_decimal()),
         ),
         (
-            proptest::option::of(any::<String>()),
+            proptest::option::of(sdmx_duration()),
             proptest::option::of(sdmx_time_period()),
             proptest::option::of(sdmx_time_period()),
-            proptest::option::of(any::<u32>()),
-            proptest::option::of(any::<u32>()),
+            proptest::option::of(facet_count()),
+            proptest::option::of(facet_count()),
         ),
         (
             proptest::option::of(sdmx_decimal()),
             proptest::option::of(sdmx_decimal()),
-            proptest::option::of(any::<u32>()),
+            proptest::option::of(facet_count()),
             proptest::option::of(any::<String>()),
             is_multi_lingual,
         ),
@@ -728,13 +751,13 @@ fn enumeration_format() -> impl Strategy<Value = EnumerationFormat> {
             proptest::option::of(sdmx_integer()),
         ),
         (
-            proptest::option::of(any::<String>()),
+            proptest::option::of(sdmx_duration()),
             proptest::option::of(sdmx_time_period()),
             proptest::option::of(sdmx_time_period()),
         ),
         (
-            proptest::option::of(any::<u32>()),
-            proptest::option::of(any::<u32>()),
+            proptest::option::of(facet_count()),
+            proptest::option::of(facet_count()),
             proptest::option::of(sdmx_integer()),
             proptest::option::of(sdmx_integer()),
             proptest::option::of(any::<String>()),

@@ -25,15 +25,16 @@ functions the component constructors call. `DataType`'s subset predicates (`is_b
 `is_code`, `is_time`) are the Layer-2 views the validators check against; the tiers form a
 restriction chain (Basic ⊃ Simple ⊃ Code), so `is_code` composes `is_simple`.
 
-Decisions: D-0021, D-0027, D-0028, D-0046, D-0047, D-0048.
+Decisions: D-0021, D-0027, D-0028, D-0046, D-0047, D-0048, D-0075, D-0076.
 "#
 )]
 
 use alloc::{format, string::String};
+use core::num::NonZeroU32;
 
 use crate::{
     error::Error,
-    lexical::{SdmxDecimal, SdmxInteger, SdmxTimePeriod},
+    lexical::{SdmxDecimal, SdmxDuration, SdmxInteger, SdmxTimePeriod},
     reference::{CodelistReference, ValueListReference},
 };
 
@@ -239,12 +240,25 @@ impl DataType {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/OccurenceType.md"))]
 ///
-/// The spec's `OccurenceType` is a number or the literal `"unbounded"`. A `u32` cannot hold the
+/// The spec's `OccurenceType` is a number or the literal `"unbounded"`. A count cannot hold the
 /// literal, so it gets its own [`Unbounded`](Self::Unbounded) arm.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+`Count` holds `NonZeroU32`: `MaxOccursNumberType` floors the value at 1, so a stated zero is
+mechanically schema-invalid and the field type makes it unrepresentable (D-0076), at the width
+D-0075 records.
+
+Decisions: D-0075, D-0076.
+"#
+)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum MaxOccurs {
-    /// A finite upper bound (`xs:nonNegativeInteger`).
-    Count(u32),
+    /// A finite upper bound (`MaxOccursNumberType`: an integer `minInclusive 1`, so a zero
+    /// count is unrepresentable).
+    Count(NonZeroU32),
     /// The literal `"unbounded"`: no upper bound.
     Unbounded,
 }
@@ -275,10 +289,12 @@ pub enum MaxOccurs {
 `false`), so `is_multi_lingual` is `Option<bool>` (statedness stored, D-0046/D-0052) and the
 effective value is a version-aware view supplied at the component level, never baked into the store.
 Numeric facets are `xs:decimal` (lossless `SdmxDecimal`, D-0027); time facets are
-`StandardTimePeriodType` (`SdmxTimePeriod`). `time_interval` is an `xs:duration` lexical form whose
-grammar is deferred to the parser.
+`StandardTimePeriodType` (`SdmxTimePeriod`); `time_interval` is `xs:duration` (lossless
+`SdmxDuration`, D-0076). The `xs:positiveInteger` facets are `NonZeroU32` — a stated zero is
+mechanically schema-invalid, so the field type makes it unrepresentable — at the `u32` width the
+D-0075 policy records.
 
-Decisions: D-0027, D-0046, D-0048, D-0052.
+Decisions: D-0027, D-0046, D-0048, D-0052, D-0075, D-0076.
 "#
 )]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -294,22 +310,22 @@ pub struct TextFormat {
     pub start_value: Option<SdmxDecimal>,
     /// `endValue`: the last value of a sequence.
     pub end_value: Option<SdmxDecimal>,
-    /// `timeInterval`: an `xs:duration` increment (lexical form; grammar deferred to the parser).
-    pub time_interval: Option<String>,
+    /// `timeInterval`: an `xs:duration` increment.
+    pub time_interval: Option<SdmxDuration>,
     /// `startTime`: the first value of a time sequence.
     pub start_time: Option<SdmxTimePeriod>,
     /// `endTime`: the last value of a time sequence.
     pub end_time: Option<SdmxTimePeriod>,
-    /// `minLength`: the minimum value length (`xs:positiveInteger`).
-    pub min_length: Option<u32>,
-    /// `maxLength`: the maximum value length.
-    pub max_length: Option<u32>,
+    /// `minLength`: the minimum value length (`xs:positiveInteger`, so zero is unrepresentable).
+    pub min_length: Option<NonZeroU32>,
+    /// `maxLength`: the maximum value length (`xs:positiveInteger`).
+    pub max_length: Option<NonZeroU32>,
     /// `minValue`: the inclusive lower bound.
     pub min_value: Option<SdmxDecimal>,
     /// `maxValue`: the inclusive upper bound.
     pub max_value: Option<SdmxDecimal>,
-    /// `decimals`: the number of fractional digits.
-    pub decimals: Option<u32>,
+    /// `decimals`: the number of fractional digits (`xs:positiveInteger`).
+    pub decimals: Option<NonZeroU32>,
     /// `pattern`: a regular expression the values must match.
     pub pattern: Option<String>,
     /// `isMultiLingual`: whether the values are localised. `None` ⟺ absent; the default flips
@@ -342,9 +358,11 @@ Numeric facets are `xs:integer` → `SdmxInteger` (D-0027): a coded interval can
 The `textType` re-declares without a schema default (the restriction replaces the base declaration),
 so absent means "unrestricted" and no effective-view default applies here (report-5 V-8). `pattern`
 is NOT the coded type's distinguishing mark (it exists uncoded too, D-0048); the real coded deltas
-are integer numerics, no `decimals`, and the Code `textType` subset.
+are integer numerics, no `decimals`, and the Code `textType` subset. `time_interval` and the
+`xs:positiveInteger` facets carry the D-0076 field types (`SdmxDuration`, `NonZeroU32`), as on
+`TextFormat`.
 
-Decisions: D-0027, D-0048.
+Decisions: D-0027, D-0048, D-0075, D-0076.
 "#
 )]
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -360,16 +378,16 @@ pub struct EnumerationFormat {
     pub start_value: Option<SdmxInteger>,
     /// `endValue`: the last value of a sequence.
     pub end_value: Option<SdmxInteger>,
-    /// `timeInterval`: an `xs:duration` increment (lexical form; grammar deferred to the parser).
-    pub time_interval: Option<String>,
+    /// `timeInterval`: an `xs:duration` increment.
+    pub time_interval: Option<SdmxDuration>,
     /// `startTime`: the first value of a time sequence.
     pub start_time: Option<SdmxTimePeriod>,
     /// `endTime`: the last value of a time sequence.
     pub end_time: Option<SdmxTimePeriod>,
-    /// `minLength`: the minimum value length.
-    pub min_length: Option<u32>,
-    /// `maxLength`: the maximum value length.
-    pub max_length: Option<u32>,
+    /// `minLength`: the minimum value length (`xs:positiveInteger`, so zero is unrepresentable).
+    pub min_length: Option<NonZeroU32>,
+    /// `maxLength`: the maximum value length (`xs:positiveInteger`).
+    pub max_length: Option<NonZeroU32>,
     /// `minValue`: the inclusive integer lower bound.
     pub min_value: Option<SdmxInteger>,
     /// `maxValue`: the inclusive integer upper bound.
@@ -439,7 +457,9 @@ pub enum RepresentationChoice {
 pub struct Representation {
     /// The enumeration-or-text-format choice.
     pub choice: RepresentationChoice,
-    /// `minOccurs` (`xs:nonNegativeInteger`, schema default 1); `None` ⟺ absent.
+    /// `minOccurs` (`xs:nonNegativeInteger`, schema default 1); `None` ⟺ absent. Deliberately
+    /// `u32`, not `NonZeroU32`: unlike the `xs:positiveInteger` facets, a stated zero is
+    /// schema-legal here.
     pub min_occurs: Option<u32>,
     /// `maxOccurs`; `None` ⟺ absent, the default position-dependent.
     pub max_occurs: Option<MaxOccurs>,
@@ -660,6 +680,144 @@ mod tests {
         crate::test_support::round_trip(&DataType::URI);
         crate::test_support::round_trip(&DataType::XHTML);
         crate::test_support::round_trip(&DataType::ObservationalTimePeriod);
+    }
+
+    #[test]
+    fn facet_types_hold_valid_values_and_round_trip() {
+        let uncoded = TextFormat {
+            time_interval: Some(SdmxDuration::new(String::from("-P1Y2M3DT4H5M6.5S")).unwrap()),
+            min_length: Some(NonZeroU32::new(1).unwrap()),
+            max_length: Some(NonZeroU32::new(10).unwrap()),
+            decimals: Some(NonZeroU32::new(2).unwrap()),
+            ..TextFormat::default()
+        };
+        crate::test_support::round_trip(&uncoded);
+        let coded = EnumerationFormat {
+            time_interval: Some(SdmxDuration::new(String::from("P2M")).unwrap()),
+            min_length: Some(NonZeroU32::new(3).unwrap()),
+            max_length: Some(NonZeroU32::new(3).unwrap()),
+            ..EnumerationFormat::default()
+        };
+        crate::test_support::round_trip(&coded);
+    }
+
+    #[test]
+    fn facet_deserialize_rejects_zero_and_off_grammar_values() {
+        // TextFormat's derived Deserialize is positional over its fields in declaration order
+        // (text_type, is_sequence, interval, start_value, end_value, time_interval, start_time,
+        // end_time, min_length, max_length, min_value, max_value, decimals, pattern,
+        // is_multi_lingual). The validity lives in the field types: serde's NonZeroU32 impl
+        // rejects a zero, and SdmxDuration's custom impl routes through new(). A tuple of the raw
+        // field types carrying the invalid value decodes into that field impl, which rejects it
+        // on the wire.
+        type RawCoded = (
+            Option<DataType>,
+            Option<bool>,
+            Option<SdmxInteger>,
+            Option<SdmxInteger>,
+            Option<SdmxInteger>,
+            Option<String>,
+            Option<SdmxTimePeriod>,
+            Option<SdmxTimePeriod>,
+            Option<u32>,
+            Option<u32>,
+            Option<SdmxInteger>,
+            Option<SdmxInteger>,
+            Option<String>,
+        );
+        type RawText = (
+            Option<DataType>,
+            Option<bool>,
+            Option<SdmxDecimal>,
+            Option<SdmxDecimal>,
+            Option<SdmxDecimal>,
+            Option<String>,
+            Option<SdmxTimePeriod>,
+            Option<SdmxTimePeriod>,
+            Option<u32>,
+            Option<u32>,
+            Option<SdmxDecimal>,
+            Option<SdmxDecimal>,
+            Option<u32>,
+            Option<String>,
+            Option<bool>,
+        );
+        let raw = |time_interval: Option<&str>, min_length: Option<u32>, decimals: Option<u32>| {
+            let raw: RawText = (
+                None,
+                None,
+                None,
+                None,
+                None,
+                time_interval.map(String::from),
+                None,
+                None,
+                min_length,
+                None,
+                None,
+                None,
+                decimals,
+                None,
+                None,
+            );
+            postcard::to_allocvec(&raw).unwrap()
+        };
+        // A valid tuple of the same field types decodes — guards this proof's shape against drift.
+        assert!(postcard::from_bytes::<TextFormat>(&raw(Some("P2M"), Some(1), Some(2))).is_ok());
+        // A zero positiveInteger facet is mechanically schema-invalid and rejected on the wire.
+        assert!(postcard::from_bytes::<TextFormat>(&raw(None, Some(0), None)).is_err());
+        assert!(postcard::from_bytes::<TextFormat>(&raw(None, None, Some(0))).is_err());
+        // An off-grammar duration is rejected on the wire (routes through SdmxDuration::new).
+        assert!(postcard::from_bytes::<TextFormat>(&raw(Some("banana"), None, None)).is_err());
+
+        // EnumerationFormat: the same discipline over its declaration order (text_type,
+        // is_sequence, interval, start_value, end_value, time_interval, start_time, end_time,
+        // min_length, max_length, min_value, max_value, pattern).
+        let ok: RawCoded = (
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(String::from("PT30M")),
+            None,
+            None,
+            Some(3),
+            None,
+            None,
+            None,
+            None,
+        );
+        assert!(
+            postcard::from_bytes::<EnumerationFormat>(&postcard::to_allocvec(&ok).unwrap()).is_ok()
+        );
+        let zero: RawCoded =
+            (None, None, None, None, None, None, None, None, Some(0), None, None, None, None);
+        assert!(
+            postcard::from_bytes::<EnumerationFormat>(&postcard::to_allocvec(&zero).unwrap())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn max_occurs_deserialize_rejects_a_zero_count() {
+        // MaxOccursNumberType is minInclusive 1, so Count's payload is NonZeroU32 and a zero
+        // count is rejected by serde's NonZeroU32 impl on the wire. The mirror enum matches
+        // MaxOccurs's variant order; the accepted arms guard the proof's shape against drift.
+        #[derive(serde::Serialize)]
+        enum RawMaxOccurs {
+            Count(u32),
+            Unbounded,
+        }
+        let ok = postcard::to_allocvec(&RawMaxOccurs::Count(2)).unwrap();
+        assert_eq!(
+            postcard::from_bytes::<MaxOccurs>(&ok).unwrap(),
+            MaxOccurs::Count(NonZeroU32::new(2).unwrap())
+        );
+        let unbounded = postcard::to_allocvec(&RawMaxOccurs::Unbounded).unwrap();
+        assert_eq!(postcard::from_bytes::<MaxOccurs>(&unbounded).unwrap(), MaxOccurs::Unbounded);
+        let zero = postcard::to_allocvec(&RawMaxOccurs::Count(0)).unwrap();
+        assert!(postcard::from_bytes::<MaxOccurs>(&zero).is_err());
     }
 
     fn text_format(text_type: Option<DataType>) -> Representation {
