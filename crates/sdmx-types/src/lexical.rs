@@ -3,11 +3,11 @@
 //! [`SdmxDecimal`], [`SdmxInteger`], [`SdmxVersion`], and [`SdmxTimePeriod`] wrap the SDMX
 //! lexical types whose value space does not map losslessly onto a fixed Rust type. Each
 //! validates its grammar at construction and round-trips its text exactly:
-//! [`SdmxDecimal`], [`SdmxInteger`], and [`SdmxTimePeriod`] store the canonical lexeme verbatim
-//! and never rewrite it, while [`SdmxVersion`]'s canonical grammar lets it hold only the parsed
-//! decomposition and reconstruct the lexeme on display. [`VersionRef`] extends the family with
-//! the version *reference* grammar (`WildcardVersionType`: `+` and `*` wildcards), raw-free on
-//! the same grounds.
+//! [`SdmxDecimal`], [`SdmxInteger`], [`SdmxTimePeriod`], and [`SdmxDuration`] store the
+//! canonical lexeme verbatim and never rewrite it, while [`SdmxVersion`]'s canonical grammar
+//! lets it hold only the parsed decomposition and reconstruct the lexeme on display.
+//! [`VersionRef`] extends the family with the version *reference* grammar
+//! (`WildcardVersionType`: `+` and `*` wildcards), raw-free on the same grounds.
 #![cfg_attr(
     design_docs,
     doc = r#"
@@ -23,7 +23,7 @@ is lossless and no lexeme is stored.
 
 `Ord`/`PartialOrd` for `SdmxVersion` are deliberately deferred, not resolved; see its design notes.
 
-Decisions: D-0027, D-0070.
+Decisions: D-0027, D-0070, D-0076.
 "#
 )]
 
@@ -270,7 +270,7 @@ The likely shape is an explicit precedence-comparison convenience (a method or w
 than an `Ord` impl on the type, so structural `Eq` and SemVer ordering can coexist without an
 `Ord`/`Eq` contract: distinct under equality, equal under precedence.
 
-Decisions: D-0027, D-0060, D-0070.
+Decisions: D-0027, D-0060, D-0070, D-0075.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -905,6 +905,91 @@ impl ObservationalTimePeriod {
 }
 
 // ---------------------------------------------------------------------------
+// xs:duration
+// ---------------------------------------------------------------------------
+
+/// An SDMX `xs:duration` value, stored losslessly as its canonical lexeme.
+///
+/// ## Specification
+/// - **Schema**: W3C XML Schema (`xs`)
+/// - **Type**: `xs:duration`
+/// - **Element**: N/A (Primitive)
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// A calendar-and-clock duration (`-P2M`, `PT30M`, `P1Y2M3DT4H5M6.5S`): an optional leading `-`,
+/// `P`, then ordered date components and an optional `T` with ordered time components, at least
+/// one component overall, the fraction admitted only on seconds. The value is validated when
+/// constructed and never rewritten, so it round-trips verbatim. Carried by the format facets'
+/// `timeInterval` ([`TextFormat`](crate::TextFormat), [`EnumerationFormat`](crate::EnumerationFormat)).
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxDuration>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::SdmxDuration;
+///
+/// let duration: SdmxDuration = "P1Y2M".parse()?;
+/// assert_eq!(duration.as_str(), "P1Y2M");
+///
+/// // xs:duration admits a leading sign, unlike the TimeRangeType duration half.
+/// let negative: SdmxDuration = "-PT30M".parse()?;
+/// assert_eq!(negative.as_str(), "-PT30M");
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Lexical newtype with lossless `String` storage: the grammar is not canonical (`P1M` and `P01M`
+are distinct lexemes of equal value; calendar components have no faithful numeric normalisation),
+so the lexeme is load-bearing (the D-0070 fork). The validator reuses the ordered-component
+scanner behind `SdmxTimeRange`'s duration half and adds the optional leading `-` that plain
+`xs:duration` admits and the `TimeRangeType` chain does not; the two grammars stay distinct.
+No useful sub-kind, so it is a bare newtype.
+
+Decisions: D-0027, D-0076.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SdmxDuration(String);
+
+impl SdmxDuration {
+    /// Validates `s` against the `xs:duration` lexical grammar and stores it verbatim.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidDuration`] if `s` is not a valid `xs:duration` lexeme: an
+    /// optional leading `-`, `P`, ordered date components, an optional `T` with ordered time
+    /// components, at least one component overall, the fraction only on seconds.
+    pub fn new(s: String) -> Result<Self, Error> {
+        if is_xs_duration(&s) { Ok(Self(s)) } else { Err(Error::InvalidDuration(s)) }
+    }
+
+    /// The canonical lexeme, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.0
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<SdmxDuration> for String {
+    fn from(value: SdmxDuration) -> Self {
+        value.into_inner()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Standard trait impls (Display / FromStr / AsRef): uniform across the lexeme newtypes.
 // `new(String)` stays the owned, no-clone entry; `from_str(&str)` is the borrowed `.parse()`
 // path that clones into ownership.
@@ -1113,6 +1198,41 @@ impl PartialEq<&str> for ObservationalTimePeriod {
     }
 }
 
+impl core::fmt::Display for SdmxDuration {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl core::str::FromStr for SdmxDuration {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for SdmxDuration {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+/// String identity with the stored lexeme: compares the verbatim raw form, never a
+/// normalised view, so `"P1M"` and `"P01M"` compare unequal (D-0027 lossless-distinct).
+impl PartialEq<str> for SdmxDuration {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}
+
+/// String identity with the stored lexeme, for the borrowed literal form.
+impl PartialEq<&str> for SdmxDuration {
+    fn eq(&self, other: &&str) -> bool {
+        self.0 == *other
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Serde (custom: every lexical newtype routes through its validated constructor)
 // ---------------------------------------------------------------------------
@@ -1202,6 +1322,19 @@ impl serde::Serialize for ObservationalTimePeriod {
 }
 
 impl<'de> serde::Deserialize<'de> for ObservationalTimePeriod {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for SdmxDuration {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.0)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SdmxDuration {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -1540,6 +1673,12 @@ fn is_time_range_duration(d: &str) -> bool {
     })
 }
 
+/// Plain `xs:duration`: the ordered-component grammar with the optional leading `-` the W3C
+/// type admits (and the `TimeRangeType` chain's duration half does not).
+fn is_xs_duration(s: &str) -> bool {
+    is_time_range_duration(s.strip_prefix('-').unwrap_or(s))
+}
+
 /// A run of `<digits><unit>` components drawn from `units` in order, each unit at most once;
 /// a fractional part (`.digits`) is admitted only immediately before `fraction_unit`.
 fn scan_duration_components(part: &str, units: &[char], fraction_unit: Option<char>) -> bool {
@@ -1809,6 +1948,79 @@ mod tests {
         ] {
             assert!(SdmxTimeRange::new(bad.into()).is_err(), "{bad:?} should be rejected");
         }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn duration_accepts_signed_and_component_forms() {
+        for ok in [
+            "P2M",
+            "P1Y2M3D",
+            "PT30M",
+            "PT6.5S",
+            "P1Y2M3DT4H5M6.5S",
+            "-P2M",
+            "-PT0.5S",
+            "P0D", // zero-valued components are grammar-valid
+        ] {
+            assert!(SdmxDuration::new(ok.into()).is_ok(), "{ok:?} should be a valid xs:duration");
+        }
+        let duration = SdmxDuration::new(String::from("-P1Y2M")).unwrap();
+        assert_eq!(duration.as_str(), "-P1Y2M");
+    }
+
+    #[test]
+    fn duration_rejects_malformed() {
+        for bad in [
+            "", "-", "P",      // no components
+            "PT",     // empty time part
+            "-P",     // signed but empty
+            "--P1D",  // doubled sign
+            "P1M2Y",  // components out of order
+            "PT2H1H", // repeated unit
+            "2M",     // missing P
+            "P2X",    // unknown unit
+            "P1Y2",   // trailing digit run has no unit
+            "PT0.5M", // fraction only on seconds
+            "PT0.S",  // fraction needs digits
+            "P1DT",   // T requires a time component
+            "P2M ",   // trailing space
+            "+P2M",   // xs:duration admits only the minus sign
+            "P-1D",   // sign only leads the whole lexeme
+        ] {
+            assert!(SdmxDuration::new(bad.into()).is_err(), "{bad:?} should be rejected");
+        }
+        assert!(matches!(
+            SdmxDuration::new(String::from("banana")),
+            Err(Error::InvalidDuration(_))
+        ));
+    }
+
+    #[test]
+    fn duration_round_trips_traits_and_serde() {
+        use alloc::string::ToString;
+        for raw in ["P2M", "-PT30M", "P1Y2M3DT4H5M6.5S"] {
+            let v = SdmxDuration::new(raw.into()).unwrap();
+            assert_eq!(v.to_string(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&v), raw);
+            assert_eq!(v.to_string().parse::<SdmxDuration>(), Ok(v.clone()));
+            crate::test_support::round_trip(&v);
+        }
+        // String identity, never a normalised view: P1M and P01M are value-equal, lexically
+        // distinct (D-0027 lossless-distinct).
+        let duration = SdmxDuration::new(String::from("P1M")).unwrap();
+        assert!(duration == *"P1M");
+        assert!(duration == "P1M");
+        assert!(duration != "P01M");
+        assert_ne!(duration, SdmxDuration::new(String::from("P01M")).unwrap());
+        // into_inner / From unwrap the verbatim lexeme.
+        assert_eq!(duration.clone().into_inner(), "P1M");
+        assert_eq!(String::from(duration), "P1M");
+        // A grammar-invalid lexeme is rejected on the wire path (routes through new()).
+        let bad = String::from("P");
+        assert!(
+            postcard::from_bytes::<SdmxDuration>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
     }
 
     #[test]
@@ -2129,7 +2341,7 @@ mod tests {
         use crate::test_strategy::{
             invalid_decimal_lexeme, invalid_integer_lexeme, observational_time_period_lexeme,
             standard_time_period_lexeme, time_range_lexeme, version_lexeme, version_ref_lexeme,
-            xs_decimal_lexeme, xs_integer_lexeme,
+            xs_decimal_lexeme, xs_duration_lexeme, xs_integer_lexeme,
         };
 
         proptest! {
@@ -2194,6 +2406,26 @@ mod tests {
                 prop_assert_eq!(period.as_str(), lexeme.as_str());
                 prop_assert_eq!(&lexeme.parse::<SdmxTimePeriod>().unwrap(), &period);
                 prop_assert_eq!(period.to_string(), lexeme);
+            }
+
+            #[test]
+            fn duration_grammar_round_trips(lexeme in xs_duration_lexeme()) {
+                // Lossless raw (D-0027): stored verbatim, rendered verbatim, parsed back equal.
+                let duration = SdmxDuration::new(lexeme.clone()).unwrap();
+                prop_assert_eq!(duration.as_str(), lexeme.as_str());
+                prop_assert_eq!(&lexeme.parse::<SdmxDuration>().unwrap(), &duration);
+                prop_assert_eq!(duration.to_string(), lexeme);
+            }
+
+            #[test]
+            fn duration_eq_str_is_lexeme_identity(
+                a in xs_duration_lexeme(),
+                b in xs_duration_lexeme(),
+            ) {
+                let value = SdmxDuration::new(a.clone()).unwrap();
+                prop_assert!(value == a[..]);
+                prop_assert!(value == a.as_str());
+                prop_assert_eq!(value == b[..], a == b);
             }
 
             #[test]
