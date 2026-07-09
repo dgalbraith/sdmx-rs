@@ -679,6 +679,11 @@ jobs:
       - name: Run Tests
         run: cargo nextest run --workspace --locked
 
+      - name: Run Doctests
+        # nextest does not execute doctests, so run them separately to keep the
+        # executable half of the rustdoc surface under CI.
+        run: cargo test --doc --workspace --locked
+
       - name: Check WASM Target
         # Guarded to Linux: wasm32-unknown-unknown is a fully cross-compiled
         # target whose result is host-independent (target_os is "unknown" on
