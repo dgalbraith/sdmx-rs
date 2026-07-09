@@ -1,7 +1,13 @@
 {
   "name": "release",
-  "prevent_self_review": false,
-  "reviewers": [
-    {"type": "User", "reviewer": {"login": "dgalbraith", "id": 12345}}
+  "protection_rules": [
+    {
+      "id": 1,
+      "type": "required_reviewers",
+      "prevent_self_review": false,
+      "reviewers": [
+        {"type": "User", "reviewer": {"login": "dgalbraith", "id": 12345}}
+      ]
+    }
   ]
 }

@@ -389,6 +389,19 @@ run_doctor() {
 }
 
 # ==============================================================================
+# Release environment correctly configured -> ok line
+# ==============================================================================
+
+@test "doctor-forge: release environment prevent_self_review=false (nested rule) -> ok" {
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
+    run_doctor
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"release environment exists; prevent_self_review=false"* ]]
+}
+
+# ==============================================================================
 # Release environment absent -> warn (default), not failure
 # ==============================================================================
 

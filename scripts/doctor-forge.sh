@@ -552,17 +552,22 @@ fi
 log_info "Release environment" 1
 if env_json="$(gh api "repos/$owner_repo/environments/$(forge_spec_release_env_name)" 2>/dev/null)"; then
     psr_want="$(forge_spec_release_env_prevent_self_review)"
-    psr_got="$(printf '%s' "$env_json" | jq -r '.prevent_self_review')"
+    # prevent_self_review is nested inside the environment's required_reviewers
+    # protection rule in the GET response; select that rule and read it. An
+    # absent rule yields an empty value, reported as "absent".
+    psr_got="$(printf '%s' "$env_json" \
+        | jq -r 'first(.protection_rules[]? | select(.type == "required_reviewers") | .prevent_self_review)')"
+    [ -z "$psr_got" ] && psr_got="absent"
     if [ "$psr_got" = "$psr_want" ]; then
         log_ok "release environment exists; prevent_self_review=$psr_got" 2
     else
-        # Required reviewers (and prevent_self_review) on environments require
-        # Team/Enterprise or a public repo — deferred until go-live visibility flip.
+        # The required_reviewers rule is missing, or its prevent_self_review has
+        # drifted from the spec value.
         if [ "${FORGE_SECURITY_REQUIRED:-0}" = "1" ]; then
-            log_fail "release environment prevent_self_review=$psr_got (want $psr_want; FORGE_SECURITY_REQUIRED=1)" 2
+            log_fail "release environment prevent_self_review=$psr_got (want $psr_want; required_reviewers rule absent or drifted; FORGE_SECURITY_REQUIRED=1)" 2
             echo "drift" >> "$drift_sink"
         else
-            log_warn "release environment prevent_self_review=$psr_got (want $psr_want — deferred until repo is public)" 2
+            log_warn "release environment prevent_self_review=$psr_got (want $psr_want; required_reviewers rule absent or drifted)" 2
         fi
     fi
 else
