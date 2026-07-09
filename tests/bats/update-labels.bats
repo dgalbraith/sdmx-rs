@@ -19,8 +19,7 @@ setup() {
 
     REPO_ROOT="$BATS_TEST_DIRNAME/../.."
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$REPO_ROOT/scripts/update-labels.sh" scripts/
@@ -41,7 +40,6 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Inject a recording `gh` shim for update-labels tests.

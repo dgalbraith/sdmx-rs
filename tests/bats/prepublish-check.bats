@@ -21,8 +21,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Mirror the script's on-disk layout: it sources scripts/common.sh, which in
     # turn sources scripts/lib/log.sh, and it shells out to check-release-notes.sh.
@@ -72,7 +71,7 @@ NOTES
 
     # PATH-shim cargo: log full argv (one line per call) and exit configurably.
     mkdir -p bin
-    CARGO_LOG="$TMPDIR/cargo-calls.log"
+    CARGO_LOG="$BATS_TEST_TMPDIR/cargo-calls.log"
     export CARGO_LOG
     cat > bin/cargo <<'EOF'
 #!/bin/sh
@@ -80,12 +79,11 @@ echo "$*" >> "$CARGO_LOG"
 exit "${STUB_CARGO_EXIT:-0}"
 EOF
     chmod +x bin/cargo
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ---------------------------------------------------------------------------

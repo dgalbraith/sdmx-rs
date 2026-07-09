@@ -17,8 +17,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Mirror the real scripts/ci + scripts/lib layout so the script's
     # `. "$(dirname "$0")/../lib/log.sh"` source resolves inside the fixture.
@@ -27,13 +26,12 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
 
     mkdir -p bin
-    LOG="$TMPDIR/gitleaks-calls.log"
+    LOG="$BATS_TEST_TMPDIR/gitleaks-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write a stub `gitleaks` to bin/gitleaks. It logs each invocation's arguments to
@@ -46,7 +44,7 @@ echo "$*" >> "$LOG"
 exit "${STUB_EXIT:-0}"
 EOF
     chmod +x bin/gitleaks
-    export GITLEAKS="$TMPDIR/bin/gitleaks"
+    export GITLEAKS="$BATS_TEST_TMPDIR/bin/gitleaks"
 }
 
 @test "secrets-scan: local mode runs 'gitleaks protect' on the working tree" {

@@ -16,15 +16,13 @@ bats_require_minimum_version 1.5.0
 # ==============================================================================
 
 setup() {
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     cp "$BATS_TEST_DIRNAME/../../scripts/run-bats.sh" .
     mkdir -p bin
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Install a `bats` mock that prints $1 (a TAP stream) and exits $2 (default 0).
@@ -39,7 +37,7 @@ mock_bats() {
         echo "exit $_exit"
     } > bin/bats
     chmod +x bin/bats
-    export BATS="$TMPDIR/bin/bats"
+    export BATS="$BATS_TEST_TMPDIR/bin/bats"
 }
 
 @test "run-bats: all passing => success summary, exit 0" {
@@ -128,7 +126,7 @@ echo "1..1"
 echo "ok 1 noop"
 EOF
     chmod +x bin/bats
-    export BATS="$TMPDIR/bin/bats"
+    export BATS="$BATS_TEST_TMPDIR/bin/bats"
 
     run ./run-bats.sh
     [ "$status" -eq 0 ]

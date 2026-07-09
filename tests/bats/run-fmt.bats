@@ -15,21 +15,19 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/run-fmt.sh" scripts/
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" scripts/lib/
 
     mkdir -p bin
-    LOG="$TMPDIR/cargo-calls.log"
+    LOG="$BATS_TEST_TMPDIR/cargo-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Stub `cargo` — logs each call, exits 0. The guard runs BEFORE cargo, so for the
@@ -41,7 +39,7 @@ echo "$*" >> "$LOG"
 exit 0
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
 }
 
 @test "run-fmt: missing RUSTFMT hard-fails and does not run cargo fmt" {

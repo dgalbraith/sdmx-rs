@@ -17,8 +17,7 @@ setup() {
 
     REPO_ROOT="$BATS_TEST_DIRNAME/../.."
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$REPO_ROOT/scripts/registry-tp.sh" scripts/
@@ -31,7 +30,7 @@ setup() {
     git config user.name "David Galbraith"
     git remote add origin "git@github.com:dgalbraith/sdmx-rs.git"
 
-    export FORGE_FIXTURES="$TMPDIR/forge-fixtures"
+    export FORGE_FIXTURES="$BATS_TEST_TMPDIR/forge-fixtures"
     mkdir -p "$FORGE_FIXTURES"
     cp -r "$REPO_ROOT/tests/bats/fixtures/crates" "$FORGE_FIXTURES/crates"
 
@@ -44,7 +43,6 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 run_tp() {

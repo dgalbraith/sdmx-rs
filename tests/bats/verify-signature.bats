@@ -22,8 +22,7 @@ BAD_FPR="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/ci/verify-signature.sh" .
 
@@ -54,7 +53,7 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR" "${MOCK_BIN:-}"
+    rm -rf "${MOCK_BIN:-}"
 }
 
 # Write a git shim that emits VALIDSIG output for verify-commit/verify-tag.
@@ -306,7 +305,7 @@ EOF
     export GITHUB_SHA="$TIP_SHA"
 
     # Shim records each verify-commit SHA so we can count how many were walked.
-    VERIFIED_LOG="$TMPDIR/verified.log"
+    VERIFIED_LOG="$BATS_TEST_TMPDIR/verified.log"
     cat > "$MOCK_BIN/git" << EOF
 #!/bin/sh
 case "\$1" in

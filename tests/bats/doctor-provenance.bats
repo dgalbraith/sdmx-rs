@@ -19,12 +19,12 @@ genkey() {  # $1 = uid ; echoes the primary fingerprint
 
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
-    TMPDIR=$(mktemp -d); cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/doctor-provenance.sh" .
     mkdir -p lib; cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
 
-    export GNUPGHOME="$TMPDIR/gnupg"; mkdir -m 700 "$GNUPGHOME"
+    export GNUPGHOME="$BATS_TEST_TMPDIR/gnupg"; mkdir -m 700 "$GNUPGHOME"
     echo "allow-loopback-pinentry" > "$GNUPGHOME/gpg-agent.conf"
     echo "pinentry-mode loopback" > "$GNUPGHOME/gpg.conf"
     MAINT_FPR=$(genkey "Maintainer <m@test>")
@@ -49,7 +49,6 @@ setup() {
 teardown() {
     gpgconf --kill gpg-agent 2>/dev/null || true
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 @test "doctor-provenance: clean signed history passes (self-consistency)" {
@@ -136,8 +135,8 @@ add_second_maintainer() {
     # the auto-cert's 0x00. --no-tty for the ttyless bats/CI env; --command-fd
     # feeds gen_revoke.okay / reason.code / reason.text / reason.okay.
     printf 'y\n2\n\ny\n' | gpg --no-tty --command-fd 0 --pinentry-mode loopback --passphrase '' \
-        --gen-revoke "$MAINT_FPR" > "$TMPDIR/sup.rev" 2>/dev/null
-    gpg --batch --yes --import "$TMPDIR/sup.rev" >/dev/null 2>&1
+        --gen-revoke "$MAINT_FPR" > "$BATS_TEST_TMPDIR/sup.rev" 2>/dev/null
+    gpg --batch --yes --import "$BATS_TEST_TMPDIR/sup.rev" >/dev/null 2>&1
     gpg --batch --armor --export "$MAINT_FPR" > .github/maintainer-keys/maintainer.asc
     git add -f .github/maintainer-keys/maintainer.asc; git commit -q -m "chore: supersede maintainer key"
     run_isolated ./doctor-provenance.sh --no-ci
@@ -184,7 +183,7 @@ add_second_maintainer() {
     git checkout -q -b feat-b; echo b > fb; git add fb; git commit -q -m "feat: b"
     git checkout -q main; git merge -q --no-ff -m "merge: b (direct)" feat-b
 
-    export FORGE_FIXTURES="$TMPDIR/fx"; mkdir -p "$FORGE_FIXTURES"
+    export FORGE_FIXTURES="$BATS_TEST_TMPDIR/fx"; mkdir -p "$FORGE_FIXTURES"
     export GH_MOCK_STAGED_SHAS="$STAGED_MERGE"
     mock_gh
     run_isolated ./doctor-provenance.sh

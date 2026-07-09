@@ -20,8 +20,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/update-flake.sh" .
     # update-flake.sh sources `$(dirname "$0")/lib/log.sh`; mirror that layout.
@@ -39,12 +38,11 @@ setup() {
     git commit -m "baseline" -q
 
     mkdir -p bin
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Mock `nix`: on `flake update`, print $1 and mutate flake.lock to NEW content
@@ -56,7 +54,7 @@ printf '%s\n' "$1"
 printf 'NEW-LOCK\n' > flake.lock
 EOF
     chmod +x bin/nix
-    export NIX="$TMPDIR/bin/nix"
+    export NIX="$BATS_TEST_TMPDIR/bin/nix"
 }
 
 # Mock `nix` that does NOT change the lock (no-op case).
@@ -66,7 +64,7 @@ mock_nix_noop() {
 echo "Warning: Git tree is dirty"
 EOF
     chmod +x bin/nix
-    export NIX="$TMPDIR/bin/nix"
+    export NIX="$BATS_TEST_TMPDIR/bin/nix"
 }
 
 teardown_file() { :; }
@@ -87,12 +85,12 @@ teardown_file() { :; }
 echo "JUST_CALLED" >> just.log
 EOF
     chmod +x bin/just
-    export JUST="$TMPDIR/bin/just"
+    export JUST="$BATS_TEST_TMPDIR/bin/just"
 
     run ./update-flake.sh
     [ "$status" -eq 0 ]
     [[ "$output" == *"(none"* ]]
-    [ ! -f "$TMPDIR/just.log" ]
+    [ ! -f "$BATS_TEST_TMPDIR/just.log" ]
 }
 
 @test "update-flake: success leaves flake.lock UNSTAGED with the new content" {
@@ -104,7 +102,7 @@ git diff --cached --quiet -- flake.lock && echo "NOT-STAGED-AT-VALIDATE" || echo
 exit 0
 EOF
     chmod +x bin/just
-    export JUST="$TMPDIR/bin/just"
+    export JUST="$BATS_TEST_TMPDIR/bin/just"
 
     run ./update-flake.sh
     [ "$status" -eq 0 ]
@@ -124,7 +122,7 @@ EOF
 exit 5
 EOF
     chmod +x bin/just
-    export JUST="$TMPDIR/bin/just"
+    export JUST="$BATS_TEST_TMPDIR/bin/just"
 
     run ./update-flake.sh
     [ "$status" -ne 0 ]

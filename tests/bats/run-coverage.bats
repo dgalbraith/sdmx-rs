@@ -18,8 +18,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Mirror the real scripts/ci + scripts/lib layout so the script's
     # `. "$(dirname "$0")/../lib/log.sh"` source resolves inside the fixture.
@@ -28,13 +27,12 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
 
     mkdir -p bin
-    LOG="$TMPDIR/cargo-calls.log"
+    LOG="$BATS_TEST_TMPDIR/cargo-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write a stub `cargo` to bin/cargo. It logs each invocation's arguments to $LOG
@@ -91,7 +89,7 @@ esac
 exit 0
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
 }
 
 @test "run-coverage: happy path passes and generates lcov.info" {

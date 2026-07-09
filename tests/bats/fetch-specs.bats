@@ -15,8 +15,7 @@ setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
     REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib bin specs "store/3.0/schemas" "store/3.1/schemas"
     cp "$REPO_ROOT/scripts/fetch-specs.sh" scripts/
@@ -53,31 +52,30 @@ EOF
     # Mock nix: any `build ... .#sdmxSpecs ... --print-out-paths` prints the tree.
     cat > bin/nix <<EOF
 #!/bin/sh
-printf '%s\n' "$TMPDIR/store"
+printf '%s\n' "$BATS_TEST_TMPDIR/store"
 EOF
     chmod +x bin/nix
 
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
     unset NIX SHA256SUM
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 run_fetch() {
-    run env SDMX_SPECS_DIR="$TMPDIR/out" SPECS_SOURCES="$TMPDIR/specs/sources.toml" \
-        SPECS_FLAKE="$TMPDIR" sh scripts/fetch-specs.sh
+    run env SDMX_SPECS_DIR="$BATS_TEST_TMPDIR/out" SPECS_SOURCES="$BATS_TEST_TMPDIR/specs/sources.toml" \
+        SPECS_FLAKE="$BATS_TEST_TMPDIR" sh scripts/fetch-specs.sh
 }
 
 @test "fetch-specs: materialises the tree, verifies shas, writes the stamp" {
     run_fetch
     [ "$status" -eq 0 ]
     [[ "$output" == *"materialised and verified"* ]]
-    [ -f "$TMPDIR/out/3.0/schemas/A.xsd" ]
-    [ -f "$TMPDIR/out/3.1/schemas/B.xsd" ]
-    [ -f "$TMPDIR/out/.sha256.stamp" ]
+    [ -f "$BATS_TEST_TMPDIR/out/3.0/schemas/A.xsd" ]
+    [ -f "$BATS_TEST_TMPDIR/out/3.1/schemas/B.xsd" ]
+    [ -f "$BATS_TEST_TMPDIR/out/.sha256.stamp" ]
 }
 
 @test "fetch-specs: second run is an idempotent no-op (stamp current)" {
@@ -91,23 +89,23 @@ run_fetch() {
 @test "fetch-specs: a current stamp over a deleted tree re-materialises (not a stale no-op)" {
     run_fetch
     [ "$status" -eq 0 ]
-    [ -f "$TMPDIR/out/.sha256.stamp" ]
+    [ -f "$BATS_TEST_TMPDIR/out/.sha256.stamp" ]
     # Drop the materialised tree but keep the stamp: this is what a rebase across
     # the untrack commit does (it deletes the once-tracked .xsd; the gitignored
     # stamp survives). The fast path must re-materialise, not trust the stamp.
-    rm -rf "$TMPDIR/out/3.0" "$TMPDIR/out/3.1"
+    rm -rf "$BATS_TEST_TMPDIR/out/3.0" "$BATS_TEST_TMPDIR/out/3.1"
     run_fetch
     [ "$status" -eq 0 ]
     [[ "$output" == *"materialised and verified"* ]]
     [[ "$output" != *"idempotent no-op"* ]]
-    [ -f "$TMPDIR/out/3.0/schemas/A.xsd" ]
-    [ -f "$TMPDIR/out/3.1/schemas/B.xsd" ]
+    [ -f "$BATS_TEST_TMPDIR/out/3.0/schemas/A.xsd" ]
+    [ -f "$BATS_TEST_TMPDIR/out/3.1/schemas/B.xsd" ]
 }
 
 @test "fetch-specs: a present, unstamped, sha-valid tree is accepted without a fetch" {
     run_fetch
     [ "$status" -eq 0 ]
-    rm -f "$TMPDIR/out/.sha256.stamp"
+    rm -f "$BATS_TEST_TMPDIR/out/.sha256.stamp"
     # Break the mock so any fetch attempt would fail; a valid present tree must not fetch.
     printf '#!/bin/sh\nexit 1\n' > bin/nix
     run_fetch
