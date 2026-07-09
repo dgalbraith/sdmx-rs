@@ -234,7 +234,7 @@ Enforces per-crate code coverage floors with `cargo-llvm-cov` (`just coverage-ga
 **Purpose**: Keep each crate above its minimum coverage floor.
 
 #### changes
-The path-filter engine (`dorny/paths-filter`): computes which file categories changed (`rust`, `scripts`, `docs`, `infra`, `xsd`, `decisionrefs`, `cigate`) so every path-gated job knows whether to run. It is a load-bearing gate, not background infrastructure — the `ci-gate` aggregator asserts `changes` itself succeeded before trusting any job that legitimately skipped (the fail-closed invariant above).
+The path-filter engine (`dorny/paths-filter`): computes which file categories changed (`rust`, `scripts`, `docs`, `infra`, `xsd`, `decisionrefs`, `cigate`, `security`, `formatting`, `coveragecfg`, `releasecfg`) so every path-gated job knows whether to run. It is a load-bearing gate, not background infrastructure — the `ci-gate` aggregator asserts `changes` itself succeeded before trusting any job that legitimately skipped (the fail-closed invariant above).
 
 **Runs on**: Every PR and push — it is the first job, and every other job declares `needs: [changes]`.
 **Purpose**: Drive path-based job selection and anchor the aggregator's fail-closed check.
