@@ -56,8 +56,8 @@ verify: verify-rust verify-wasm verify-scripts verify-docs verify-security verif
 verify-linear: verify-rust verify-wasm verify-scripts verify-docs verify-security verify-infra verify-maintenance
     @./scripts/lib/log.sh log_ok "verify: all verification phases passed"
 
-# Verify Rust codebase formatting, clippy, public + internal docs build, semver, and test coverage
-verify-rust: check-format clippy check-conventions docs docs-internal semver-check coverage-gate release-dry-run
+# Verify Rust codebase formatting, clippy, public + internal docs build + doctests, semver, and test coverage
+verify-rust: check-format clippy check-conventions docs docs-internal test-doc semver-check coverage-gate release-dry-run
     @./scripts/lib/log.sh log_ok "verify-rust: all gates passed"
 
 # Verify repository shell script linting and testing
@@ -241,8 +241,12 @@ test-help:
     @echo ""
 
 # Run all unit and doc tests in the workspace
-test:
+test: && test-doc
     cargo nextest run --workspace --locked
+
+# Run the workspace doctests (nextest does not execute them)
+test-doc:
+    cargo test --doc --workspace --locked
 
 # Run BATS tests for shell scripts and maintenance system (summarised)
 test-scripts:
