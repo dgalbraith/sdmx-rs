@@ -35,7 +35,9 @@ teardown() {
 }
 
 # Stub `wasm-pack`. Logs the call, emits a canned libtest result line (3 passed
-# in 0.05s by default), and fails for the crate named in STUB_FAIL_CRATE.
+# in 0.05s by default), and fails for the crate named in STUB_FAIL_CRATE. Set
+# STUB_OK_LINE to override the passing-exit output (used to fake a zero-test or
+# unparseable result while keeping wasm-pack's own exit status 0).
 make_wasm_pack_stub() {
     cat > bin/wasm-pack <<'EOF'
 #!/bin/sh
@@ -47,7 +49,7 @@ if [ "$crate" = "${STUB_FAIL_CRATE:-}" ]; then
     echo "error: test failed"
     exit 1
 fi
-echo "test result: ok. 3 passed; 0 failed; 0 ignored; 0 filtered out; finished in 0.05s"
+echo "${STUB_OK_LINE:-test result: ok. 3 passed; 0 failed; 0 ignored; 0 filtered out; finished in 0.05s}"
 EOF
     chmod +x bin/wasm-pack
     export WASM_PACK="$TMPDIR/bin/wasm-pack"
@@ -83,4 +85,27 @@ EOF
     [[ "$output" == *"error: test failed"* ]]
     # The run stops at the failing crate: sdmx-writers (after parsers) never runs.
     run ! grep -q -- "crates/sdmx-writers" "$LOG"
+}
+
+@test "run-wasm-tests: a crate executing zero tests is NAMED, exit 1" {
+    export STUB_OK_LINE="test result: ok. 0 passed; 0 failed; 0 ignored; 0 filtered out; finished in 0.00s"
+    make_wasm_pack_stub
+    run_isolated ./scripts/run-wasm-tests.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    # Fails at the first crate, named, before any aggregate summary.
+    [[ "$output" == *"sdmx-types executed zero tests under Node/V8"* ]]
+    [[ "$output" != *"across 3 crates"* ]]
+}
+
+@test "run-wasm-tests: unparseable wasm-pack output is NAMED, exit 1" {
+    export STUB_OK_LINE="running 0 tests -- no libtest result line here"
+    make_wasm_pack_stub
+    run_isolated ./scripts/run-wasm-tests.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"sdmx-types emitted no recognisable libtest result line"* ]]
+    [[ "$output" != *"across 3 crates"* ]]
 }

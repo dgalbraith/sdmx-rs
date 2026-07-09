@@ -54,8 +54,22 @@ for crate in sdmx-types sdmx-parsers sdmx-writers; do
         exit 1
     fi
     passed=$(printf '%s\n' "$output" | sed -n 's/^test result: ok\. \([0-9]*\) passed.*/\1/p')
+    # A missing count means the libtest result line did not parse (a wasm-pack
+    # output-format change), and a zero count means the subset executed nothing.
+    # Either silently voids the gate — the point is that this code EXECUTES on
+    # wasm32 — so both are hard failures, naming the crate like the branch above.
+    if [ -z "$passed" ]; then
+        log_err "test-wasm: ${crate} emitted no recognisable libtest result line (wasm-pack output format changed?)"
+        printf '%s\n' "$output"
+        exit 1
+    fi
+    if [ "$passed" -lt 1 ]; then
+        log_err "test-wasm: ${crate} executed zero tests under Node/V8 (empty WASM subset)"
+        printf '%s\n' "$output"
+        exit 1
+    fi
     secs=$(printf '%s\n' "$output" | sed -n 's/^test result:.*finished in \([0-9.]*\)s.*/\1/p')
-    total=$((total + ${passed:-0}))
+    total=$((total + passed))
     count=$((count + 1))
     times="${times} ${secs:-0}"
 done
