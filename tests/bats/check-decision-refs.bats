@@ -13,8 +13,7 @@ setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
     # Create temporary directory for workspace mockup
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Copy check script and logging library dependency into the fixture,
     # mirroring the scripts/lib layout the script expects.
@@ -37,7 +36,6 @@ EOF
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write crate source content (read from stdin) to crates/sdmx-types/src/<name>.

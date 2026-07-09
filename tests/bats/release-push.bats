@@ -19,8 +19,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/release-push.sh" .
     mkdir -p lib
@@ -35,13 +34,13 @@ setup() {
     #   anything else          → exits 0 silently
     # HEAD_SHA == STAGING_SHA by default so the SHA re-validation passes; tests
     # override them to exercise drift, and FETCH_RC to exercise a missing branch.
-    GIT_CALLS="$TMPDIR/git-calls.log"
+    GIT_CALLS="$BATS_TEST_TMPDIR/git-calls.log"
     export GIT_CALLS
     export HEAD_SHA="validsha"
     export STAGING_SHA="validsha"
     export FETCH_RC=0
-    mkdir -p "$TMPDIR/bin"
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main" ;;
@@ -65,13 +64,12 @@ case "$1" in
 esac
 exit 0
 EOF
-    chmod +x "$TMPDIR/bin/git"
-    export PATH="$TMPDIR/bin:$PATH"
+    chmod +x "$BATS_TEST_TMPDIR/bin/git"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ---------------------------------------------------------------------------
@@ -79,7 +77,7 @@ teardown() {
 # ---------------------------------------------------------------------------
 
 @test "release-push: fails when not on main branch" {
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "release/sdmx-rs/0.2.0" ;;
@@ -130,7 +128,7 @@ EOF
 @test "release-push: aborts before tag push when no matching tags exist" {
     # Empty-guard: main is fast-forwarded first, so zero matching tags must fail
     # LOUDLY rather than silently push nothing and leave a half-landed release.
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main" ;;
@@ -210,7 +208,7 @@ EOF
 # ---------------------------------------------------------------------------
 
 @test "release-push: exits non-zero when main push fails" {
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main"; exit 0 ;;
@@ -225,7 +223,7 @@ EOF
 }
 
 @test "release-push: exits non-zero when tag push fails" {
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main"; exit 0 ;;
@@ -245,7 +243,7 @@ EOF
 }
 
 @test "release-push: continues when staging branch deletion fails" {
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main"; exit 0 ;;
@@ -301,7 +299,7 @@ EOF
 @test "release-push: re-validates against origin, not SDMX_MAIN_REMOTE" {
     # CI always runs on GitHub (origin); the fetch must target origin even when
     # pushes fan out to a mirror remote. Record fetch args to assert the remote.
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main" ;;

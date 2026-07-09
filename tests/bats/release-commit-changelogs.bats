@@ -16,8 +16,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/release-commit-changelogs.sh" scripts/
@@ -30,7 +29,7 @@ setup() {
     echo "# Changelog" > crates/sdmx-types/CHANGELOG.md
 
     mkdir -p bin
-    GIT_LOG="$TMPDIR/git-calls.log"
+    GIT_LOG="$BATS_TEST_TMPDIR/git-calls.log"
     export GIT_LOG
     # Deterministic date so the commit message is byte-assertable.
     export DATE="echo 2026-06-04"
@@ -38,7 +37,6 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Stub `git`: log argv, exit STUB_GIT_EXIT (default 0). A non-zero exit models a
@@ -50,7 +48,7 @@ echo "$*" >> "$GIT_LOG"
 exit "${STUB_GIT_EXIT:-0}"
 EOF
     chmod +x bin/git
-    export GIT="$TMPDIR/bin/git"
+    export GIT="$BATS_TEST_TMPDIR/bin/git"
 }
 
 @test "release-commit-changelogs: stages changelogs then commits with signed checkpoint message" {

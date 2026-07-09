@@ -24,18 +24,17 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/release-stage.sh" .
     mkdir -p lib
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" lib/
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/forge-spec.sh" lib/
 
-    GIT_CALLS="$TMPDIR/git-calls.log"
+    GIT_CALLS="$BATS_TEST_TMPDIR/git-calls.log"
     export GIT_CALLS
 
-    mkdir -p "$TMPDIR/bin"
+    mkdir -p "$BATS_TEST_TMPDIR/bin"
 
     # Default git stub: branch → "main", push → record, rev-parse → fixed SHA,
     # remote get-url → a github.com URL (used by forge_spec_owner_repo).
@@ -44,12 +43,11 @@ setup() {
     # Default gh stub: auth succeeds, check-runs returns all-green immediately.
     install_gh_stub "green"
 
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ---------------------------------------------------------------------------
@@ -62,7 +60,7 @@ teardown() {
 # and records push calls to GIT_CALLS.
 install_git_stub() {
     local branch="$1" sha="$2"
-    cat > "$TMPDIR/bin/git" << EOF
+    cat > "$BATS_TEST_TMPDIR/bin/git" << EOF
 #!/bin/sh
 case "\$1" in
     branch)     echo "$branch" ;;
@@ -72,7 +70,7 @@ case "\$1" in
 esac
 exit 0
 EOF
-    chmod +x "$TMPDIR/bin/git"
+    chmod +x "$BATS_TEST_TMPDIR/bin/git"
 }
 
 # install_gh_stub <mode>
@@ -91,14 +89,14 @@ EOF
 #   api_error    — API call exits non-zero
 install_gh_stub() {
     local mode="$1"
-    local call_count_file="$TMPDIR/gh-calls.count"
+    local call_count_file="$BATS_TEST_TMPDIR/gh-calls.count"
     printf '0' > "$call_count_file"
-    cat > "$TMPDIR/bin/gh" << EOF
+    cat > "$BATS_TEST_TMPDIR/bin/gh" << EOF
 #!/bin/sh
 MODE="$mode"
 CALL_COUNT_FILE="$call_count_file"
 EOF
-    cat >> "$TMPDIR/bin/gh" << 'EOF'
+    cat >> "$BATS_TEST_TMPDIR/bin/gh" << 'EOF'
 if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
     [ "$MODE" = "no_auth" ] && exit 1
     exit 0
@@ -145,7 +143,7 @@ fi
 echo "gh stub: unhandled: $*" >&2
 exit 1
 EOF
-    chmod +x "$TMPDIR/bin/gh"
+    chmod +x "$BATS_TEST_TMPDIR/bin/gh"
 }
 
 # ---------------------------------------------------------------------------
@@ -199,7 +197,7 @@ EOF
 }
 
 @test "release-stage: exits non-zero when git push fails" {
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch) echo "main"; exit 0 ;;
@@ -275,7 +273,7 @@ EOF
     [ "$status" -eq 0 ]
     [[ "$output" == *"CI Quality Gate passed"* ]]
     # Confirm the stub was called more than once (pending on first, green on second).
-    count=$(cat "$TMPDIR/gh-calls.count")
+    count=$(cat "$BATS_TEST_TMPDIR/gh-calls.count")
     [ "$count" -ge 2 ]
 }
 
@@ -315,7 +313,7 @@ EOF
 
 @test "release-stage: exits 0 with warning when origin is not a github.com remote" {
     # Override git stub so remote get-url returns a non-github URL.
-    cat > "$TMPDIR/bin/git" << 'EOF'
+    cat > "$BATS_TEST_TMPDIR/bin/git" << 'EOF'
 #!/bin/sh
 case "$1" in
     branch)    echo "main" ;;

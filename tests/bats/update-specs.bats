@@ -16,8 +16,7 @@ setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
     REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib bin "fake-tree/schemas"
     cp "$REPO_ROOT/scripts/update-specs.sh" scripts/
@@ -52,17 +51,16 @@ for a in "\$@"; do
       exit 1 ;;
   esac
 done
-printf '%s\n' "$TMPDIR/fake-tree"
+printf '%s\n' "$BATS_TEST_TMPDIR/fake-tree"
 EOF
     chmod +x bin/nix
 
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
     unset NIX GIT SHA256SUM
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 @test "update-specs: rejects wrong argument count" {
@@ -75,7 +73,7 @@ teardown() {
     run sh scripts/update-specs.sh 3.0 v3.0.0
     [ "$status" -eq 0 ]
 
-    src="$TMPDIR/specs/sources.toml"
+    src="$BATS_TEST_TMPDIR/specs/sources.toml"
     [ -f "$src" ]
     grep -q '^\[edition."3.0"\]' "$src"
     grep -q 'rev = "29f1a3d856c4259429f5ec0eae811653adc5cdb5"' "$src"
@@ -90,7 +88,7 @@ teardown() {
 @test "update-specs: emits a valid [upstream] table with the w3c provenance list" {
     run sh scripts/update-specs.sh 3.0 v3.0.0
     [ "$status" -eq 0 ]
-    src="$TMPDIR/specs/sources.toml"
+    src="$BATS_TEST_TMPDIR/specs/sources.toml"
     grep -q '^owner = "sdmx-twg"' "$src"
     grep -q '^repo = "sdmx-ml"' "$src"
     grep -q '^w3c = \["xml.xsd"\]' "$src"
@@ -100,7 +98,7 @@ teardown() {
     command -v taplo >/dev/null || skip "taplo not available"
     run sh scripts/update-specs.sh 3.0 v3.0.0
     [ "$status" -eq 0 ]
-    run env RUST_LOG=error taplo fmt --check "$TMPDIR/specs/sources.toml"
+    run env RUST_LOG=error taplo fmt --check "$BATS_TEST_TMPDIR/specs/sources.toml"
     [ "$status" -eq 0 ]
 }
 
@@ -110,7 +108,7 @@ teardown() {
     run sh scripts/update-specs.sh 3.1 v3.1.0
     [ "$status" -eq 0 ]
 
-    src="$TMPDIR/specs/sources.toml"
+    src="$BATS_TEST_TMPDIR/specs/sources.toml"
     grep -q '^\[edition."3.0"\]' "$src"
     grep -q '^\[edition."3.1"\]' "$src"
     grep -q '^\[files."3.0"\]' "$src"
@@ -122,7 +120,7 @@ teardown() {
     [ "$status" -eq 0 ]
     run sh scripts/update-specs.sh 3.0 v3.0.0
     [ "$status" -eq 0 ]
-    src="$TMPDIR/specs/sources.toml"
+    src="$BATS_TEST_TMPDIR/specs/sources.toml"
     [ "$(grep -c '^\[edition."3.0"\]' "$src")" -eq 1 ]
     [ "$(grep -c '^\[files."3.0"\]' "$src")" -eq 1 ]
 }

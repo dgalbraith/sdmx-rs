@@ -14,8 +14,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # The script sources lib/log.sh relative to its own directory — mirror that
     # layout in the fixture (as release-merge.bats does).
@@ -42,7 +41,6 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
     rm -rf "${ORIGIN_DIR:-}"
 }
 

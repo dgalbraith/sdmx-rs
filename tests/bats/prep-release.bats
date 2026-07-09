@@ -20,8 +20,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/prep-release.sh" scripts/
@@ -40,14 +39,13 @@ sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers" }'
 sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers", optional = true }'
 
     mkdir -p bin
-    CARGO_LOG="$TMPDIR/cargo-calls.log"
-    GIT_LOG="$TMPDIR/git-calls.log"
+    CARGO_LOG="$BATS_TEST_TMPDIR/cargo-calls.log"
+    GIT_LOG="$BATS_TEST_TMPDIR/git-calls.log"
     export CARGO_LOG GIT_LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write a fixture Cargo.toml for <crate> with optional <deps> block.
@@ -72,7 +70,7 @@ echo "$*" >> "$CARGO_LOG"
 exit "${STUB_CARGO_EXIT:-0}"
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
 
     # git stub records argv; `git add` glob expansion happens in the script's
     # shell before git is called, so the stub just logs and succeeds.
@@ -82,7 +80,7 @@ echo "$*" >> "$GIT_LOG"
 exit 0
 EOF
     chmod +x bin/git
-    export GIT="$TMPDIR/bin/git"
+    export GIT="$BATS_TEST_TMPDIR/bin/git"
 }
 
 @test "prep-release: missing version fails and touches no manifest" {

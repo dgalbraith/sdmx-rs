@@ -10,8 +10,7 @@
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Copy scripts and configs. common.sh sources lib/log.sh transitively, so the
     # fixture must mirror that layout (lib/log.sh alongside the flattened scripts).
@@ -43,12 +42,11 @@ EOF
 
     # Create bin directory for mock git-cliff
     mkdir -p bin
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 create_mock_git_cliff_success() {
@@ -76,13 +74,13 @@ EOF
 }
 
 # A mock git-cliff that APPENDS its full argv (one invocation per line) to
-# $TMPDIR/cliff-argv.log before producing the success output. Used to assert that
+# $BATS_TEST_TMPDIR/cliff-argv.log before producing the success output. Used to assert that
 # check-changelog.sh passes the correct per-crate scoping flags — the success mock
 # above discards flags, so it cannot catch a dropped/incorrect --tag-pattern.
 create_mock_git_cliff_recording() {
     cat > bin/git-cliff <<EOF
 #!/bin/sh
-echo "\$*" >> "$TMPDIR/cliff-argv.log"
+echo "\$*" >> "$BATS_TEST_TMPDIR/cliff-argv.log"
 OUTPUT_FILE=""
 while [ \$# -gt 0 ]; do
     case "\$1" in
@@ -180,7 +178,7 @@ EOF
 
     run_isolated ./check-changelog.sh
     echo "STATUS: $status" >&2
-    echo "ARGV LOG:" >&2; cat "$TMPDIR/cliff-argv.log" >&2
+    echo "ARGV LOG:" >&2; cat "$BATS_TEST_TMPDIR/cliff-argv.log" >&2
     [ "$status" -eq 0 ]
 
     # Each crate's invocation must carry a --tag-pattern that is (a) the canonical
@@ -191,18 +189,18 @@ EOF
     # and the prefix already proves both "canonical semver" and "scoped to this crate".
     for crate in sdmx-types sdmx-parsers sdmx-writers sdmx-client sdmx-rs; do
         grep -F -- "--tag-pattern ^${crate}/v(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\." \
-            "$TMPDIR/cliff-argv.log"
-        grep -F -- "--include-path crates/${crate}/**" "$TMPDIR/cliff-argv.log"
+            "$BATS_TEST_TMPDIR/cliff-argv.log"
+        grep -F -- "--include-path crates/${crate}/**" "$BATS_TEST_TMPDIR/cliff-argv.log"
     done
 
     # Guard against the pre-fix bug: NO invocation may use the global all-crate
     # alternation as its tag boundary set.
-    run grep -F -- "--tag-pattern sdmx-(types|parsers" "$TMPDIR/cliff-argv.log"
+    run grep -F -- "--tag-pattern sdmx-(types|parsers" "$BATS_TEST_TMPDIR/cliff-argv.log"
     [ "$status" -ne 0 ]
 
     # Guard against regression to the OLD loose pattern (`/v[0-9].*`): the canonical
     # regex must have replaced it everywhere.
-    run grep -F -- "/v[0-9].*" "$TMPDIR/cliff-argv.log"
+    run grep -F -- "/v[0-9].*" "$BATS_TEST_TMPDIR/cliff-argv.log"
     [ "$status" -ne 0 ]
 }
 
@@ -211,7 +209,7 @@ EOF
 
     # Reset to a clean repo dedicated to this scenario (the shared setup's commit
     # graph is not relevant here, and we need real tags).
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     rm -rf real-cliff && mkdir real-cliff && cd real-cliff || exit 1
     git init --initial-branch=main -q
     git config user.email "test@example.com"
@@ -251,7 +249,7 @@ EOF
     # etc.). The canonical-semver tag_pattern must match them, git-cliff must order
     # them semver-correctly, and the body template's `replace(from="v", to="")` must
     # strip only the leading `v` (not mangle an internal one). This pins all three.
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     rm -rf prerelease && mkdir prerelease && cd prerelease || exit 1
     git init --initial-branch=main -q
     git config user.email "test@example.com"
@@ -304,7 +302,7 @@ EOF
     # rather than rendered under a bogus `## [1-experimental]` header. The commit it
     # points at falls through to [Unreleased]. (cargo-release cannot emit such a tag;
     # this guards the strict-gatekeeping intent against a hand-pushed bad tag.)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     rm -rf nonsemver && mkdir nonsemver && cd nonsemver || exit 1
     git init --initial-branch=main -q
     git config user.email "test@example.com"

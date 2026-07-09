@@ -24,8 +24,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Mirror scripts/ + scripts/lib so the script's `. .../lib/log.sh` resolves.
     mkdir -p scripts/lib
@@ -33,13 +32,12 @@ setup() {
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" scripts/lib/
 
     mkdir -p bin
-    LOG="$TMPDIR/cargo-calls.log"
+    LOG="$BATS_TEST_TMPDIR/cargo-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Stub `cargo`. Logs each call to $LOG. Behaviour tuned by env vars read at call
@@ -88,7 +86,7 @@ esac
 exit 0
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
 }
 
 @test "check-semver: pre-1.0 warn-skips and never touches the network" {

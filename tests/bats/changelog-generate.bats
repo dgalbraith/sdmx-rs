@@ -22,8 +22,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/changelog-generate.sh" scripts/
@@ -38,13 +37,12 @@ setup() {
     done
 
     mkdir -p bin
-    LOG="$TMPDIR/cliff-calls.log"
+    LOG="$BATS_TEST_TMPDIR/cliff-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Stub `git-cliff`. Appends its full argv as one line to $LOG, creates/updates the
@@ -66,7 +64,7 @@ done
 exit "${STUB_CLIFF_EXIT:-0}"
 EOF
     chmod +x bin/git-cliff
-    export GIT_CLIFF="$TMPDIR/bin/git-cliff"
+    export GIT_CLIFF="$BATS_TEST_TMPDIR/bin/git-cliff"
 }
 
 @test "changelog-generate: runs once per crate in topological order" {

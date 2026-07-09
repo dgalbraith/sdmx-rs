@@ -11,8 +11,7 @@ setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
     # Create temporary directory for workspace mockup
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Create crates and dependency directory structure
     mkdir -p crates/test-crate/src
@@ -27,7 +26,6 @@ setup() {
 teardown() {
     # Exit temporary directory and clean up
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ==============================================================================

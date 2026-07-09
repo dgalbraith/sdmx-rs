@@ -17,8 +17,7 @@ setup() {
     REPO_ROOT="$BATS_TEST_DIRNAME/../.."
 
     # Isolated working tree that satisfies the OFFLINE tier prerequisites.
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Scripts + sourced libs, mirroring the real scripts/ layout the script
     # resolves relative to $0.
@@ -59,7 +58,7 @@ EOF
     git remote add all "git@github.com:dgalbraith/sdmx-rs.git"
 
     # Per-test MUTABLE fixture copy so a single test can perturb one response.
-    export FORGE_FIXTURES="$TMPDIR/forge-fixtures"
+    export FORGE_FIXTURES="$BATS_TEST_TMPDIR/forge-fixtures"
     cp -r "$REPO_ROOT/tests/bats/fixtures/forge" "$FORGE_FIXTURES"
 
     # Derive ruleset-N.json fixtures from the committed spec files so that the
@@ -104,7 +103,6 @@ EOF
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Run doctor-forge with the ambient CI/tooling env scrubbed (so colour/CI
@@ -488,8 +486,8 @@ run_doctor() {
 @test "doctor-forge: all workflow uses: covered by allowlist -> no coverage failure" {
     mock_gh
     # Create a workflow dir with only covered actions (github-owned + spec'd third-party).
-    mkdir -p "$TMPDIR/wf-covered"
-    cat > "$TMPDIR/wf-covered/covered.yml" <<'EOF'
+    mkdir -p "$BATS_TEST_TMPDIR/wf-covered"
+    cat > "$BATS_TEST_TMPDIR/wf-covered/covered.yml" <<'EOF'
 jobs:
   build:
     steps:
@@ -499,7 +497,7 @@ jobs:
       - uses: nix-community/cache-nix-action@abc123
 EOF
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
-    FORGE_WORKFLOWS_DIR="$TMPDIR/wf-covered" run sh scripts/doctor-forge.sh
+    FORGE_WORKFLOWS_DIR="$BATS_TEST_TMPDIR/wf-covered" run sh scripts/doctor-forge.sh
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     # Must NOT report any uncovered actions (drift/fail from the crosscheck).
@@ -514,15 +512,15 @@ EOF
     mock_gh
     cp "$REPO_ROOT/forge/github/actions-allowlist.json" forge/github/
     # Create a fixture workflow dir with a single uncovered action.
-    mkdir -p "$TMPDIR/wf-uncovered"
-    cat > "$TMPDIR/wf-uncovered/bad.yml" <<'EOF'
+    mkdir -p "$BATS_TEST_TMPDIR/wf-uncovered"
+    cat > "$BATS_TEST_TMPDIR/wf-uncovered/bad.yml" <<'EOF'
 jobs:
   build:
     steps:
       - uses: some-org/some-unlisted-action@abc123
 EOF
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
-    FORGE_WORKFLOWS_DIR="$TMPDIR/wf-uncovered" run sh scripts/doctor-forge.sh
+    FORGE_WORKFLOWS_DIR="$BATS_TEST_TMPDIR/wf-uncovered" run sh scripts/doctor-forge.sh
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 1 ]
@@ -540,15 +538,15 @@ EOF
     cp "$REPO_ROOT/forge/github/actions-allowlist.json" forge/github/
     # Use a workflow dir with only github-owned actions — all third-party
     # patterns in the allowlist become stale.
-    mkdir -p "$TMPDIR/wf-github-only"
-    cat > "$TMPDIR/wf-github-only/simple.yml" <<'EOF'
+    mkdir -p "$BATS_TEST_TMPDIR/wf-github-only"
+    cat > "$BATS_TEST_TMPDIR/wf-github-only/simple.yml" <<'EOF'
 jobs:
   build:
     steps:
       - uses: actions/checkout@abc123
 EOF
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
-    FORGE_WORKFLOWS_DIR="$TMPDIR/wf-github-only" run sh scripts/doctor-forge.sh
+    FORGE_WORKFLOWS_DIR="$BATS_TEST_TMPDIR/wf-github-only" run sh scripts/doctor-forge.sh
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     # Stale pattern is a WARN, not a FAIL — must not push exit status to 1.

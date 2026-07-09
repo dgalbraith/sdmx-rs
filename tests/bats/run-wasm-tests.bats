@@ -17,21 +17,19 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/run-wasm-tests.sh" scripts/
     cp "$BATS_TEST_DIRNAME/../../scripts/lib/log.sh" scripts/lib/
 
     mkdir -p bin
-    LOG="$TMPDIR/wasm-pack-calls.log"
+    LOG="$BATS_TEST_TMPDIR/wasm-pack-calls.log"
     export LOG
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Stub `wasm-pack`. Logs the call, emits a canned libtest result line (3 passed
@@ -52,7 +50,7 @@ fi
 echo "${STUB_OK_LINE:-test result: ok. 3 passed; 0 failed; 0 ignored; 0 filtered out; finished in 0.05s}"
 EOF
     chmod +x bin/wasm-pack
-    export WASM_PACK="$TMPDIR/bin/wasm-pack"
+    export WASM_PACK="$BATS_TEST_TMPDIR/bin/wasm-pack"
 }
 
 @test "run-wasm-tests: all crates pass -> aggregate summary, per-crate output suppressed" {

@@ -7,8 +7,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p ci lib
     cp "$BATS_TEST_DIRNAME/../../scripts/ci/check-published.sh" ci/
@@ -19,9 +18,9 @@ setup() {
     mkdir -p bin
     cat > bin/curl << 'EOF'
 #!/bin/sh
-status_code=$(cat "$TMPDIR/mock_status" 2>/dev/null || echo "200")
-body_file="$TMPDIR/mock_body"
-curl_exit=$(cat "$TMPDIR/mock_curl_exit" 2>/dev/null || echo "0")
+status_code=$(cat "$BATS_TEST_TMPDIR/mock_status" 2>/dev/null || echo "200")
+body_file="$BATS_TEST_TMPDIR/mock_body"
+curl_exit=$(cat "$BATS_TEST_TMPDIR/mock_curl_exit" 2>/dev/null || echo "0")
 
 out_target=""
 want_status=0
@@ -52,13 +51,11 @@ fi
 exit "$curl_exit"
 EOF
     chmod +x bin/curl
-    export PATH="$TMPDIR/bin:$PATH"
-    export TMPDIR
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ==============================================================================
@@ -66,8 +63,8 @@ teardown() {
 # ==============================================================================
 
 @test "check-published: exits 0 and returns exists=true when version is indexed" {
-    echo "200" > "$TMPDIR/mock_status"
-    echo '{"vers":"0.1.0"}' > "$TMPDIR/mock_body"
+    echo "200" > "$BATS_TEST_TMPDIR/mock_status"
+    echo '{"vers":"0.1.0"}' > "$BATS_TEST_TMPDIR/mock_body"
 
     run_isolated ./ci/check-published.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -78,7 +75,7 @@ teardown() {
 }
 
 @test "check-published: exits 0 and returns exists=false on 404 not found" {
-    echo "404" > "$TMPDIR/mock_status"
+    echo "404" > "$BATS_TEST_TMPDIR/mock_status"
 
     run_isolated ./ci/check-published.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -89,7 +86,7 @@ teardown() {
 }
 
 @test "check-published: exits 2 on permanent client error (403)" {
-    echo "403" > "$TMPDIR/mock_status"
+    echo "403" > "$BATS_TEST_TMPDIR/mock_status"
 
     run_isolated ./ci/check-published.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -100,7 +97,7 @@ teardown() {
 }
 
 @test "check-published: exits 3 on transient server error (502)" {
-    echo "502" > "$TMPDIR/mock_status"
+    echo "502" > "$BATS_TEST_TMPDIR/mock_status"
 
     run_isolated ./ci/check-published.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -111,7 +108,7 @@ teardown() {
 }
 
 @test "check-published: exits 3 on curl network/connection failure" {
-    echo "7" > "$TMPDIR/mock_curl_exit"
+    echo "7" > "$BATS_TEST_TMPDIR/mock_curl_exit"
 
     run_isolated ./ci/check-published.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -126,8 +123,8 @@ teardown() {
 # ==============================================================================
 
 @test "wait-for-index: exits 0 immediately when version is found" {
-    echo "200" > "$TMPDIR/mock_status"
-    echo '{"vers":"0.1.0"}' > "$TMPDIR/mock_body"
+    echo "200" > "$BATS_TEST_TMPDIR/mock_status"
+    echo '{"vers":"0.1.0"}' > "$BATS_TEST_TMPDIR/mock_body"
 
     run_isolated ./ci/wait-for-index.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -138,7 +135,7 @@ teardown() {
 }
 
 @test "wait-for-index: fails fast (exits 1) on permanent 403 error" {
-    echo "403" > "$TMPDIR/mock_status"
+    echo "403" > "$BATS_TEST_TMPDIR/mock_status"
 
     run_isolated ./ci/wait-for-index.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2
@@ -154,7 +151,7 @@ teardown() {
     # change to the production retry budget cannot silently no-op this patch and
     # leave the test sleeping through the full backoff against a 503 stub.
     sed -i 's/^MAX_RETRIES=.*/MAX_RETRIES=2/' ci/wait-for-index.sh
-    echo "503" > "$TMPDIR/mock_status"
+    echo "503" > "$BATS_TEST_TMPDIR/mock_status"
 
     run_isolated ./ci/wait-for-index.sh sdmx-types 0.1.0
     echo "STATUS: $status" >&2

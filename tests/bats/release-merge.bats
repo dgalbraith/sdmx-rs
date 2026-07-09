@@ -13,8 +13,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Copy scripts
     cp "$BATS_TEST_DIRNAME/../../scripts/release-merge.sh" .
@@ -68,7 +67,6 @@ EOF
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
     rm -rf "${ORIGIN_DIR:-}"
 }
 

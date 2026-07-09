@@ -20,8 +20,7 @@ setup() {
 
     REPO_ROOT="$BATS_TEST_DIRNAME/../.."
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     # Mirror the scripts/ layout the script resolves relative to $0.
     mkdir -p scripts/lib lib
@@ -52,7 +51,6 @@ setup() {
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Scrub ambient CI / tooling env variables, set up the apply shim, then run.

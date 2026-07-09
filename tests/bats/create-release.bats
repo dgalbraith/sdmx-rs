@@ -20,8 +20,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     mkdir -p scripts/ci scripts/lib
     cp "$BATS_TEST_DIRNAME/../../scripts/ci/create-release.sh" scripts/ci/
@@ -33,8 +32,8 @@ setup() {
     # gh stub: log argv; capture piped notes (release create/edit) to NOTES_OUT;
     # `release view` exit code tuned by STUB_RELEASE_EXISTS / STUB_FACADE_EXISTS.
     mkdir -p bin
-    GH_LOG="$TMPDIR/gh-calls.log"
-    NOTES_OUT="$TMPDIR/notes.out"
+    GH_LOG="$BATS_TEST_TMPDIR/gh-calls.log"
+    NOTES_OUT="$BATS_TEST_TMPDIR/notes.out"
     export GH_LOG NOTES_OUT
     cat > bin/gh <<'EOF'
 #!/bin/sh
@@ -59,13 +58,12 @@ esac
 exit 0
 EOF
     chmod +x bin/gh
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
     export GH_TOKEN="fake"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write crates/<crate>/CHANGELOG.md with a <version> section body ($2 may be empty

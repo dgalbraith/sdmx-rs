@@ -10,8 +10,7 @@ bats_require_minimum_version 1.5.0
 # Run with: bats tests/bats/rename-guide.bats
 # ==============================================================================
 setup() {
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     source "$BATS_TEST_DIRNAME/common.sh"
     setup_guide_test
 
@@ -39,7 +38,6 @@ EOF
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ==============================================================================

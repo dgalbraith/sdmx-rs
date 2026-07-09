@@ -9,15 +9,13 @@
 # ==============================================================================
 
 setup() {
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
     source "$BATS_TEST_DIRNAME/common.sh"
     setup_design_test
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # ==============================================================================

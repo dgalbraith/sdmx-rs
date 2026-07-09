@@ -19,8 +19,7 @@ bats_require_minimum_version 1.5.0
 setup() {
     source "$BATS_TEST_DIRNAME/common.sh"
 
-    TMPDIR=$(mktemp -d)
-    cd "$TMPDIR" || exit 1
+    cd "$BATS_TEST_TMPDIR" || exit 1
 
     cp "$BATS_TEST_DIRNAME/../../scripts/update-deps.sh" .
     # update-deps.sh sources `$(dirname "$0")/lib/log.sh`; mirror that layout.
@@ -41,12 +40,11 @@ setup() {
     git commit -m "baseline" -q
 
     mkdir -p bin
-    export PATH="$TMPDIR/bin:$PATH"
+    export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
 }
 
 teardown() {
     cd "$BATS_TEST_DIRNAME" || exit 1
-    rm -rf "$TMPDIR"
 }
 
 # Write a mock `cargo` whose `update` prints $1 and (unless NOWRITE) mutates the lock.
@@ -59,22 +57,22 @@ $1
 OUT
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
 }
 
 # A `just` mock that records it was called (so we can assert verify ran or not).
 mock_just_recording() {
     cat > bin/just <<EOF
 #!/bin/sh
-echo "JUST_CALLED: \$*" >> "$TMPDIR/just.log"
+echo "JUST_CALLED: \$*" >> "$BATS_TEST_TMPDIR/just.log"
 exit 0
 EOF
     chmod +x bin/just
-    export JUST="$TMPDIR/bin/just"
-    : > "$TMPDIR/just.log"
+    export JUST="$BATS_TEST_TMPDIR/bin/just"
+    : > "$BATS_TEST_TMPDIR/just.log"
 }
 
-just_was_called() { [ -s "$TMPDIR/just.log" ]; }
+just_was_called() { [ -s "$BATS_TEST_TMPDIR/just.log" ]; }
 
 # --- Pre-flight dirty guard ---------------------------------------------------
 
@@ -139,7 +137,7 @@ just_was_called() { [ -s "$TMPDIR/just.log" ]; }
     [[ "$block" == *"serde v1.0.0 -> v1.0.1"* ]]
     [[ "$block" != *"crates.io index"* ]]
     just_was_called
-    grep -q "JUST_CALLED: verify-rust" "$TMPDIR/just.log"
+    grep -q "JUST_CALLED: verify-rust" "$BATS_TEST_TMPDIR/just.log"
 }
 
 @test "update-deps: Adding/Removing deltas also count as changes" {
@@ -161,7 +159,7 @@ just_was_called() { [ -s "$TMPDIR/just.log" ]; }
 exit 7
 EOF
     chmod +x bin/just
-    export JUST="$TMPDIR/bin/just"
+    export JUST="$BATS_TEST_TMPDIR/bin/just"
 
     run ./update-deps.sh
     [ "$status" -ne 0 ]
@@ -176,7 +174,7 @@ shift   # drop 'update'
 echo "ARGS: \$*"
 EOF
     chmod +x bin/cargo
-    export CARGO="$TMPDIR/bin/cargo"
+    export CARGO="$BATS_TEST_TMPDIR/bin/cargo"
     mock_just_recording
 
     run ./update-deps.sh serde tokio
