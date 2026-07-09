@@ -65,8 +65,8 @@ classDiagram
     class VersionableMetadata {
         +NameableMetadata nameable
         +Option~SdmxVersion~ version
-        +Option~DateTime~ valid_from
-        +Option~DateTime~ valid_to
+        +Option~SdmxDateTime~ valid_from
+        +Option~SdmxDateTime~ valid_to
     }
     class MaintainableMetadata {
         +VersionableMetadata versionable
@@ -175,7 +175,7 @@ Only approved domain types implement this trait, allowing the `sdmx-writers` cra
 
 The crate's own derived `serde::Serialize`/`Deserialize` are an **internal, lossless infoset round-trip, not the SDMX-ML/SDMX-JSON wire format** (D-0063). They read and write the Rust composition directly: nested metadata leaves (`Codelist → scheme → metadata → versionable → …`), `LocalisedString` as ordered `LocalisedText` entries, and externally-tagged enums. A round-trip therefore preserves the stored statedness exactly, but the emitted shape is Rust-structural, not the flat SDMX wire object. The wire shape is owned by `sdmx-writers` / `sdmx-parsers`, which map between these types (through their accessors and validated `new()`) and SDMX-ML / SDMX-JSON. The types' own `serde` **never** converges to SDMX-JSON; it remains an internal projection, verified through a non-wire round-trip format so no wire-format library sits in the crate (D-0068).
 
-**Statedness at the value level follows a two-class rule.** A field stores the *raw lexeme* where the lexeme carries meaning beyond the XSD value — `SdmxDecimal`'s significant digits, `SdmxTimePeriod`'s spelling (D-0027) — and stores the *parsed value* where XSD's own lexical-to-value mapping collapses the spellings: `FixedInclude`'s `xs:boolean` (D-0052), and the `valid_from`/`valid_to` datetimes, whose preserved datum is the XSD `dateTime` value — the instant *plus the stated numeric offset*. The stated offset is data and must survive the round-trip; because `DateTime<FixedOffset>` equality compares the instant alone, the property suite asserts the (value, offset) tuple on the datetime-bearing fields rather than bare `Eq`. What value storage deliberately does not preserve — `Z` versus `+00:00` spelling, fractional-second zero padding — is exactly what the XSD value model itself collapses. (The D-0070 canonical grammars are the third, raw-free case: format-then-parse is a bijection, so no lexeme needs storing at all.)
+**Statedness at the value level follows a two-class rule.** A field stores the *raw lexeme* where the lexeme carries meaning beyond the XSD value — `SdmxDecimal`'s significant digits, `SdmxTimePeriod`'s spelling (D-0027), and the `valid_from`/`valid_to` windows' `SdmxDateTime` (D-0079) — and stores the *parsed value* where XSD's own lexical-to-value mapping collapses the spellings: `FixedInclude`'s `xs:boolean` (D-0052). The windows sat in the value class until D-0079 re-classed them: that classification followed the XSD 1.1 value model (instant plus stated offset), but the supported schemas are XSD 1.0, whose `dateTime` value is the timeline instant alone — the stated offset the crate preserves is beyond-value content, which is this rule's own lexeme-class criterion, and lexeme storage additionally admits the schema-valid offsetless spelling the parsed value could not represent. The windows' identity is the stored text, exactly as fine as the datum, so bare `Eq` asserts what the property suite once asserted as a (value, offset) tuple; the parsed value (written date-time, stated offset) is the retained cheap discriminant, and instant comparison is an explicit method, never `Eq`. (The D-0070 canonical grammars are the third, raw-free case: format-then-parse is a bijection, so no lexeme needs storing at all.)
 
 #### 7. Deserialisation Construction Contract
 
@@ -219,10 +219,10 @@ Below is the type system blueprint for `crates/sdmx-types/src/lib.rs` (and its s
 
 Several SDMX fields are constrained lexical types — `xs:decimal`, `xs:integer`, `VersionType` and its reference union `WildcardVersionType`, `StandardTimePeriodType` and its observational union — whose value space does not map losslessly onto any fixed Rust type (`xs:decimal`/`xs:integer` are unbounded; the time/version types are structured grammars). The crate models each as a **validated newtype or grammar-closed enum**:
 
-- **Storage forks on canonicity (D-0070):** a non-canonical grammar (several lexemes per value: `xs:decimal`, `xs:integer`, the time-period grammars) keeps the canonical lexical form verbatim in a `String` (`raw`) as the round-trip source of truth, never normalised or rewritten. A canonical grammar (`VersionType`, `WildcardVersionType`: one lexeme per value) makes format-then-parse a bijection, so only the parsed decomposition is stored and `Display` reconstructs the lexeme.
+- **Storage forks on canonicity (D-0070):** a non-canonical grammar (several lexemes per value: `xs:decimal`, `xs:integer`, `xs:dateTime`, the time-period grammars) keeps the canonical lexical form verbatim in a `String` (`raw`) as the round-trip source of truth, never normalised or rewritten. A canonical grammar (`VersionType`, `WildcardVersionType`: one lexeme per value) makes format-then-parse a bijection, so only the parsed decomposition is stored and `Display` reconstructs the lexeme.
 - **Validated at construction, never deferred:** `new()` checks the grammar (cheap, hand-rolled, `no_std` — no regex crate). Per D-0004 this runs on the single write path, so *every* caller (not just the parser) gets a well-formed object — a hand-built `SdmxDecimal("banana")` is uncallable. This replaces the earlier "defer grammar to the parser" approach (D-0024 Tier-A).
-- **Retain the cheap discriminant:** where validation naturally classifies the value (it must traverse the string to validate anyway), the classification is retained as cheap derived fields (`SdmxVersion`'s parsed components; `SdmxTimePeriod`'s `kind`; `ObservationalTimePeriod`'s member arms). Where no useful sub-kind exists, the bare newtype suffices (`SdmxDecimal`, `SdmxInteger`, `SdmxTimeRange`).
-- **Naming:** the `Sdmx` prefix is applied where the bare name collides in normal use — with well-known external types (`Decimal`↔`rust_decimal`, `Integer`↔primitives, `Version`↔semver crates, `TimePeriod`↔`chrono`) or with the crate's own vocabulary (`TimeRange` is the constraint selection type, so the lexeme is `SdmxTimeRange`). Distinctive names (`VersionRef`, `ObservationalTimePeriod`, `Codelist`, `Dimension`, …) and the per-crate `Error` (ADR-0006, path-disambiguated as `sdmx_types::Error`) stand bare.
+- **Retain the cheap discriminant:** where validation naturally classifies the value (it must traverse the string to validate anyway), the classification is retained as cheap derived fields (`SdmxVersion`'s parsed components; `SdmxTimePeriod`'s `kind`; `ObservationalTimePeriod`'s member arms; `SdmxDateTime`'s parsed date-time and stated offset — D-0079). Where no useful sub-kind exists, the bare newtype suffices (`SdmxDecimal`, `SdmxInteger`, `SdmxTimeRange`).
+- **Naming:** the `Sdmx` prefix is applied where the bare name collides in normal use — with well-known external types (`Decimal`↔`rust_decimal`, `Integer`↔primitives, `Version`↔semver crates, `TimePeriod`/`DateTime`↔`chrono`) or with the crate's own vocabulary (`TimeRange` is the constraint selection type, so the lexeme is `SdmxTimeRange`). Distinctive names (`VersionRef`, `ObservationalTimePeriod`, `Codelist`, `Dimension`, …) and the per-crate `Error` (ADR-0006, path-disambiguated as `sdmx_types::Error`) stand bare.
 
 ```rust
 use alloc::string::String;
@@ -272,6 +272,29 @@ impl TryFrom<SdmxDecimal> for SdmxInteger {
         Ok(SdmxInteger(d.0))
     }
 }
+
+// xs:dateTime — the artefact validity windows (VersionableType validFrom/validTo). Lexeme-
+// storing (D-0079): under the schemas' XSD 1.0 value model the dateTime value is the timeline
+// instant alone, so the stated offset is beyond-value content, and the offsetless spelling is
+// schema-valid — both survive only in the raw form. Equality and hashing are lexeme identity
+// (exactly as fine as the datum); the parsed date-time and stated offset are the retained
+// cheap discriminant behind value accessors, and instant comparison is an explicit method,
+// never Eq.
+pub struct SdmxDateTime {
+    raw: String, // the stated lexeme — round-trip source of truth
+    // derived at construction: the written date-time and the stated offset, each Option —
+    // offsetless is schema-valid, and the grammar admits forms chrono cannot represent
+    // (calendar-invalid days, out-of-range years), which degrade the value view only
+}
+
+impl SdmxDateTime {
+    pub fn new(s: String) -> Result<Self, Error> {
+        validate_xs_date_time(&s)?; // the shared Gregorian date-time grammar; offset optional
+        Ok(/* raw + derived discriminant */)
+    }
+    pub fn as_str(&self) -> &str { &self.raw }
+}
+// Custom Deserialize calls SdmxDateTime::new(); Serialize emits `raw` verbatim.
 
 // Ordered (language, text) entries in WIRE ORDER (D-0051): repeated Name/Description elements
 // arrive as a sequence; order and schema-valid duplicate language tags are preserved (no
@@ -479,16 +502,16 @@ impl NameableMetadata {
 pub struct VersionableMetadata {
     nameable: NameableMetadata,
     version: Option<SdmxVersion>,
-    valid_from: Option<DateTime<FixedOffset>>,
-    valid_to: Option<DateTime<FixedOffset>>,
+    valid_from: Option<SdmxDateTime>,
+    valid_to: Option<SdmxDateTime>,
 }
 
 impl VersionableMetadata {
     pub fn new(
         nameable: NameableMetadata,
         version: Option<SdmxVersion>,
-        valid_from: Option<DateTime<FixedOffset>>,
-        valid_to: Option<DateTime<FixedOffset>>,
+        valid_from: Option<SdmxDateTime>,
+        valid_to: Option<SdmxDateTime>,
     ) -> Self {
         Self { nameable, version, valid_from, valid_to }
     }
@@ -715,8 +738,8 @@ pub trait NameableArtefact: IdentifiableArtefact {
 pub trait VersionableArtefact: NameableArtefact {
     // Option: `None` is the spec's "un-versioned" state, distinct from any version value (D-0024).
     fn version(&self) -> Option<&SdmxVersion>;
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>>;
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>>;
+    fn valid_from(&self) -> Option<&SdmxDateTime>;
+    fn valid_to(&self) -> Option<&SdmxDateTime>;
 
     // Default method — every versioned artefact inherits the display path for free, with no
     // per-impl boilerplate. The `<unversioned>` sentinel is confined to VersionDisplay (§5.2);
@@ -790,8 +813,8 @@ impl NameableArtefact for VersionableMetadata {
 }
 impl VersionableArtefact for VersionableMetadata {
     fn version(&self) -> Option<&SdmxVersion> { self.version.as_ref() }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> { self.valid_from.as_ref() }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> { self.valid_to.as_ref() }
+    fn valid_from(&self) -> Option<&SdmxDateTime> { self.valid_from.as_ref() }
+    fn valid_to(&self) -> Option<&SdmxDateTime> { self.valid_to.as_ref() }
 }
 
 impl IdentifiableArtefact for MaintainableMetadata {
@@ -807,8 +830,8 @@ impl NameableArtefact for MaintainableMetadata {
 }
 impl VersionableArtefact for MaintainableMetadata {
     fn version(&self) -> Option<&SdmxVersion> { self.versionable.version() }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> { self.versionable.valid_from() }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> { self.versionable.valid_to() }
+    fn valid_from(&self) -> Option<&SdmxDateTime> { self.versionable.valid_from() }
+    fn valid_to(&self) -> Option<&SdmxDateTime> { self.versionable.valid_to() }
 }
 impl MaintainableArtefact for MaintainableMetadata {
     fn agency(&self) -> &str { &self.agency }
@@ -888,8 +911,8 @@ impl<I: SchemeItem> NameableArtefact for ItemScheme<I> {
 }
 impl<I: SchemeItem> VersionableArtefact for ItemScheme<I> {
     fn version(&self) -> Option<&SdmxVersion> { self.metadata.version() }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> { self.metadata.valid_from() }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> { self.metadata.valid_to() }
+    fn valid_from(&self) -> Option<&SdmxDateTime> { self.metadata.valid_from() }
+    fn valid_to(&self) -> Option<&SdmxDateTime> { self.metadata.valid_to() }
 }
 impl<I: SchemeItem> MaintainableArtefact for ItemScheme<I> {
     fn agency(&self) -> &str { self.metadata.agency() }
@@ -1023,8 +1046,8 @@ impl MaintainableArtefact for Codelist {
 }
 impl VersionableArtefact for Codelist {
     fn version(&self) -> Option<&SdmxVersion> { self.scheme.version() }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> { self.scheme.valid_from() }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> { self.scheme.valid_to() }
+    fn valid_from(&self) -> Option<&SdmxDateTime> { self.scheme.valid_from() }
+    fn valid_to(&self) -> Option<&SdmxDateTime> { self.scheme.valid_to() }
 }
 impl NameableArtefact for Codelist {
     fn names(&self) -> &LocalisedString { self.scheme.names() }
@@ -2844,7 +2867,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 - **`DataConstraint` Naming (earlier divergence reversed — D-0037):** An earlier draft named this type `ReportingConstraint` for "semantic clarity" (reporting limits on a dataflow). That reading did not survive the 3.0 `role` attribute: a 3.0 data constraint with `role="Actual"` states what data actually *exists* — not a reporting limit — so the invented name described only one of the type's two roles, while the type's own attachment enum (`DataConstraintAttachment`) already carried the spec name. The type is now named `DataConstraint`, matching `DataConstraintType` in both 3.0 and 3.1, per D-0002's rule that types map 1-to-1 to named spec concepts.
 - **`Link` Elements Modelled (earlier omission reversed — D-0035):** An earlier draft (D-0014) omitted `Link`, calling it a transport-layer HATEOAS affordance belonging in the HTTP envelope. That was a misreading of the schema: `LinkType` sits on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship (`rel`), a target `url`/`urn`, and a media-type hint — strictly more than the `uri` field can express. Reconstructing it from `uri`/`urn` is not possible (those are single identity fields, not a typed multi-valued association). So omitting it lost real, producer-supplied domain content — a lossless-superset defect (ADR-0008 #1). `Link` is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (the single `IdentifiableType` chokepoint), surfaced via `IdentifiableArtefact::links()`. See D-0035.
 - **`AvailabilityConstraint` Asymmetry in `ConstraintModel`:** The two variants of `ConstraintModel` are structurally asymmetric: `DataConstraint` is a maintainable, registerable artefact with `MaintainableMetadata`; `AvailabilityConstraint` is an ephemeral, non-maintainable response type with no registry identity. This asymmetry is intentional — it reflects the spec's own distinction. The asymmetry is precisely *maintainability*, not annotability: both extend `AnnotableType`, so both carry `annotations` (D-0033) — `DataConstraint` via its `MaintainableMetadata`, `AvailabilityConstraint` via a bare field. Both share the `ConstraintModel` enum because both express constraint semantics on a dataflow and are consumed by the same client code paths.
-- **`chrono::DateTime` for `validFrom`/`validTo`:** The spec defines these fields as `xs:dateTime`. A plain `String` was rejected as it allows arbitrary garbage. A lightweight validated newtype was considered but rejected in favour of first-class `chrono::DateTime<FixedOffset>` — this gives correct RFC 3339 parsing, formatting, and round-tripping with no future refactor cost. `chrono` is added as a dependency with `default-features = false, features = ["alloc"]`, which is safe for `no_std` + `alloc` and headless `wasm32-unknown-unknown` (the `clock`, `now`, and `wasmbind` features that require platform APIs are not enabled).
+- **`SdmxDateTime` for `validFrom`/`validTo` (earlier chrono storage superseded — D-0079):** The spec defines these fields as unrestricted `xs:dateTime`. An earlier draft stored them as first-class `chrono::DateTime<FixedOffset>` (D-0008), rejecting a plain `String` (arbitrary garbage) and a validated newtype ("defers the problem"). That storage could not represent the schema-valid offsetless spelling, rewrote spellings the wire distinguishes, and carried instant-only equality that merged stated-offset-distinct values — so D-0079 moved the windows to the lexeme-storing `SdmxDateTime`, whose stored text is the datum and whose identity is exactly as fine as it. `chrono` remains the value vocabulary of the derived accessors, as a dependency with `default-features = false, features = ["alloc"]`, safe for `no_std` + `alloc` and headless `wasm32-unknown-unknown` (the `clock`, `now`, and `wasmbind` features that require platform APIs are not enabled).
 
 ---
 
@@ -2896,7 +2919,7 @@ The following dependencies are used:
 
 - `serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }`
 - `thiserror = { version = "2.0", default-features = false }`
-- `chrono = { version = "0.4", default-features = false, features = ["alloc"] }` — for `xs:dateTime` typed fields (`validFrom`, `validTo`). The `clock`, `now`, and `wasmbind` default features are explicitly excluded as they require platform APIs incompatible with headless `wasm32-unknown-unknown`.
+- `chrono = { version = "0.4", default-features = false, features = ["alloc"] }` — the value vocabulary behind `SdmxDateTime`'s derived accessors (`validFrom`, `validTo`; D-0079). The `clock`, `now`, and `wasmbind` default features are explicitly excluded as they require platform APIs incompatible with headless `wasm32-unknown-unknown`.
 
 Dev dependencies (test only, do not affect `no_std` + alloc constraint):
 

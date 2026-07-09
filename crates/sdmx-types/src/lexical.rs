@@ -32,6 +32,8 @@ use alloc::{
     vec::Vec,
 };
 
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
+
 use crate::error::{Error, to_de_error};
 
 // ---------------------------------------------------------------------------
@@ -906,6 +908,140 @@ impl ObservationalTimePeriod {
 }
 
 // ---------------------------------------------------------------------------
+// xs:dateTime
+// ---------------------------------------------------------------------------
+
+/// An SDMX `xs:dateTime` value, stored losslessly as its stated lexeme.
+///
+/// ## Specification
+/// - **Schema**: W3C XML Schema (`xs`)
+/// - **Type**: `xs:dateTime`
+/// - **Element**: N/A (Primitive)
+/// - **Editions**: SDMX 3.0 and 3.1
+///
+/// Carries the artefact validity windows (`VersionableType.validFrom`/`validTo`), whose timezone
+/// is optional and unrestricted in both editions. The stored text is the datum: it is validated
+/// at construction, never rewritten, and round-trips verbatim, so a schema-valid offsetless value
+/// and the `Z` and `+00:00` spellings all survive. Equality and hashing are lexeme identity. The
+/// parsed date-time and stated offset are retained as a cheap derived discriminant and exposed
+/// through value accessors ([`date_time`](Self::date_time), [`offset`](Self::offset)); instant
+/// comparison is the explicit [`instant`](Self::instant) view, never `Eq`.
+///
+/// ## Guarantees
+///
+/// Round-trips losslessly through its text: `x.to_string().parse::<SdmxDateTime>() == Ok(x)`.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::SdmxDateTime;
+///
+/// let dt: SdmxDateTime = "2024-05-01T09:30:00+05:00".parse()?;
+/// assert_eq!(dt.as_str(), "2024-05-01T09:30:00+05:00");
+/// assert!(dt.offset().is_some());
+///
+/// // An offsetless lexeme is schema-valid and round-trips verbatim.
+/// let naive: SdmxDateTime = "2024-05-01T09:30:00".parse()?;
+/// assert_eq!(naive.as_str(), "2024-05-01T09:30:00");
+/// assert!(naive.offset().is_none());
+///
+/// // `Z` and `+00:00` are the same instant but distinct lexemes, so distinct values.
+/// let zulu: SdmxDateTime = "2024-05-01T09:30:00Z".parse()?;
+/// let plus: SdmxDateTime = "2024-05-01T09:30:00+00:00".parse()?;
+/// assert_ne!(zulu, plus);
+/// assert_eq!(zulu.instant(), plus.instant());
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Lexical newtype with lossless `String` storage (D-0079): under the supported schemas' XSD 1.0
+value model the `dateTime` value is the timeline instant alone, so the stated offset is beyond-value
+content, and the offsetless spelling is schema-valid; both survive only in the raw form, which is
+therefore load-bearing (the D-0070 fork). Equality and hashing derive over the raw lexeme plus the
+derived fields, but the derived fields are a deterministic function of the raw, so the relation is
+exactly lexeme identity, the same shape as `SdmxTimePeriod`'s `(raw, kind)`. The parsed date-time and
+stated offset are the retained cheap discriminant behind the value accessors; instant comparison is
+the explicit `instant()` view, never `Eq`. The name carries the `Sdmx` prefix because bare `DateTime`
+collides with `chrono` (D-0027 naming rule). Construction reuses the shared date-time grammar rather
+than re-implementing it, so its edge decisions (hour-24, year zero, leading-zero years, offset bounds)
+are shared with `SdmxTimePeriod` (D-0076).
+
+Decisions: D-0027, D-0074, D-0076, D-0079.
+"#
+)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct SdmxDateTime {
+    // The stated lexeme: the round-trip source of truth and the identity datum.
+    raw: String,
+    // Derived at construction (D-0079): the written date-time, offset-independent. `None` only for
+    // the grammar-admitted forms chrono cannot represent (a calendar-invalid day such as
+    // `2024-02-30`, which the shared classifier admits by design, or a year outside chrono's range).
+    date_time: Option<NaiveDateTime>,
+    // The stated timezone: `None` for a schema-valid offsetless lexeme, `Some` otherwise.
+    offset: Option<FixedOffset>,
+}
+
+impl SdmxDateTime {
+    /// Validates `raw` against the `xs:dateTime` grammar and stores it verbatim, retaining the
+    /// parsed date-time and stated offset as the derived discriminant.
+    ///
+    /// The timezone is optional; the shared date-time grammar's edge decisions (hour-24
+    /// end-of-day, year zero rejected, leading-zero years, `±14:00` offset bounds) apply.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidDateTime`] if `raw` is not a full `xs:date`, `T`, `hh:mm:ss`
+    /// with an optional fractional-seconds suffix and an optional timezone.
+    pub fn new(raw: String) -> Result<Self, Error> {
+        if classify_time_period(&raw) != Some(SdmxTimePeriodKind::DateTime) {
+            return Err(Error::InvalidDateTime(raw));
+        }
+        let (date_time, offset) = parse_xs_date_time(&raw);
+        Ok(Self { raw, date_time, offset })
+    }
+
+    /// The stated `xs:dateTime` string, exactly as supplied.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.raw
+    }
+
+    /// The written date-time, offset-independent (the local wall-clock reading).
+    ///
+    /// Two value-view adjustments apply here while the raw lexeme stays verbatim (D-0079): an
+    /// end-of-day `24:00:00` is normalised to `00:00:00` on the following day (XSD's own
+    /// mapping; `chrono` rejects hour 24), and a fractional-seconds part beyond nanosecond
+    /// precision is truncated. Returns `None` for a grammar-admitted lexeme `chrono` cannot
+    /// represent (a calendar-invalid day such as `2024-02-30`, or an out-of-range year), which
+    /// schema-valid wire never carries. A `None` here is the lint signal for such a stored
+    /// lexeme — a catalogued Layer-2 lint, not a construction error (D-0031).
+    #[must_use]
+    pub const fn date_time(&self) -> Option<NaiveDateTime> {
+        self.date_time
+    }
+
+    /// The stated timezone offset, or `None` for a schema-valid offsetless lexeme. The offset is
+    /// data: two windows that state different offsets are distinct even at the same instant.
+    #[must_use]
+    pub const fn offset(&self) -> Option<FixedOffset> {
+        self.offset
+    }
+
+    /// The instant this window denotes, present only when an offset is stated (an offsetless
+    /// lexeme fixes no point on the timeline). This is the explicit instant view: comparing two
+    /// values' instants tests same-moment equality, which `Eq` deliberately does not.
+    #[must_use]
+    pub fn instant(&self) -> Option<DateTime<FixedOffset>> {
+        let date_time = self.date_time?;
+        let offset = self.offset?;
+        offset.from_local_datetime(&date_time).single()
+    }
+}
+
+// ---------------------------------------------------------------------------
 // xs:duration
 // ---------------------------------------------------------------------------
 
@@ -1199,6 +1335,41 @@ impl PartialEq<&str> for ObservationalTimePeriod {
     }
 }
 
+impl core::fmt::Display for SdmxDateTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.raw)
+    }
+}
+
+impl core::str::FromStr for SdmxDateTime {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s.to_string())
+    }
+}
+
+impl AsRef<str> for SdmxDateTime {
+    fn as_ref(&self) -> &str {
+        &self.raw
+    }
+}
+
+/// String identity with the stored lexeme: compares the verbatim raw form, never a normalised
+/// view, so `Z` and `+00:00` and fractional-second padding stay distinct (D-0074, D-0079).
+impl PartialEq<str> for SdmxDateTime {
+    fn eq(&self, other: &str) -> bool {
+        self.raw == other
+    }
+}
+
+/// String identity with the stored lexeme, for the borrowed literal form.
+impl PartialEq<&str> for SdmxDateTime {
+    fn eq(&self, other: &&str) -> bool {
+        self.raw == *other
+    }
+}
+
 impl core::fmt::Display for SdmxDuration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.0)
@@ -1323,6 +1494,19 @@ impl serde::Serialize for ObservationalTimePeriod {
 }
 
 impl<'de> serde::Deserialize<'de> for ObservationalTimePeriod {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        Self::new(s).map_err(to_de_error)
+    }
+}
+
+impl serde::Serialize for SdmxDateTime {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&self.raw)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SdmxDateTime {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let s = String::deserialize(deserializer)?;
         Self::new(s).map_err(to_de_error)
@@ -1661,6 +1845,88 @@ fn num_in(s: &str, width: usize, lo: u32, hi: u32) -> bool {
     s.len() == width
         && s.bytes().all(|b| b.is_ascii_digit())
         && s.parse::<u32>().is_ok_and(|v| (lo..=hi).contains(&v))
+}
+
+/// Parses an already-validated `xs:dateTime` lexeme into its derived discriminant: the written
+/// date-time (offset-independent) and the stated timezone. Infallible in the timezone (the grammar
+/// range-checks it); the date-time is `Option` because the shared grammar admits forms `chrono`
+/// cannot represent (a calendar-invalid day, an out-of-range year), which schema-valid wire never
+/// carries. The raw lexeme is the source of truth; these are the cheap derived views (D-0079).
+fn parse_xs_date_time(raw: &str) -> (Option<NaiveDateTime>, Option<FixedOffset>) {
+    let (core, timezone) = split_timezone(raw);
+    let offset = match timezone {
+        None => None,
+        Some("Z") => FixedOffset::east_opt(0),
+        Some(numeric) => parse_numeric_offset(numeric),
+    };
+    let date_time = core.split_once('T').and_then(|(date, time)| build_naive_date_time(date, time));
+    (date_time, offset)
+}
+
+/// Parses a `±hh:mm` timezone (already range-validated) into a [`FixedOffset`].
+fn parse_numeric_offset(tz: &str) -> Option<FixedOffset> {
+    let sign = match tz.as_bytes().first()? {
+        b'+' => 1,
+        b'-' => -1,
+        _ => return None,
+    };
+    let hours: i32 = tz.get(1..3)?.parse().ok()?;
+    let minutes: i32 = tz.get(4..6)?.parse().ok()?;
+    FixedOffset::east_opt(sign * (hours * 3600 + minutes * 60))
+}
+
+/// Builds the written [`NaiveDateTime`] from an already-validated `xs:date` and time body. Applies
+/// the two value-view adjustments (D-0079): the end-of-day `24:00:00` maps to `00:00:00` on the
+/// following day (XSD's own mapping, which `chrono` rejects), and a fraction beyond nanosecond
+/// precision is truncated. Returns `None` for a day or year `chrono` cannot represent.
+fn build_naive_date_time(date: &str, time: &str) -> Option<NaiveDateTime> {
+    let (year, month, day) = parse_ymd(date)?;
+    let (hour, minute, second, nanos) = parse_hms(time)?;
+    let calendar_day = NaiveDate::from_ymd_opt(year, month, day)?;
+    let (calendar_day, hour) =
+        if hour == 24 { (calendar_day.succ_opt()?, 0) } else { (calendar_day, hour) };
+    let clock = NaiveTime::from_hms_nano_opt(hour, minute, second, nanos)?;
+    Some(NaiveDateTime::new(calendar_day, clock))
+}
+
+/// Splits an already-validated `xs:date` body (`[-]YYYY-MM-DD`) into numeric components. A leading
+/// `-` denotes a BC year, carried as a negative year.
+fn parse_ymd(date: &str) -> Option<(i32, u32, u32)> {
+    let (negative, body) = date.strip_prefix('-').map_or((false, date), |rest| (true, rest));
+    let mut parts = body.split('-');
+    let year: i32 = parts.next()?.parse().ok()?;
+    let month: u32 = parts.next()?.parse().ok()?;
+    let day: u32 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((if negative { -year } else { year }, month, day))
+}
+
+/// Splits an already-validated time body (`hh:mm:ss[.fraction]`) into numeric components, the
+/// fraction converted to nanoseconds. Hour `24` is passed through for the caller's end-of-day
+/// mapping.
+fn parse_hms(time: &str) -> Option<(u32, u32, u32, u32)> {
+    let (hms, fraction) = time.split_once('.').map_or((time, None), |(h, f)| (h, Some(f)));
+    let mut parts = hms.split(':');
+    let hour: u32 = parts.next()?.parse().ok()?;
+    let minute: u32 = parts.next()?.parse().ok()?;
+    let second: u32 = parts.next()?.parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((hour, minute, second, fraction.map_or(0, nanos_from_fraction)))
+}
+
+/// Converts an `xs:dateTime` fractional-seconds part (validated digits) to nanoseconds, truncating
+/// beyond nanosecond precision and right-padding shorter fractions to nine digits.
+fn nanos_from_fraction(fraction: &str) -> u32 {
+    let mut nanos = 0_u32;
+    let mut digits = fraction.bytes();
+    for _ in 0..9 {
+        nanos = nanos * 10 + u32::from(digits.next().map_or(0, |b| b - b'0'));
+    }
+    nanos
 }
 
 /// `TimeRangeType`: `start/duration` where the start is a full `xs:date` or `xs:dateTime`
@@ -2330,6 +2596,14 @@ mod tests {
             postcard::from_bytes::<ObservationalTimePeriod>(&postcard::to_allocvec(&bad).unwrap())
                 .is_err()
         );
+
+        crate::test_support::round_trip(
+            &SdmxDateTime::new(String::from("2024-05-01T09:30:00Z")).unwrap(),
+        );
+        let bad = String::from("2024-13-01T00:00:00");
+        assert!(
+            postcard::from_bytes::<SdmxDateTime>(&postcard::to_allocvec(&bad).unwrap()).is_err()
+        );
     }
 
     #[test]
@@ -2340,6 +2614,169 @@ mod tests {
         crate::test_support::round_trip(&SdmxDecimal::new(String::from("0.001")).unwrap());
         crate::test_support::round_trip(&SdmxInteger::new(String::from("-7")).unwrap());
         crate::test_support::round_trip(&SdmxTimePeriod::new(String::from("2024-Q4")).unwrap());
+    }
+
+    // -----------------------------------------------------------------------
+    // SdmxDateTime (D-0079)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn date_time_accepts_and_rejects() {
+        // The timezone is optional; the offsetless, Z, and numeric-offset spellings are all
+        // schema-valid, as are fractional seconds and the hour-24 end-of-day instant.
+        for ok in [
+            "2024-05-01T09:30:00",
+            "2024-05-01T09:30:00Z",
+            "2024-05-01T09:30:00+00:00",
+            "2024-05-01T09:30:00-05:30",
+            "2024-05-01T09:30:00.5",
+            "2024-05-01T24:00:00",
+        ] {
+            assert!(SdmxDateTime::new(ok.into()).is_ok(), "{ok:?} should be a valid xs:dateTime");
+        }
+        // Rejections: garbage, a bare date (no time), a reporting period, year zero, an
+        // out-of-range offset, and a leap second.
+        for bad in [
+            "banana",
+            "2024-05-01",
+            "2024-Q4",
+            "0000-01-01T00:00:00",
+            "2024-05-01T00:00:00+15:00",
+            "2024-05-01T09:30:60",
+        ] {
+            assert_eq!(
+                SdmxDateTime::new(bad.into()),
+                Err(Error::InvalidDateTime(String::from(bad))),
+                "{bad:?} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn date_time_round_trips_lexeme_byte_exact() {
+        use alloc::string::ToString;
+        // Every spelling the value model would collapse survives verbatim through Display and
+        // the serde projection (D-0079): offsetless, Z, +00:00, and a fractional part.
+        for raw in [
+            "2024-05-01T09:30:00",
+            "2024-05-01T09:30:00Z",
+            "2024-05-01T09:30:00+00:00",
+            "2024-05-01T09:30:00.500Z",
+        ] {
+            let dt = SdmxDateTime::new(raw.into()).unwrap();
+            assert_eq!(dt.to_string(), raw);
+            assert_eq!(dt.as_str(), raw);
+            assert_eq!(AsRef::<str>::as_ref(&dt), raw);
+            assert_eq!(dt.to_string().parse::<SdmxDateTime>(), Ok(dt.clone()));
+            assert_eq!(crate::test_support::round_trip(&dt).as_str(), raw);
+        }
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn date_time_identity_is_the_lexeme() {
+        fn hash_bytes(dt: &SdmxDateTime) -> alloc::vec::Vec<u8> {
+            #[derive(Default)]
+            struct ByteCollector(alloc::vec::Vec<u8>);
+            impl core::hash::Hasher for ByteCollector {
+                fn finish(&self) -> u64 {
+                    0
+                }
+                fn write(&mut self, bytes: &[u8]) {
+                    self.0.extend_from_slice(bytes);
+                }
+            }
+            let mut collector = ByteCollector::default();
+            core::hash::Hash::hash(dt, &mut collector);
+            collector.0
+        }
+
+        // `Z` and `+00:00` are the same instant but distinct lexemes: unequal and hash-distinct.
+        let zulu = SdmxDateTime::new(String::from("2024-05-01T09:30:00Z")).unwrap();
+        let plus = SdmxDateTime::new(String::from("2024-05-01T09:30:00+00:00")).unwrap();
+        assert_ne!(zulu, plus);
+        assert_ne!(hash_bytes(&zulu), hash_bytes(&plus));
+        // The `PartialEq<str>` operator (D-0074) is lexeme identity too.
+        assert_eq!(zulu, *"2024-05-01T09:30:00Z");
+        assert_ne!(zulu, *"2024-05-01T09:30:00+00:00");
+
+        // Identical lexemes are equal and hash equally.
+        let again = SdmxDateTime::new(String::from("2024-05-01T09:30:00Z")).unwrap();
+        assert_eq!(zulu, again);
+        assert_eq!(hash_bytes(&zulu), hash_bytes(&again));
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn date_time_value_views() {
+        let expected = NaiveDate::from_ymd_opt(2024, 5, 1)
+            .unwrap()
+            .and_time(NaiveTime::from_hms_opt(9, 30, 0).unwrap());
+
+        // Offsetless: a written date-time, no offset, and no instant (no point is fixed).
+        let naive = SdmxDateTime::new(String::from("2024-05-01T09:30:00")).unwrap();
+        assert_eq!(naive.date_time(), Some(expected));
+        assert_eq!(naive.offset(), None);
+        assert_eq!(naive.instant(), None);
+
+        // Stated offset: the offset is data and the instant is present.
+        let offset = SdmxDateTime::new(String::from("2024-05-01T09:30:00-05:30")).unwrap();
+        assert_eq!(offset.offset(), FixedOffset::east_opt(-(5 * 3600 + 30 * 60)));
+        assert!(offset.instant().is_some());
+
+        // Same instant, different spelling: distinct values, equal instants (via the views).
+        let zulu = SdmxDateTime::new(String::from("2024-05-01T09:30:00Z")).unwrap();
+        let plus = SdmxDateTime::new(String::from("2024-05-01T09:30:00+00:00")).unwrap();
+        assert_ne!(zulu, plus);
+        assert_eq!(zulu.instant(), plus.instant());
+        assert!(zulu.instant().is_some());
+
+        // Hour 24 is the end-of-day instant: the derived view is next-day 00:00:00, the raw
+        // lexeme is untouched.
+        let midnight = SdmxDateTime::new(String::from("2024-05-01T24:00:00")).unwrap();
+        assert_eq!(midnight.as_str(), "2024-05-01T24:00:00");
+        assert_eq!(
+            midnight.date_time(),
+            Some(
+                NaiveDate::from_ymd_opt(2024, 5, 2)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+            )
+        );
+
+        // Fractional seconds beyond nanosecond precision truncate in the view; the raw is kept.
+        let fraction = SdmxDateTime::new(String::from("2024-05-01T09:30:00.1234567891")).unwrap();
+        assert_eq!(fraction.as_str(), "2024-05-01T09:30:00.1234567891");
+        assert_eq!(
+            fraction.date_time(),
+            Some(
+                NaiveDate::from_ymd_opt(2024, 5, 1)
+                    .unwrap()
+                    .and_time(NaiveTime::from_hms_nano_opt(9, 30, 0, 123_456_789).unwrap())
+            )
+        );
+    }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn date_time_derived_view_absent_for_calendar_invalid_lexeme() {
+        // The shared grammar admits a calendar-invalid day (it does not re-implement month
+        // lengths), which chrono cannot represent, so the lexeme constructs and round-trips but
+        // has no derived date-time (D-0079). Schema-valid wire never carries such a value.
+        let invalid = SdmxDateTime::new(String::from("2024-02-30T00:00:00Z")).unwrap();
+        assert_eq!(invalid.as_str(), "2024-02-30T00:00:00Z");
+        assert_eq!(invalid.date_time(), None);
+        assert!(invalid.offset().is_some());
+        // No written date-time, so no instant even though an offset is stated.
+        assert_eq!(invalid.instant(), None);
+        crate::test_support::round_trip(&invalid);
+
+        // A BC year (leading `-`) is schema-valid and representable: the derived view carries it.
+        let bc = SdmxDateTime::new(String::from("-0044-03-15T12:00:00")).unwrap();
+        assert_eq!(bc.as_str(), "-0044-03-15T12:00:00");
+        assert!(bc.date_time().is_some());
     }
 
     #[test]

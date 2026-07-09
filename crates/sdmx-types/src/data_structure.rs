@@ -23,13 +23,11 @@ Decisions: D-0025, D-0045, D-0049, D-0052.
 
 use alloc::vec::Vec;
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     descriptor::{AttributeList, DimensionList, Group, MeasureList},
-    lexical::SdmxVersion,
+    lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     metadata::MaintainableMetadata,
 };
@@ -162,10 +160,10 @@ impl VersionableArtefact for DataStructureDefinition {
     fn version(&self) -> Option<&SdmxVersion> {
         self.metadata.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_to()
     }
 }
@@ -375,7 +373,7 @@ mod tests {
         }])
         .unwrap();
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
         let identifiable = IdentifiableMetadata::new(
             id.into(),
             Some(String::from("uri")),

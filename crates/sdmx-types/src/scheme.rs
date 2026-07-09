@@ -31,12 +31,10 @@ Decisions: D-0032, D-0051, D-0052, D-0078.
 
 use alloc::vec::Vec;
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
-    lexical::SdmxVersion,
+    lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     metadata::MaintainableMetadata,
     sealed,
@@ -189,10 +187,10 @@ impl<I: SchemeItem> VersionableArtefact for ItemScheme<I> {
     fn version(&self) -> Option<&SdmxVersion> {
         self.metadata.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_to()
     }
 }
@@ -315,7 +313,7 @@ mod tests {
         }])
         .unwrap();
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
         let identifiable = IdentifiableMetadata::new(
             String::from("CL_FREQ"),
             Some(String::from("uri")),
@@ -327,7 +325,7 @@ mod tests {
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, Some(descriptions)),
             Some(version),
-            Some(valid_from),
+            Some(valid_from.clone()),
             None,
         );
         let metadata = MaintainableMetadata::new(

@@ -33,13 +33,11 @@ Decisions: D-0018, D-0023, D-0054, D-0077.
 
 use alloc::{string::String, vec::Vec};
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     error::{Error, to_de_error},
-    lexical::SdmxVersion,
+    lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     metadata::{MaintainableMetadata, NameableMetadata},
     reference::CodelistReference,
@@ -463,10 +461,10 @@ impl VersionableArtefact for Codelist {
     fn version(&self) -> Option<&SdmxVersion> {
         self.scheme.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.scheme.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.scheme.valid_to()
     }
 }
@@ -595,11 +593,11 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn delegation_matrix_forwards_every_accessor() {
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
         let versionable = VersionableMetadata::new(
             full_nameable("CL_FREQ"),
             Some(version),
-            Some(valid_from),
+            Some(valid_from.clone()),
             None,
         );
         let metadata = MaintainableMetadata::new(

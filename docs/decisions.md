@@ -88,7 +88,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0005](#d-0005) | Encapsulation               | Invariant-bearing types use private fields and custom Deserialize → promoted to ADR-0021                                                                                                                                          |
 | [D-0006](#d-0006) | Collections                 | ~~BTreeMap used throughout~~ (superseded by [D-0051](#d-0051))                                                                                                                                                                    |
 | [D-0007](#d-0007) | String ownership            | Owned String for all text fields → promoted to ADR-0022                                                                                                                                                                           |
-| [D-0008](#d-0008) | DateTime typing             | chrono::DateTime for date-time fields                                                                                                                                                                                             |
+| [D-0008](#d-0008) | DateTime typing             | chrono::DateTime for date-time fields (superseded for the validity windows by [D-0079](#d-0079))                                                                                                                                  |
 | [D-0009](#d-0009) | Maintainable artefacts      | isFinal removed                                                                                                                                                                                                                   |
 | [D-0010](#d-0010) | Maintainable artefacts      | isPartialLanguage added (amended by [D-0052](#d-0052))                                                                                                                                                                            |
 | [D-0011](#d-0011) | Annotation                  | AnnotationURL is a vec of structs                                                                                                                                                                                                 |
@@ -154,13 +154,14 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0071](#d-0071) | Lexical types               | VersionRef models the version reference grammar (WildcardVersionType); one + wildcard enforced across editions                                                                                                                    |
 | [D-0072](#d-0072) | Lexical types               | ObservationalTimePeriod union carries TimePeriodRange.period; SdmxTimeRange models the TimeRangeType lexeme                                                                                                                       |
 | [D-0073](#d-0073) | Reference types             | Reference types own their class URN (Display/FromStr); versions typed VersionRef; + admitted everywhere, * nowhere                                                                                                                |
-| [D-0074](#d-0074) | Lexical types               | `PartialEq<str>` string identity on the lexeme-storing types only; raw-free grammar types take none (canonical semantics pre-agreed)                                                                                              |
+| [D-0074](#d-0074) | Lexical types               | `PartialEq<str>` string identity on the lexeme-storing types only; raw-free grammar types take none (canonical semantics pre-agreed) (amended by [D-0079](#d-0079))                                                               |
 | [D-0075](#d-0075) | Conventions                 | Schema-unbounded integers take u32 width where the value is a count or version component; the bound is a recorded deviation; lexeme newtypes where the value is the datum                                                         |
 | [D-0076](#d-0076) | Data structure              | Format-facet validity moves into the field types: time_interval takes the SdmxDuration newtype, the positiveInteger facets and MaxOccurs::Count take NonZeroU32; min_occurs stays u32                                             |
 | [D-0077](#d-0077) | Identifiers                 | Local reference ids validate their lexical tier at construction (edition union where divergent); D-0020 narrows to referential integrity; DimensionRef/MetadataAttributeUsage/Code promoted                                       |
 | [D-0078](#d-0078) | Conventions                 | Constructor entry path + aggregate exhaustive-surface cost recorded; SchemeItem and the four artefact traits sealed (unsealing on demand is the non-breaking path)                                                                |
+| [D-0079](#d-0079) | DateTime typing             | Artefact validity windows store the stated xs:dateTime lexeme; SdmxDateTime joins the raw-backed lexical family with lexeme identity and derived value views                                                                      |
 
-<!-- Next ID: D-0079 -->
+<!-- Next ID: D-0080 -->
 
 ## Entries
 
@@ -285,9 +286,11 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0008 — chrono::DateTime for date-time fields
 
+> **Superseded for the artefact validity windows 2026-07-09 by [D-0079](#d-0079)**: `validFrom`/`validTo` move to the lexeme-storing `SdmxDateTime` — offsetless `xs:dateTime` is schema-valid but unrepresentable here, spellings the wire distinguishes were rewritten on round-trip, and instant-only identity merged stated-offset-distinct values. The rejected "validated `DateTimeString` newtype" weighed a validation-only wrapper; D-0079 adopts a lexeme-datum newtype on representability, round-trip, and identity grounds. The chrono choice this entry records stands as the value vocabulary of `SdmxDateTime`'s derived accessors.
+
 | **Area**     | DateTime typing |
 | **Phase**    | M0 |
-| **Status**   | Active |
+| **Status**   | Active (superseded for the validity windows by [D-0079](#d-0079)) |
 | **Keywords** | datetime, chrono, no_std, spec-alignment |
 | **Spec ref** | [SDMXCommon.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L351-L374) |
 | **Source**   | [chrono docs](https://docs.rs/chrono/0.4/chrono/) |
@@ -1723,9 +1726,11 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0074 — `PartialEq<str>` confined to the lexeme-storing lexical types
 
+> **Amended 2026-07-09 by [D-0079](#d-0079)**: the raw-backed family gains `SdmxDateTime` (the artefact validity windows' `xs:dateTime` lexeme newtype); the operator extends to it as string identity with the stored lexeme.
+
 | **Area**     | Lexical types |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (family membership amended by [D-0079](#d-0079)) |
 | **Keywords** | partial-eq, string-comparison, operator-semantics, lexical, raw-backed, raw-free, api-surface, deferral |
 | **Related**  | [D-0027](#d-0027), [D-0060](#d-0060), [D-0070](#d-0070), [D-0071](#d-0071), [D-0072](#d-0072) |
 
@@ -1813,5 +1818,25 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: The three posture parts compose into one contract, and pricing it once keeps every future addition deliberate rather than accidental. The sealing is settled by asymmetry: unsealing later breaks nobody (implementors gain a possibility; users of bounds and calls are untouched), while sealing after downstream implementations exist breaks each one — so sealing now is the only choice that preserves both futures, including the original accommodation itself. It also keeps what §3 actually valued: generic processing over `I: SchemeItem` bounds survives sealing entirely; only external implementations close, a surface the crate intends to fill as further schemes are modelled.
 
 **Consequences**: (1) [D-0067](#d-0067)'s consequence (3) is amended: sealing lands on evolution grounds, not the invariant grounds that entry scoped; its decision that `ItemScheme<I>` stays public is untouched. (2) The §3 sealing policy gains the evolution axis — seal when openness would let a caller break an invariant you are responsible for, or would spend the room to grow a spec-coupled trait — and §7's reversibility claim is corrected. (3) A crate-private `sealed` module carries the bound; the five traits' rustdoc states the contract. (4) A trait member added on spec growth breaks no external implementor, because none can exist; consumers using bounds and calls are unaffected. (5) A future builder layer is additive (a MINOR event) by clause (1).
+
+---
+
+### D-0079 — Artefact validity windows store the stated xs:dateTime lexeme (SdmxDateTime)
+
+| **Area**     | DateTime typing |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | datetime, lexeme, statedness, representability, identity, round-trip, spec-alignment, superset |
+| **Spec ref** | [SDMXCommon.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXCommon.xsd#L347-L369) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXCommon.xsd#L351-L374) (`VersionableType.validFrom`/`validTo`, `xs:dateTime use="optional"`, both editions unrestricted); [XML Schema 1.1 Part 2 §3.3.7](https://www.w3.org/TR/xmlschema11-2/#dateTime) (value-space timezone offset; identity versus equality) |
+| **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §6, §7; [ADR-0023](adr/0023-two-layer-infoset-store-and-derived-views-architecture.md) |
+| **Related**  | [D-0008](#d-0008), [D-0027](#d-0027), [D-0052](#d-0052), [D-0064](#d-0064), [D-0074](#d-0074), [D-0076](#d-0076), [D-0077](#d-0077) |
+
+**Observation**: The artefact validity windows (`VersionableType.validFrom`/`validTo`) are stored as `chrono::DateTime<FixedOffset>` ([D-0008](#d-0008)), and three defects share that root. The offsetless lexeme is schema-valid — `xs:dateTime`'s timezone is optional and neither edition restricts the attributes — but unrepresentable: deserialisation requires an offset, so the model rejects wire both schemas accept, while the time grammar ([D-0076](#d-0076)) admits offsetless date-times in the positions it validates — one lexical question answered two ways, the [D-0077](#d-0077) inconsistency pattern. Identity excludes the stated offset (`DateTime<FixedOffset>` equality and hashing compare the instant alone), so stated-offset-distinct windows merge under `Eq` and in hashed collections, and the property suite asserts a (value, offset) tuple in place of bare equality. And the 0010 statedness rule classed the windows as value-storage on the XSD 1.1 value model ("the instant plus the stated numeric offset"), but the supported schemas are XSD 1.0, whose `dateTime` value space is the timeline instant alone: the stated offset the crate itself preserves is beyond-value content — the rule's own criterion for the lexeme class.
+
+**Decision**: `SdmxDateTime`, a raw-backed lexical newtype, carries the windows: the stored `xs:dateTime` lexeme is the datum, validated at construction against the crate's date-time grammar (offsetless admitted), emitted verbatim by `Display` and serde, with equality and hashing as lexeme identity and the [D-0074](#d-0074) string-comparison operator extended to it. The parsed value — the written date-time and the stated offset — is retained as the cheap derived discriminant and exposed through value accessors, with instant comparison an explicit method, never `Eq`. `VersionableMetadata` stores the type; the `VersionableArtefact` accessors expose it. [D-0008](#d-0008) is superseded for these fields; chrono remains the value vocabulary the derived accessors speak.
+
+**Rationale**: The two-class statedness rule stands; its dateTime clause was mis-classed by importing the 1.1 value model into a 1.0 schema corpus, and re-classing restores the rule's own criterion. Lexeme storage unifies the crate's treatment of the `xs:dateTime` grammar with the time family, which already holds its lexemes ([D-0027](#d-0027), [D-0076](#d-0076)), and it satisfies the store contract's round-trip guarantee for schema-valid wire the current type rejects or rewrites. Identity as fine as the datum can never merge distinguishable values — the coarser instant identity produced silent hashed-collection loss and forced the tuple workaround — and XSD 1.1's own identity/equality distinction ("equal but not identical") gives the derived comparisons a citable spec model. The alternatives fell in order: manual `Eq`/`Hash` over the chrono type left the primitive in the public API and closed neither the offsetless nor the spelling gap; a value-tuple type preserved the 1.1 value but collapsed spellings the wire distinguishes; recording the offsetless rejection as a deliberate cut contradicted both the store contract and the time grammar.
+
+**Consequences**: (1) [D-0008](#d-0008) is amended: superseded for the validity windows; its chrono choice stands as the value vocabulary. (2) [D-0074](#d-0074) is amended: the raw-backed family gains `SdmxDateTime`. (3) The 0010 statedness rule's dateTime clause moves to the lexeme class with the XSD 1.0 value-model correction; `VersionableMetadata`, the trait accessors, the class diagram, and the naming rule (`DateTime` collides with chrono's) follow. (4) The trait-level stated-offset contract prose and the property suite's tuple-assertion helper are retired: bare `Eq` asserts strictly more. (5) The internal serde spine changes shape for these fields (the stored lexeme in place of chrono's RFC 3339 emission) — an internal projection, not a wire format ([D-0063](#d-0063)). (6) Scope is the `VersionableType` windows alone: per [D-0064](#d-0064) consequence (6), other `xs:dateTime` constructs (registry registration, dataset header) take their own validity types when modelled, with `SdmxDateTime` available to them. (7) The date-time grammar's edge cases (hour-24 end-of-day, year zero, leading-zero years) stand as the classifier decided them; none are re-opened here.
 
 ---

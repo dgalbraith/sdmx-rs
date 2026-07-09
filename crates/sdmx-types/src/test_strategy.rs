@@ -22,7 +22,6 @@ use alloc::{
 };
 use core::num::NonZeroU32;
 
-use chrono::{DateTime, FixedOffset};
 use proptest::prelude::*;
 
 use crate::{
@@ -41,10 +40,10 @@ use crate::{
     MaintainableMetadata, MaxOccurs, Measure, MeasureList, MeasureRelationship, MemberValue,
     MemberValues, MetadataAttributeUsage, NameableMetadata, ObservationalTimePeriod,
     ProvisionAgreementReference, ProvisionAgreementRefs, QueryableDataSource, ReleaseCalendar,
-    Representation, RepresentationChoice, SdmxDecimal, SdmxDuration, SdmxInteger, SdmxTimePeriod,
-    SdmxVersion, SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues,
-    TextFormat, TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage, ValueItem,
-    ValueList, ValueListReference, VersionRef, VersionableMetadata,
+    Representation, RepresentationChoice, SdmxDateTime, SdmxDecimal, SdmxDuration, SdmxInteger,
+    SdmxTimePeriod, SdmxVersion, SimpleComponentValue, SimpleComponentValues, SimpleDataSources,
+    SimpleKeyValues, TextFormat, TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage,
+    ValueItem, ValueList, ValueListReference, VersionRef, VersionableMetadata,
 };
 
 // ---------------------------------------------------------------------------
@@ -332,30 +331,32 @@ pub(crate) fn nested_ncname_lexeme() -> impl Strategy<Value = String> {
 }
 
 // ---------------------------------------------------------------------------
-// chrono (Q-G: the stated offset is generated independently of the instant)
+// xs:dateTime (lexeme-backed, D-0079)
 // ---------------------------------------------------------------------------
 
-/// A `DateTime<FixedOffset>` whose instant, subsecond precision, and stated offset are all
-/// generated independently, with whole-hour, quarter-hour, and arbitrary-minute offsets
-/// across the XSD `±14:00` window — the spread the stated-offset round-trip contract needs.
-pub(crate) fn fixed_offset_datetime() -> impl Strategy<Value = DateTime<FixedOffset>> {
-    let offset_minutes = prop_oneof![
-        (-14_i32..=14).prop_map(|hours| hours * 60),
-        (-56_i32..=56).prop_map(|quarters| quarters * 15),
-        -840_i32..=840,
+/// An `SdmxDateTime` lexeme spanning the spelling variety its round-trip contract must preserve
+/// byte-for-byte: offsetless, `Z`, `+00:00`, and assorted numeric `±hh:mm` offsets, with an
+/// optional fractional-seconds part. Identity is the stored text (D-0079), so the generator
+/// deliberately varies spellings the value model collapses (`Z` versus `+00:00`).
+pub(crate) fn sdmx_date_time() -> impl Strategy<Value = SdmxDateTime> {
+    // Numeric offsets stay in `1..=13` hours to avoid the `±14:00` boundary (where the grammar
+    // requires zero minutes); `Z` and `+00:00` cover the zero-offset spellings explicitly.
+    let timezone = prop_oneof![
+        Just(String::new()),
+        Just(String::from("Z")),
+        Just(String::from("+00:00")),
+        (1..=13u32, 0..=59u32).prop_map(|(h, m)| format!("+{h:02}:{m:02}")),
+        (1..=13u32, 0..=59u32).prop_map(|(h, m)| format!("-{h:02}:{m:02}")),
     ];
-    // Seconds spanning roughly 1841..2159 with optional subsecond nanos.
-    (
-        -4_000_000_000_i64..6_000_000_000,
-        prop_oneof![Just(0_u32), 0_u32..1_000_000_000],
-        offset_minutes,
-    )
-        .prop_map(|(seconds, nanos, minutes)| {
-            let offset = FixedOffset::east_opt(minutes * 60).expect("offset within bounds");
-            DateTime::from_timestamp(seconds, nanos)
-                .expect("timestamp within chrono range")
-                .with_timezone(&offset)
+    let fraction = prop_oneof![Just(String::new()), (0..=999u32).prop_map(|f| format!(".{f:03}"))];
+    (1900..=2100u32, 1..=12u32, 1..=28u32, 0..=23u32, 0..=59u32, 0..=59u32, fraction, timezone)
+        .prop_map(|(year, month, day, hour, minute, second, fraction, timezone)| {
+            let lexeme = format!(
+                "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}{fraction}{timezone}"
+            );
+            SdmxDateTime::new(lexeme).expect("generator emits a valid xs:dateTime")
         })
+        .boxed()
 }
 
 // ---------------------------------------------------------------------------
@@ -428,8 +429,8 @@ fn versionable_metadata_from(
     (
         nameable_metadata_from(id),
         proptest::option::of(sdmx_version()),
-        proptest::option::of(fixed_offset_datetime()),
-        proptest::option::of(fixed_offset_datetime()),
+        proptest::option::of(sdmx_date_time()),
+        proptest::option::of(sdmx_date_time()),
     )
         .prop_map(|(nameable, version, valid_from, valid_to)| {
             VersionableMetadata::new(nameable, version, valid_from, valid_to)

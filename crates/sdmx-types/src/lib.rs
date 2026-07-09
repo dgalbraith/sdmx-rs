@@ -111,7 +111,7 @@ pub use crate::{
     error::Error,
     fixed::FixedInclude,
     lexical::{
-        Granularity, ObservationalTimePeriod, SdmxDecimal, SdmxDuration, SdmxInteger,
+        Granularity, ObservationalTimePeriod, SdmxDateTime, SdmxDecimal, SdmxDuration, SdmxInteger,
         SdmxTimePeriod, SdmxTimePeriodKind, SdmxTimeRange, SdmxVersion, VersionDisplay, VersionRef,
         WildcardPosition,
     },
