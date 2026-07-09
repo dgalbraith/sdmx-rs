@@ -70,6 +70,10 @@ jobs:
       xsd: ${{ steps.filter.outputs.xsd }}
       decisionrefs: ${{ steps.filter.outputs.decisionrefs }}
       cigate: ${{ steps.filter.outputs.cigate }}
+      security: ${{ steps.filter.outputs.security }}
+      formatting: ${{ steps.filter.outputs.formatting }}
+      coveragecfg: ${{ steps.filter.outputs.coveragecfg }}
+      releasecfg: ${{ steps.filter.outputs.releasecfg }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -117,12 +121,28 @@ jobs:
               - 'forge/github/ci-gating-jobs.json'
               - 'docs/project/ci-gating.md'
               - 'scripts/verify-ci-gate.sh'
+            # Root policy/config files whose only consumer is a single gated job.
+            # Narrow per-concern groups (like the three above) so a lone edit still
+            # triggers the check that enforces the file, instead of being swept into
+            # the broad `rust` filter (which would also fire clippy, the test matrix,
+            # MSRV, and coverage). No hyphen in the names: `outputs.coverage-cfg`
+            # would parse as subtraction.
+            security:
+              - 'deny.toml'
+            formatting:
+              - 'rustfmt.toml'
+              - 'taplo.toml'
+            coveragecfg:
+              - 'codecov.yaml'
+            releasecfg:
+              - 'cliff.toml'
+              - 'release.toml'
 
   check-formatting:
     name: Formatting & Import Sort Check
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.formatting == 'true'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -354,7 +374,7 @@ jobs:
     name: Supply Chain Audit
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.security == 'true'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -399,7 +419,7 @@ jobs:
     name: Code Coverage Check
     runs-on: ubuntu-latest
     needs: [changes]
-    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true'
+    if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.coveragecfg == 'true'
     env:
       RUSTC_WRAPPER: sccache
     steps:
@@ -754,8 +774,9 @@ jobs:
     needs: [changes]
     # Never on PRs: a dry-run packages every crate, which is slow and irrelevant
     # to review feedback. Runs on main/tag pushes and the weekly schedule when
-    # Rust or infra changed, so packaging breakage surfaces before a real release.
-    if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true')
+    # Rust, infra, or the release configs changed, so packaging breakage surfaces
+    # before a real release.
+    if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.releasecfg == 'true')
     env:
       RUSTC_WRAPPER: sccache
     steps:
