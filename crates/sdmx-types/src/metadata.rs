@@ -26,13 +26,11 @@ Decisions: D-0031, D-0052.
 
 use alloc::{string::String, vec::Vec};
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     error::{Error, to_de_error},
-    lexical::SdmxVersion,
+    lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     validate::{validate_id, validate_nested_ncname},
 };
@@ -222,8 +220,8 @@ pub struct VersionableMetadata {
     // un-versioned" and assigns no default, so `None` is a distinct state, not a synonym for a
     // version value (D-0024).
     version: Option<SdmxVersion>,
-    valid_from: Option<DateTime<FixedOffset>>,
-    valid_to: Option<DateTime<FixedOffset>>,
+    valid_from: Option<SdmxDateTime>,
+    valid_to: Option<SdmxDateTime>,
 }
 
 impl VersionableMetadata {
@@ -233,8 +231,8 @@ impl VersionableMetadata {
     pub const fn new(
         nameable: NameableMetadata,
         version: Option<SdmxVersion>,
-        valid_from: Option<DateTime<FixedOffset>>,
-        valid_to: Option<DateTime<FixedOffset>>,
+        valid_from: Option<SdmxDateTime>,
+        valid_to: Option<SdmxDateTime>,
     ) -> Self {
         Self { nameable, version, valid_from, valid_to }
     }
@@ -271,10 +269,10 @@ impl VersionableArtefact for VersionableMetadata {
     fn version(&self) -> Option<&SdmxVersion> {
         self.version.as_ref()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.valid_from.as_ref()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.valid_to.as_ref()
     }
 }
@@ -285,8 +283,8 @@ impl<'de> serde::Deserialize<'de> for VersionableMetadata {
         struct Raw {
             nameable: NameableMetadata,
             version: Option<SdmxVersion>,
-            valid_from: Option<DateTime<FixedOffset>>,
-            valid_to: Option<DateTime<FixedOffset>>,
+            valid_from: Option<SdmxDateTime>,
+            valid_to: Option<SdmxDateTime>,
         }
         let raw = Raw::deserialize(deserializer)?;
         Ok(Self::new(raw.nameable, raw.version, raw.valid_from, raw.valid_to))
@@ -405,10 +403,10 @@ impl VersionableArtefact for MaintainableMetadata {
     fn version(&self) -> Option<&SdmxVersion> {
         self.versionable.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.versionable.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.versionable.valid_to()
     }
 }
@@ -578,7 +576,7 @@ mod tests {
         }])
         .unwrap();
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
 
         // Build the full chain with every optional field populated.
         let identifiable = IdentifiableMetadata::new(
@@ -590,8 +588,12 @@ mod tests {
         )
         .unwrap();
         let nameable = NameableMetadata::new(identifiable, names(), Some(descriptions));
-        let versionable =
-            VersionableMetadata::new(nameable.clone(), Some(version), Some(valid_from), None);
+        let versionable = VersionableMetadata::new(
+            nameable.clone(),
+            Some(version),
+            Some(valid_from.clone()),
+            None,
+        );
         let maintainable = MaintainableMetadata::new(
             versionable.clone(),
             String::from("ESTAT"),
@@ -740,20 +742,19 @@ mod tests {
     }
 
     // Property tests: the internal serde round-trip over the generated metadata spine (see
-    // `test_strategy`). The datetime-bearing leaves additionally assert the stated-offset
-    // tuple: `DateTime<FixedOffset>` equality compares the instant only, and the offset is
-    // data (Q-G). wasm32 is excluded with the rest of the property suite.
+    // `test_strategy`). The datetime-bearing leaves need no extra assertion: `SdmxDateTime`
+    // equality is lexeme identity, so bare `Eq` in `round_trip` already asserts the stated
+    // offset and spelling survive (D-0079). wasm32 is excluded with the rest of the suite.
     #[cfg(not(target_arch = "wasm32"))]
     mod prop {
         use proptest::prelude::*;
 
-        use super::super::*;
         use crate::{
             test_strategy::{
                 identifiable_metadata, maintainable_metadata, nameable_metadata,
                 versionable_metadata,
             },
-            test_support::{round_trip, with_stated_offset},
+            test_support::round_trip,
         };
 
         proptest! {
@@ -768,33 +769,13 @@ mod tests {
             }
 
             #[test]
-            fn versionable_metadata_round_trips_with_stated_offsets(
-                value in versionable_metadata(),
-            ) {
-                let restored = round_trip(&value);
-                prop_assert_eq!(
-                    with_stated_offset(value.valid_from()),
-                    with_stated_offset(restored.valid_from())
-                );
-                prop_assert_eq!(
-                    with_stated_offset(value.valid_to()),
-                    with_stated_offset(restored.valid_to())
-                );
+            fn versionable_metadata_round_trips(value in versionable_metadata()) {
+                round_trip(&value);
             }
 
             #[test]
-            fn maintainable_metadata_round_trips_with_stated_offsets(
-                value in maintainable_metadata(),
-            ) {
-                let restored = round_trip(&value);
-                prop_assert_eq!(
-                    with_stated_offset(value.valid_from()),
-                    with_stated_offset(restored.valid_from())
-                );
-                prop_assert_eq!(
-                    with_stated_offset(value.valid_to()),
-                    with_stated_offset(restored.valid_to())
-                );
+            fn maintainable_metadata_round_trips(value in maintainable_metadata()) {
+                round_trip(&value);
             }
         }
     }

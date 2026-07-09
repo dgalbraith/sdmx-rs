@@ -34,13 +34,11 @@ Decisions: D-0020, D-0023, D-0028, D-0048, D-0077.
 
 use alloc::string::String;
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     error::{Error, to_de_error},
-    lexical::SdmxVersion,
+    lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     metadata::{MaintainableMetadata, NameableMetadata},
     representation::{Representation, validate_basic_representation},
@@ -316,10 +314,10 @@ impl VersionableArtefact for ConceptScheme {
     fn version(&self) -> Option<&SdmxVersion> {
         self.scheme.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.scheme.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.scheme.valid_to()
     }
 }
@@ -608,9 +606,14 @@ mod tests {
     #[test]
     fn delegation_matrix_forwards_every_accessor() {
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
         let metadata = MaintainableMetadata::new(
-            VersionableMetadata::new(full_nameable("CS_X"), Some(version), Some(valid_from), None),
+            VersionableMetadata::new(
+                full_nameable("CS_X"),
+                Some(version),
+                Some(valid_from.clone()),
+                None,
+            ),
             String::from("ESTAT"),
             Some(true),
             Some(true),

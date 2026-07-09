@@ -23,11 +23,9 @@ Decisions: D-0024, D-0031, D-0035, D-0052, D-0078.
 "#
 )]
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
-    lexical::{SdmxVersion, VersionDisplay},
+    lexical::{SdmxDateTime, SdmxVersion, VersionDisplay},
     localised::LocalisedString,
     sealed,
 };
@@ -96,16 +94,16 @@ pub trait VersionableArtefact: NameableArtefact + sealed::Sealed {
     fn version(&self) -> Option<&SdmxVersion>;
     /// The start of the artefact's validity window, if any.
     ///
-    /// The preserved datum is the XSD `dateTime` value: the instant *and* the stated
-    /// numeric offset. The stated offset is data — a document stating `+05:00` and its UTC
-    /// equivalent are distinct — and survives the round-trip, even though
-    /// `DateTime<FixedOffset>` equality compares the instant alone. The spelling
-    /// distinctions XSD's own lexical-to-value mapping collapses (`Z` versus `+00:00`,
-    /// fractional-second zero padding) are deliberately not preserved.
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>>;
-    /// The end of the artefact's validity window, if any. Carries the same stated-offset
-    /// contract as [`valid_from`](Self::valid_from).
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>>;
+    /// The datum is the stored `xs:dateTime` lexeme: preserved and round-tripped verbatim, so
+    /// a schema-valid offsetless value and the distinct `Z` and `+00:00` spellings all survive
+    /// (D-0079). Identity is that stored text, so two windows whose lexemes differ are distinct
+    /// even at the same instant. The written date-time and stated offset are the type's value
+    /// views ([`SdmxDateTime::date_time`], [`SdmxDateTime::offset`]); same-moment comparison is
+    /// the explicit [`SdmxDateTime::instant`] view, never `Eq`.
+    fn valid_from(&self) -> Option<&SdmxDateTime>;
+    /// The end of the artefact's validity window, if any. Carries the same lexeme-storage and
+    /// identity contract as [`valid_from`](Self::valid_from).
+    fn valid_to(&self) -> Option<&SdmxDateTime>;
 
     /// A `Display` adapter for the version that renders `<unversioned>` when absent. Every
     /// versionable artefact inherits this display path for free; it is for display and logging

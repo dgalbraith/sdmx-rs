@@ -50,15 +50,13 @@ Decisions: D-0026, D-0027, D-0031, D-0038, D-0040, D-0052, D-0064.
 
 use alloc::{string::String, vec::Vec};
 
-use chrono::{DateTime, FixedOffset};
-
 use crate::{
     annotation::{Annotation, Link},
     artefact::{IdentifiableArtefact, MaintainableArtefact, NameableArtefact, VersionableArtefact},
     codelist::Cascade,
     error::{Error, to_de_error},
     fixed::FixedInclude,
-    lexical::{ObservationalTimePeriod, SdmxTimePeriod, SdmxVersion},
+    lexical::{ObservationalTimePeriod, SdmxDateTime, SdmxTimePeriod, SdmxVersion},
     localised::LocalisedString,
     metadata::MaintainableMetadata,
     reference::{
@@ -2079,10 +2077,10 @@ impl VersionableArtefact for DataConstraint {
     fn version(&self) -> Option<&SdmxVersion> {
         self.metadata.version()
     }
-    fn valid_from(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_from(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_from()
     }
-    fn valid_to(&self) -> Option<&DateTime<FixedOffset>> {
+    fn valid_to(&self) -> Option<&SdmxDateTime> {
         self.metadata.valid_to()
     }
 }
@@ -3283,7 +3281,7 @@ mod tests {
     fn data_constraint_forwards_every_artefact_accessor() {
         use crate::metadata::{IdentifiableMetadata, NameableMetadata, VersionableMetadata};
         let version = SdmxVersion::new(String::from("1.2.3")).unwrap();
-        let valid_from = DateTime::parse_from_rfc3339("2024-01-01T00:00:00+00:00").unwrap();
+        let valid_from = SdmxDateTime::new(String::from("2024-01-01T00:00:00+00:00")).unwrap();
         let annotation = Annotation {
             id: Some(String::from("a1")),
             annotation_type: None,
@@ -3319,7 +3317,7 @@ mod tests {
         let versionable = VersionableMetadata::new(
             NameableMetadata::new(identifiable, names, Some(descriptions)),
             Some(version),
-            Some(valid_from),
+            Some(valid_from.clone()),
             None,
         );
         let metadata = MaintainableMetadata::new(

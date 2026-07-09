@@ -40,7 +40,7 @@ failure as an off-tier declared id, and the empty lexeme is just one off-grammar
 bespoke empty variant (the `Empty*` family is reserved for list-cardinality invariants). The
 identifier-failure messages delimit the offending lexeme so that case renders unambiguously.
 
-Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052, D-0076, D-0077.
+Decisions: D-0021, D-0023, D-0027, D-0031, D-0034, D-0036, D-0038, D-0039, D-0040, D-0044, D-0048, D-0052, D-0076, D-0077, D-0079.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, thiserror::Error)]
@@ -137,6 +137,12 @@ pub enum Error {
         "Invalid SDMX observational time period: {0}. Must match ObservationalTimePeriodType (a standard time period or a time range)."
     )]
     InvalidObservationalTimePeriod(String),
+
+    /// A value failed the `xs:dateTime` lexical grammar: a full `xs:date`, `T`, then
+    /// `hh:mm:ss` with an optional fractional-seconds suffix and an optional timezone
+    /// (`Z` or `±hh:mm`). Produced by [`SdmxDateTime::new`](crate::SdmxDateTime::new).
+    #[error("Invalid xs:dateTime value: {0}.")]
+    InvalidDateTime(String),
 
     /// A value failed the `xs:duration` lexical grammar: an optional leading `-`, `P`, then
     /// ordered date components (`nY nM nD`) and an optional `T` with ordered time components
