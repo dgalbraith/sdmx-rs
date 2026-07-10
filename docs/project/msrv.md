@@ -15,7 +15,7 @@ The workspace `rust-version` field in `Cargo.toml` defines the **Minimum Support
 
 ### MSRV Declaration Layout (Why Per-Crate, Not Inherited)
 
-The `[workspace.package].rust-version` field is the **canonical** MSRV. Each member crate, however, **redeclares the same value as a literal** (`rust-version = "1.91.0"`) rather than inheriting it via `rust-version.workspace = true`. This duplication is deliberate, for two independent reasons:
+The `[workspace.package].rust-version` field is the **canonical** MSRV. Each member crate, however, **redeclares the same value as a literal** (`rust-version = "1.92.0"`) rather than inheriting it via `rust-version.workspace = true`. This duplication is deliberate, for two independent reasons:
 
 - **Tooling compatibility.** `cargo-msrv` (used by the scheduled `check-msrv` CI job) reads crate manifests directly and cannot resolve a workspace-inherited `rust-version` — an inherited value would leave it unable to determine the MSRV. Manifest-parsing tools generally need the literal present. (Note: `cargo metadata` *does* flatten inheritance, so the `msrv-verify` job's extraction would work either way; the literal is required for the weakest tool in the chain.)
 - **Automated updates.** [`scripts/update-msrv.sh`](../../scripts/update-msrv.sh) reads `[workspace.package].rust-version` as the source of truth (cross-checking it against `rust-toolchain.toml`), then rewrites the literal in every manifest with a `sed` substitution keyed on the exact `rust-version = "<old>"` string. A crate using `rust-version.workspace = true` would silently be skipped by that substitution.

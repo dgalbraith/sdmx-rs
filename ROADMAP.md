@@ -33,7 +33,7 @@ Crate versions track phases. All crates move in lockstep at the same version unt
 Establishing the workspace foundation before any domain code is written.
 
 - [x] **Multi-crate workspace layout**: Isolated compilation boundaries across `sdmx-types`, `sdmx-parsers`, `sdmx-writers`, `sdmx-client`, and `sdmx-rs` (facade meta-crate)
-- [x] **Deterministic toolchain**: Nix Flake + `direnv` pinning Rust 1.91.0 and all system tools cryptographically via `flake.lock`
+- [x] **Deterministic toolchain**: Nix Flake + `direnv` pinning Rust 1.92.0 and all system tools cryptographically via `flake.lock`
 - [x] **Quality gates**: Strict formatting (via Nix nightly `rustfmt`), `cargo clippy --workspace` (zero warnings), `cargo deny check`, and `cargo test --workspace` enforced locally and in CI
 - [x] **Dependency auditing**: `cargo-deny` configured for license allowlisting and RustSec advisory database checks
 - [x] **Coverage tracking**: `cargo-llvm-cov` wired into CI with Codecov reporting

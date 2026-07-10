@@ -420,6 +420,50 @@ EOF
     grep -q 'rust-version = "1.92.0"' docs/project/msrv.md
 }
 
+@test "update-msrv: rewrites the docs/project/msrv.md canonical rust-version literal" {
+    # The declaration-layout section states the current per-crate literal inline as
+    # (`rust-version = "<msrv>"`); it is a current-value site and must track every bump
+    # alongside the manual-path pins. Full run required: --dry-run exits before mutations.
+    grep -q '(`rust-version = "1.91.0"`)' docs/project/msrv.md   # precondition
+    mock_just
+    mock_nix
+    run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
+    [ "$status" -eq 0 ]
+    grep -q '(`rust-version = "1.92.0"`)' docs/project/msrv.md
+    ! grep -q '(`rust-version = "1.91.0"`)' docs/project/msrv.md
+}
+
+@test "update-msrv: leaves the docs/project/msrv.md worked-example command lines untouched" {
+    # The `just update-msrv ...` examples encode last->current (raise) and hypothetical
+    # (downgrade) version pairs, not current-value sites, so the mechanism must not rewrite
+    # them. The downgrade example's 1.85.0 target is a stable witness: it is neither the old
+    # nor the new MSRV, so a bump that touched the line would be visible here.
+    grep -q 'just update-msrv --downgrade 1\.91\.0 1\.85\.0' docs/project/msrv.md   # precondition
+    mock_just
+    mock_nix
+    run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
+    [ "$status" -eq 0 ]
+    # Neither version in the downgrade worked-example pair moved.
+    grep -q 'just update-msrv --downgrade 1\.91\.0 1\.85\.0' docs/project/msrv.md
+}
+
+# ==============================================================================
+# ROADMAP toolchain-pin sync
+# ==============================================================================
+
+@test "update-msrv: rewrites the ROADMAP.md deterministic-toolchain Rust pin" {
+    # ROADMAP.md's deterministic-toolchain bullet states the current pinned Rust as a
+    # current-value site, so it must track every bump. Full run required: --dry-run exits
+    # before file mutations.
+    grep -q 'pinning Rust 1\.91\.0' ROADMAP.md   # precondition
+    mock_just
+    mock_nix
+    run_isolated "scripts/update-msrv.sh" 1.91.0 1.92.0
+    [ "$status" -eq 0 ]
+    grep -q 'pinning Rust 1\.92\.0' ROADMAP.md
+    ! grep -q 'pinning Rust 1\.91\.0' ROADMAP.md
+}
+
 # ==============================================================================
 # File Path Validation
 # ==============================================================================

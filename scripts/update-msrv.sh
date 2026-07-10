@@ -25,7 +25,8 @@
 #   3. Compares clippy output between old and new MSRV (warns on divergence)
 #   4. Updates all Cargo.toml files (workspace + 5 crates)
 #   5. Updates rust-toolchain.toml, maintenance.toml, README.md, crates/*/README.md,
-#      docs/project/msrv.md, and the facade release-notes template's "Current MSRV" line
+#      ROADMAP.md, docs/project/msrv.md, and the facade release-notes template's
+#      "Current MSRV" line
 #   6. Runs full verification (just verify)
 #   7. Stages files for developer review and commit
 #   8. Prints breaking-change warning and suggested commit message
@@ -35,7 +36,7 @@
 #   2. Updates rust-toolchain.toml
 #   3. SKIPS maintenance.toml (no review obligation)
 #   4. Updates README.md, crates/*/README.md, and CONTRIBUTING.md
-#   5. Updates docs/project/msrv.md version references and the facade
+#   5. Updates ROADMAP.md, docs/project/msrv.md version references and the facade
 #      release-notes template's "Current MSRV" line
 #   6. Runs full verification (just verify)
 #   7. Stages files for developer review and commit
@@ -352,6 +353,11 @@ for crate_readme in crates/*/README.md; do
 done
 log_ok "Updated crates/*/README.md (5 files)"
 
+# 4b. Update ROADMAP.md (deterministic-toolchain line states the current pinned Rust).
+# Anchored on the "pinning Rust" prose so no other version-like text in the roadmap moves.
+sed_inplace "s/pinning Rust $OLD_MSRV/pinning Rust $NEW_MSRV/g" ROADMAP.md
+log_ok "Updated ROADMAP.md"
+
 # 5. Update CONTRIBUTING.md - different sed patterns for raise vs downgrade
 sed_inplace "s/(currently \*\*$OLD_MSRV\*\*)/(currently **$NEW_MSRV**)/g" CONTRIBUTING.md
 sed_inplace "s/MSRV ($OLD_MSRV)/MSRV ($NEW_MSRV)/g" CONTRIBUTING.md
@@ -374,7 +380,13 @@ log_ok "Updated CONTRIBUTING.md"
 sed_inplace "/# rust-toolchain.toml: channel = /s/\"[0-9][0-9.]*\"/\"$NEW_MSRV\"/" docs/project/msrv.md
 sed_inplace "/# Cargo.toml \[workspace.package\] rust-version = /s/\"[0-9][0-9.]*\"/\"$NEW_MSRV\"/" docs/project/msrv.md
 
-log_ok "Updated docs/project/msrv.md (manual-path version pins)"
+# Also track the canonical MSRV prose literal in the declaration-layout section. It states
+# the current per-crate literal as a backtick-wrapped `rust-version = "<msrv>"` example, so
+# it must move with every bump. Anchored on the backtick-and-paren wrapper so the manual-path
+# pins above and the worked-example command lines are left untouched.
+sed_inplace "s/(\`rust-version = \"$OLD_MSRV\"\`)/(\`rust-version = \"$NEW_MSRV\"\`)/g" docs/project/msrv.md
+
+log_ok "Updated docs/project/msrv.md (canonical literal + manual-path version pins)"
 
 # 7. Update the facade release-notes template's "Current MSRV" line. The template
 # carries the MSRV as a LITERAL current value (not a {{VERSION}}-style token) so a
@@ -408,7 +420,7 @@ fi
 echo ""
 echo "Staging files for review..."
 
-git add Cargo.toml crates/*/Cargo.toml crates/*/README.md rust-toolchain.toml maintenance.toml README.md CONTRIBUTING.md docs/project/msrv.md "$RELEASE_NOTES_TEMPLATE"
+git add Cargo.toml crates/*/Cargo.toml crates/*/README.md rust-toolchain.toml maintenance.toml README.md CONTRIBUTING.md ROADMAP.md docs/project/msrv.md "$RELEASE_NOTES_TEMPLATE"
 log_ok "Files staged"
 
 # Print summary
@@ -425,7 +437,8 @@ if [ $DOWNGRADE -eq 0 ]; then
     log_item "README.md: badge URL, alt-text, and section updated" 1
     log_item "crates/*/README.md (5 files): badge URL and alt-text updated" 1
     log_item "CONTRIBUTING.md: MSRV references updated" 1
-    log_item "docs/project/msrv.md: manual path examples updated" 1
+    log_item "ROADMAP.md: deterministic-toolchain line updated" 1
+    log_item "docs/project/msrv.md: canonical literal + manual path examples updated" 1
     log_item "release-notes template: Current MSRV line updated" 1
     echo ""
     echo "All files are staged. Review and commit:"
@@ -449,7 +462,8 @@ else
     log_item "README.md: badge URL, alt-text, and section updated" 1
     log_item "crates/*/README.md (5 files): badge URL and alt-text updated" 1
     log_item "CONTRIBUTING.md: MSRV references updated" 1
-    log_item "docs/project/msrv.md: manual path examples updated" 1
+    log_item "ROADMAP.md: deterministic-toolchain line updated" 1
+    log_item "docs/project/msrv.md: canonical literal + manual path examples updated" 1
     log_item "release-notes template: Current MSRV line updated" 1
     log_info "maintenance.toml: unchanged (no review obligation)" 1
     echo ""
