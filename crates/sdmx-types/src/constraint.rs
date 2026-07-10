@@ -200,10 +200,33 @@ impl CubeKeyValues {
         &self.0
     }
 
+    /// Iterates the dimension values in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &CubeKeyValue> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<CubeKeyValue> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a CubeKeyValues {
+    type Item = &'a CubeKeyValue;
+    type IntoIter = core::slice::Iter<'a, CubeKeyValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for CubeKeyValues {
+    type Item = CubeKeyValue;
+    type IntoIter = alloc::vec::IntoIter<CubeKeyValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -266,10 +289,33 @@ impl SimpleComponentValues {
         &self.0
     }
 
+    /// Iterates the component values in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &SimpleComponentValue> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<SimpleComponentValue> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a SimpleComponentValues {
+    type Item = &'a SimpleComponentValue;
+    type IntoIter = core::slice::Iter<'a, SimpleComponentValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for SimpleComponentValues {
+    type Item = SimpleComponentValue;
+    type IntoIter = alloc::vec::IntoIter<SimpleComponentValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -872,10 +918,33 @@ impl CubeRegions {
         &self.0
     }
 
+    /// Iterates the cube regions in order (at most two).
+    pub fn iter(&self) -> impl Iterator<Item = &CubeRegion> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<CubeRegion> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a CubeRegions {
+    type Item = &'a CubeRegion;
+    type IntoIter = core::slice::Iter<'a, CubeRegion>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for CubeRegions {
+    type Item = CubeRegion;
+    type IntoIter = alloc::vec::IntoIter<CubeRegion>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -976,10 +1045,33 @@ impl DataComponentValues {
         &self.0
     }
 
+    /// Iterates the component values in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &DataComponentValue> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<DataComponentValue> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DataComponentValues {
+    type Item = &'a DataComponentValue;
+    type IntoIter = core::slice::Iter<'a, DataComponentValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DataComponentValues {
+    type Item = DataComponentValue;
+    type IntoIter = alloc::vec::IntoIter<DataComponentValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1197,10 +1289,33 @@ impl SimpleKeyValues {
         &self.0
     }
 
+    /// Iterates the key values in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<String> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a SimpleKeyValues {
+    type Item = &'a String;
+    type IntoIter = core::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for SimpleKeyValues {
+    type Item = String;
+    type IntoIter = alloc::vec::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1410,10 +1525,33 @@ impl DataKeys {
         &self.0
     }
 
+    /// Iterates the data keys in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &DataKey> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<DataKey> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DataKeys {
+    type Item = &'a DataKey;
+    type IntoIter = core::slice::Iter<'a, DataKey>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DataKeys {
+    type Item = DataKey;
+    type IntoIter = alloc::vec::IntoIter<DataKey>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1600,10 +1738,33 @@ impl DataStructureRefs {
         &self.0
     }
 
+    /// Iterates the references in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &DataStructureReference> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<DataStructureReference> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DataStructureRefs {
+    type Item = &'a DataStructureReference;
+    type IntoIter = core::slice::Iter<'a, DataStructureReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DataStructureRefs {
+    type Item = DataStructureReference;
+    type IntoIter = alloc::vec::IntoIter<DataStructureReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1665,10 +1826,33 @@ impl DataflowRefs {
         &self.0
     }
 
+    /// Iterates the references in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &DataflowReference> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<DataflowReference> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DataflowRefs {
+    type Item = &'a DataflowReference;
+    type IntoIter = core::slice::Iter<'a, DataflowReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DataflowRefs {
+    type Item = DataflowReference;
+    type IntoIter = alloc::vec::IntoIter<DataflowReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1730,10 +1914,33 @@ impl ProvisionAgreementRefs {
         &self.0
     }
 
+    /// Iterates the references in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &ProvisionAgreementReference> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<ProvisionAgreementReference> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a ProvisionAgreementRefs {
+    type Item = &'a ProvisionAgreementReference;
+    type IntoIter = core::slice::Iter<'a, ProvisionAgreementReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for ProvisionAgreementRefs {
+    type Item = ProvisionAgreementReference;
+    type IntoIter = alloc::vec::IntoIter<ProvisionAgreementReference>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1797,10 +2004,33 @@ impl SimpleDataSources {
         &self.0
     }
 
+    /// Iterates the URLs in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<String> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a SimpleDataSources {
+    type Item = &'a String;
+    type IntoIter = core::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for SimpleDataSources {
+    type Item = String;
+    type IntoIter = alloc::vec::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -3633,6 +3863,115 @@ mod tests {
         let sds = vec![String::from("http://example.com")];
         assert_eq!(SimpleDataSources::new(sds.clone()).unwrap().into_inner(), sds);
         assert_eq!(Vec::from(SimpleDataSources::new(sds.clone()).unwrap()), sds);
+    }
+
+    #[test]
+    fn simple_key_values_iteration_forms() {
+        // Explicit iteration forms on a representative newtype, multi-element to pin stored order.
+        let skv = vec![String::from("FREQ"), String::from("REF_AREA")];
+        let keys = SimpleKeyValues::new(skv.clone()).unwrap();
+        // A borrowed `for` loop yields references in stored order.
+        let mut borrowed = Vec::new();
+        for value in &keys {
+            borrowed.push(value.clone());
+        }
+        assert_eq!(borrowed, skv);
+        // `iter` drives adaptor chains.
+        assert_eq!(keys.iter().map(String::as_str).collect::<Vec<_>>(), ["FREQ", "REF_AREA"]);
+        // An owned `for` loop moves each element out in stored order.
+        let mut owned = Vec::new();
+        for value in keys {
+            owned.push(value);
+        }
+        assert_eq!(owned, skv);
+    }
+
+    #[test]
+    fn collection_newtype_iteration() {
+        // Every constraint newtype exposes `iter`, borrowed `IntoIterator`, and owned
+        // `IntoIterator`, each yielding elements in stored order.
+        let ckv = vec![CubeKeyValue {
+            value: String::from("A"),
+            cascade: None,
+            valid_from: None,
+            valid_to: None,
+        }];
+        let coll = CubeKeyValues::new(ckv.clone()).unwrap();
+        assert!(coll.iter().eq(ckv.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(ckv.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), ckv);
+
+        let scv = vec![SimpleComponentValue {
+            value: String::from("EUR"),
+            cascade: None,
+            lang: None,
+            valid_from: None,
+            valid_to: None,
+        }];
+        let coll = SimpleComponentValues::new(scv.clone()).unwrap();
+        assert!(coll.iter().eq(scv.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(scv.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), scv);
+
+        let cr = vec![cube_region(), cube_region()];
+        let coll = CubeRegions::new(cr.clone()).unwrap();
+        assert!(coll.iter().eq(cr.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(cr.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), cr);
+
+        let dcv =
+            vec![DataComponentValue { value: String::from("EUR"), cascade: None, lang: None }];
+        let coll = DataComponentValues::new(dcv.clone()).unwrap();
+        assert!(coll.iter().eq(dcv.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(dcv.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), dcv);
+
+        let skv = vec![String::from("FREQ"), String::from("REF_AREA")];
+        let coll = SimpleKeyValues::new(skv.clone()).unwrap();
+        assert!(coll.iter().eq(skv.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(skv.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), skv);
+
+        let dk = vec![DataKey {
+            key_values: vec![data_key_value("FREQ", "A")],
+            components: Vec::new(),
+            include: FixedInclude::new(None).unwrap(),
+            annotations: Vec::new(),
+            valid_from: None,
+            valid_to: None,
+        }];
+        let coll = DataKeys::new(dk.clone()).unwrap();
+        assert!(coll.iter().eq(dk.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(dk.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), dk);
+
+        let dsr = vec![dsd_ref("DSD")];
+        let coll = DataStructureRefs::new(dsr.clone()).unwrap();
+        assert!(coll.iter().eq(dsr.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(dsr.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), dsr);
+
+        let dfr = vec![dataflow_ref("DF")];
+        let coll = DataflowRefs::new(dfr.clone()).unwrap();
+        assert!(coll.iter().eq(dfr.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(dfr.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), dfr);
+
+        let par = vec![ProvisionAgreementReference {
+            agency: String::from("A"),
+            id: String::from("P"),
+            version: "1.0".parse().unwrap(),
+        }];
+        let coll = ProvisionAgreementRefs::new(par.clone()).unwrap();
+        assert!(coll.iter().eq(par.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(par.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), par);
+
+        let sds = vec![String::from("http://a.example"), String::from("http://b.example")];
+        let coll = SimpleDataSources::new(sds.clone()).unwrap();
+        assert!(coll.iter().eq(sds.iter()));
+        assert!(IntoIterator::into_iter(&coll).eq(sds.iter()));
+        assert_eq!(coll.into_iter().collect::<Vec<_>>(), sds);
     }
 
     // Property tests: the internal serde round-trip over the generated constraint model,

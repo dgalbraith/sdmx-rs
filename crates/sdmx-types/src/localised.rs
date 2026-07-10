@@ -187,6 +187,24 @@ impl LocalisedString {
     }
 }
 
+impl<'a> IntoIterator for &'a LocalisedString {
+    type Item = &'a LocalisedText;
+    type IntoIter = core::slice::Iter<'a, LocalisedText>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for LocalisedString {
+    type Item = LocalisedText;
+    type IntoIter = alloc::vec::IntoIter<LocalisedText>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl From<LocalisedString> for Vec<LocalisedText> {
     fn from(value: LocalisedString) -> Self {
         value.into_inner()
@@ -300,6 +318,23 @@ mod tests {
         let v = vec![LocalisedText { language: None, text: String::from("T") }];
         assert_eq!(LocalisedString::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(LocalisedString::new(v.clone()).unwrap()), v);
+    }
+
+    #[test]
+    fn localised_string_into_iterator_borrowed_and_owned() {
+        let ls = sample();
+        let expected =
+            [entry(Some("en"), "Name"), entry(Some("fr"), "Nom"), entry(None, "Untagged")];
+        // A borrowed `for` loop over `&ls` uses the borrowed `IntoIterator` impl.
+        let mut borrowed = Vec::new();
+        for item in &ls {
+            borrowed.push(item.text.clone());
+        }
+        assert_eq!(borrowed, vec!["Name", "Nom", "Untagged"]);
+        // Borrowed `IntoIterator` agrees with the pre-existing `iter`.
+        assert!(IntoIterator::into_iter(&ls).eq(ls.iter()));
+        // Owned `IntoIterator` consumes the wrapper, yielding elements in stored order.
+        assert_eq!(ls.into_iter().collect::<Vec<_>>(), expected);
     }
 
     // Property tests: the internal serde round-trip over generated entries (see
