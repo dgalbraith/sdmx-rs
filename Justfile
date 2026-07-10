@@ -218,7 +218,7 @@ md-check:
 
 # Lint all repository shell scripts for errors and bad practices (two-tier severity: .sh full, .bats warning+)
 shellcheck:
-    @find scripts tests/bats -type f -name '*.sh' -print0 | xargs -0 shellcheck
+    @find scripts tests/bats -type f \( -name '*.sh' -o -name '*.bash' \) -print0 | xargs -0 shellcheck
     @find tests/bats -type f -name '*.bats' -print0 | xargs -0 shellcheck -x --severity=warning
 
 # ============================================================================

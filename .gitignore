@@ -425,6 +425,7 @@
 /tests/*
 !/tests/bats/
 !/tests/bats/common.sh
+!/tests/bats/setup_suite.bash
 
 # Core library support tests
 !/tests/bats/dates-lib.bats

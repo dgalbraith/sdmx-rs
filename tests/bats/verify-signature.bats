@@ -30,8 +30,6 @@ setup() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
-    git config commit.gpgsign false
-    git config tag.gpgsign false
     touch README.md
     git add README.md
     git commit -m "initial" -q
