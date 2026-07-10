@@ -23,8 +23,6 @@ setup() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
-    git config commit.gpgsign false
-    git config tag.gpgsign false
     git config tag.forceSignAnnotated false
 
     # Initial main history.

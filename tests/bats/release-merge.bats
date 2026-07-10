@@ -26,12 +26,9 @@ setup() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
-    # Disable signing in the sandbox: the maintainer's global config sets
-    # commit.gpgsign / tag.gpgsign, which would force signed objects (and fail
-    # for lack of a key). Merge-commit signing is exercised separately via
-    # RELEASE_MERGE_NO_SIGN.
-    git config commit.gpgsign false
-    git config tag.gpgsign false
+    # The suite baseline disables commit/tag signing; also clear
+    # tag.forceSignAnnotated so annotated tags in this fixture stay unsigned.
+    # Merge-commit signing is exercised separately via RELEASE_MERGE_NO_SIGN.
     git config tag.forceSignAnnotated false
 
     # Create initial commit on main with .gitignore

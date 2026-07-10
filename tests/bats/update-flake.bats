@@ -30,7 +30,6 @@ setup() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
-    git config commit.gpgsign false
 
     printf 'OLD-LOCK\n' > flake.lock
     echo "bin/" > .gitignore

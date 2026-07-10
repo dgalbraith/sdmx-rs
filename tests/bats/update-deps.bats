@@ -29,7 +29,6 @@ setup() {
     git init --initial-branch=main -q
     git config user.email "test@example.com"
     git config user.name "Test User"
-    git config commit.gpgsign false
 
     # Committed baseline: Cargo.lock clean in HEAD (the steady state the script
     # is designed for). bin/ holds mocks and is gitignored so it never dirties
