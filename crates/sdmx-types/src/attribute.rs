@@ -213,10 +213,33 @@ impl DimensionRefs {
         &self.0
     }
 
+    /// Iterates the dimension references in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &DimensionRef> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<DimensionRef> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DimensionRefs {
+    type Item = &'a DimensionRef;
+    type IntoIter = core::slice::Iter<'a, DimensionRef>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DimensionRefs {
+    type Item = DimensionRef;
+    type IntoIter = alloc::vec::IntoIter<DimensionRef>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -348,10 +371,33 @@ impl MeasureRelationship {
         &self.0
     }
 
+    /// Iterates the measure ids in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<String> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a MeasureRelationship {
+    type Item = &'a String;
+    type IntoIter = core::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for MeasureRelationship {
+    type Item = String;
+    type IntoIter = alloc::vec::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -1202,6 +1248,30 @@ mod tests {
         let m = vec![String::from("M")];
         assert_eq!(MeasureRelationship::new(m.clone()).unwrap().into_inner(), m);
         assert_eq!(Vec::from(MeasureRelationship::new(m.clone()).unwrap()), m);
+    }
+
+    #[test]
+    fn newtype_iteration() {
+        let refs = vec![
+            DimensionRef::new(String::from("FREQ"), None).unwrap(),
+            DimensionRef::new(String::from("REF_AREA"), None).unwrap(),
+        ];
+        let dims = DimensionRefs::new(refs.clone()).unwrap();
+        // `iter`, borrowed `IntoIterator`, and owned `IntoIterator` all yield stored order.
+        assert!(dims.iter().eq(refs.iter()));
+        assert!(IntoIterator::into_iter(&dims).eq(refs.iter()));
+        assert_eq!(dims.into_iter().collect::<Vec<_>>(), refs);
+
+        let ids = vec![String::from("OBS"), String::from("OBS_VALUE")];
+        let measures = MeasureRelationship::new(ids.clone()).unwrap();
+        // A borrowed `for` loop and an owned consuming collect agree on the elements.
+        let mut borrowed = Vec::new();
+        for id in &measures {
+            borrowed.push(id.clone());
+        }
+        assert_eq!(borrowed, ids);
+        assert_eq!(measures.iter().map(String::as_str).collect::<Vec<_>>(), ["OBS", "OBS_VALUE"]);
+        assert_eq!(measures.into_iter().collect::<Vec<_>>(), ids);
     }
 
     // Property tests: the internal serde round-trip over generated position-valid

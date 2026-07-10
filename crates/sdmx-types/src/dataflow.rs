@@ -81,10 +81,33 @@ impl DimensionConstraint {
         &self.0
     }
 
+    /// Iterates the constrained dimension ids in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &String> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<String> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a DimensionConstraint {
+    type Item = &'a String;
+    type IntoIter = core::slice::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for DimensionConstraint {
+    type Item = String;
+    type IntoIter = alloc::vec::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -495,6 +518,23 @@ mod tests {
         let v = vec![String::from("FREQ")];
         assert_eq!(DimensionConstraint::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(DimensionConstraint::new(v.clone()).unwrap()), v);
+    }
+
+    #[test]
+    fn dimension_constraint_iteration() {
+        let v = vec![String::from("FREQ"), String::from("REF_AREA")];
+        let constraint = DimensionConstraint::new(v.clone()).unwrap();
+        // A borrowed `for` loop yields references in stored order.
+        let mut borrowed = Vec::new();
+        for id in &constraint {
+            borrowed.push(id.clone());
+        }
+        assert_eq!(borrowed, v);
+        // `iter` drives adaptor chains; borrowed `IntoIterator` matches it.
+        assert_eq!(constraint.iter().map(String::as_str).collect::<Vec<_>>(), ["FREQ", "REF_AREA"]);
+        assert!(IntoIterator::into_iter(&constraint).eq(v.iter()));
+        // Owned `IntoIterator` moves the elements out in stored order.
+        assert_eq!(constraint.into_iter().collect::<Vec<_>>(), v);
     }
 
     // Property tests: the internal serde round-trip over generated values (see

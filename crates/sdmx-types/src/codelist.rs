@@ -147,10 +147,33 @@ impl MemberValues {
         &self.0
     }
 
+    /// Iterates the member values in order (always at least one).
+    pub fn iter(&self) -> impl Iterator<Item = &MemberValue> {
+        self.0.iter()
+    }
+
     /// Consumes the newtype, returning the inner vector.
     #[must_use]
     pub fn into_inner(self) -> Vec<MemberValue> {
         self.0
+    }
+}
+
+impl<'a> IntoIterator for &'a MemberValues {
+    type Item = &'a MemberValue;
+    type IntoIter = core::slice::Iter<'a, MemberValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for MemberValues {
+    type Item = MemberValue;
+    type IntoIter = alloc::vec::IntoIter<MemberValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -760,6 +783,26 @@ mod tests {
         let v = vec![MemberValue { value: String::from("V"), cascade: None }];
         assert_eq!(MemberValues::new(v.clone()).unwrap().into_inner(), v);
         assert_eq!(Vec::from(MemberValues::new(v.clone()).unwrap()), v);
+    }
+
+    #[test]
+    fn member_values_iteration() {
+        let v = vec![
+            MemberValue { value: String::from("A"), cascade: None },
+            MemberValue { value: String::from("B"), cascade: None },
+        ];
+        let values = MemberValues::new(v.clone()).unwrap();
+        // A borrowed `for` loop yields references in stored order.
+        let mut borrowed = Vec::new();
+        for member in &values {
+            borrowed.push(member.value.clone());
+        }
+        assert_eq!(borrowed, vec![String::from("A"), String::from("B")]);
+        // `iter` and borrowed `IntoIterator` agree.
+        assert!(values.iter().eq(v.iter()));
+        assert!(IntoIterator::into_iter(&values).eq(v.iter()));
+        // Owned `IntoIterator` moves the elements out in stored order.
+        assert_eq!(values.into_iter().collect::<Vec<_>>(), v);
     }
 
     // Property tests: the headline internal serde round-trip (D-0031/D-0063/D-0068) over
