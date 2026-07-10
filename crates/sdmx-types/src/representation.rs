@@ -983,8 +983,9 @@ mod tests {
     }
 
     #[test]
-    fn datatype_time_is_the_seventeen_time_values() {
-        // The full TimeDataType subset, pinned value by value (17 of 44).
+    fn datatype_time_membership_is_exact() {
+        // The full TimeDataType subset, asserted value by value. A membership change fails the
+        // length check.
         let time = [
             DataType::ObservationalTimePeriod,
             DataType::StandardTimePeriod,
@@ -1008,10 +1009,36 @@ mod tests {
         for value in time {
             assert!(value.is_time(), "{value:?} must be in the Time subset");
         }
-        // Gregorian-adjacent values outside TimeDataType, and a plain string, are not time values.
-        for non_time in
-            [DataType::String, DataType::Month, DataType::Day, DataType::Time, DataType::Duration]
-        {
+        // Every other DataType value is outside the Time subset.
+        for non_time in [
+            DataType::String,
+            DataType::Alpha,
+            DataType::AlphaNumeric,
+            DataType::Numeric,
+            DataType::BigInteger,
+            DataType::Integer,
+            DataType::Long,
+            DataType::Short,
+            DataType::Decimal,
+            DataType::Float,
+            DataType::Double,
+            DataType::Boolean,
+            DataType::URI,
+            DataType::Count,
+            DataType::InclusiveValueRange,
+            DataType::ExclusiveValueRange,
+            DataType::Incremental,
+            DataType::Month,
+            DataType::MonthDay,
+            DataType::Day,
+            DataType::Time,
+            DataType::Duration,
+            DataType::GeospatialInformation,
+            DataType::XHTML,
+            DataType::KeyValues,
+            DataType::IdentifiableReference,
+            DataType::DataSetReference,
+        ] {
             assert!(!non_time.is_time(), "{non_time:?} must not be in the Time subset");
         }
     }
