@@ -614,6 +614,19 @@ impl SdmxTimePeriod {
     pub const fn kind(&self) -> SdmxTimePeriodKind {
         self.kind
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.raw
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<SdmxTimePeriod> for String {
+    fn from(value: SdmxTimePeriod) -> Self {
+        value.into_inner()
+    }
 }
 
 /// The classified kind of an [`SdmxTimePeriod`]: which member of `StandardTimePeriodType` a value
@@ -905,6 +918,22 @@ impl ObservationalTimePeriod {
             Self::Range(range) => range.as_str(),
         }
     }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        match self {
+            Self::Standard(period) => period.into_inner(),
+            Self::Range(range) => range.into_inner(),
+        }
+    }
+}
+
+/// Unwraps to the inner canonical lexeme.
+impl From<ObservationalTimePeriod> for String {
+    fn from(value: ObservationalTimePeriod) -> Self {
+        value.into_inner()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1038,6 +1067,19 @@ impl SdmxDateTime {
         let date_time = self.date_time?;
         let offset = self.offset?;
         offset.from_local_datetime(&date_time).single()
+    }
+
+    /// Consumes the newtype, returning the inner string.
+    #[must_use]
+    pub fn into_inner(self) -> String {
+        self.raw
+    }
+}
+
+/// Unwraps to the inner stated lexeme.
+impl From<SdmxDateTime> for String {
+    fn from(value: SdmxDateTime) -> Self {
+        value.into_inner()
     }
 }
 
@@ -1175,6 +1217,20 @@ impl PartialEq<&str> for SdmxDecimal {
     }
 }
 
+/// The symmetric reverse, so `"1.0" == value` matches `value == "1.0"`.
+impl PartialEq<SdmxDecimal> for str {
+    fn eq(&self, other: &SdmxDecimal) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxDecimal> for &str {
+    fn eq(&self, other: &SdmxDecimal) -> bool {
+        other.eq(self)
+    }
+}
+
 impl core::fmt::Display for SdmxInteger {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.0)
@@ -1207,6 +1263,20 @@ impl PartialEq<str> for SdmxInteger {
 impl PartialEq<&str> for SdmxInteger {
     fn eq(&self, other: &&str) -> bool {
         self.0 == *other
+    }
+}
+
+/// The symmetric reverse, so `"7" == value` matches `value == "7"`.
+impl PartialEq<SdmxInteger> for str {
+    fn eq(&self, other: &SdmxInteger) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxInteger> for &str {
+    fn eq(&self, other: &SdmxInteger) -> bool {
+        other.eq(self)
     }
 }
 
@@ -1264,6 +1334,20 @@ impl PartialEq<&str> for SdmxTimePeriod {
     }
 }
 
+/// The symmetric reverse, so `"2024-Q4" == value` matches `value == "2024-Q4"`.
+impl PartialEq<SdmxTimePeriod> for str {
+    fn eq(&self, other: &SdmxTimePeriod) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxTimePeriod> for &str {
+    fn eq(&self, other: &SdmxTimePeriod) -> bool {
+        other.eq(self)
+    }
+}
+
 impl core::fmt::Display for SdmxTimeRange {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.raw)
@@ -1296,6 +1380,20 @@ impl PartialEq<str> for SdmxTimeRange {
 impl PartialEq<&str> for SdmxTimeRange {
     fn eq(&self, other: &&str) -> bool {
         self.raw == *other
+    }
+}
+
+/// The symmetric reverse, so `"2010-01-01/P2M" == value` matches `value == "2010-01-01/P2M"`.
+impl PartialEq<SdmxTimeRange> for str {
+    fn eq(&self, other: &SdmxTimeRange) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxTimeRange> for &str {
+    fn eq(&self, other: &SdmxTimeRange) -> bool {
+        other.eq(self)
     }
 }
 
@@ -1335,6 +1433,20 @@ impl PartialEq<&str> for ObservationalTimePeriod {
     }
 }
 
+/// The symmetric reverse, so `"2024-Q4" == value` matches `value == "2024-Q4"`.
+impl PartialEq<ObservationalTimePeriod> for str {
+    fn eq(&self, other: &ObservationalTimePeriod) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<ObservationalTimePeriod> for &str {
+    fn eq(&self, other: &ObservationalTimePeriod) -> bool {
+        other.eq(self)
+    }
+}
+
 impl core::fmt::Display for SdmxDateTime {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.raw)
@@ -1370,6 +1482,20 @@ impl PartialEq<&str> for SdmxDateTime {
     }
 }
 
+/// The symmetric reverse, so `"2024-05-01T09:30:00Z" == value` matches the forward direction.
+impl PartialEq<SdmxDateTime> for str {
+    fn eq(&self, other: &SdmxDateTime) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxDateTime> for &str {
+    fn eq(&self, other: &SdmxDateTime) -> bool {
+        other.eq(self)
+    }
+}
+
 impl core::fmt::Display for SdmxDuration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.0)
@@ -1402,6 +1528,20 @@ impl PartialEq<str> for SdmxDuration {
 impl PartialEq<&str> for SdmxDuration {
     fn eq(&self, other: &&str) -> bool {
         self.0 == *other
+    }
+}
+
+/// The symmetric reverse, so `"P1M" == value` matches `value == "P1M"`.
+impl PartialEq<SdmxDuration> for str {
+    fn eq(&self, other: &SdmxDuration) -> bool {
+        other.eq(self)
+    }
+}
+
+/// The symmetric reverse, for the borrowed literal form.
+impl PartialEq<SdmxDuration> for &str {
+    fn eq(&self, other: &SdmxDuration) -> bool {
+        other.eq(self)
     }
 }
 
@@ -2826,43 +2966,93 @@ mod tests {
 
     #[test]
     fn lexical_newtype_into_inner_and_from() {
-        let d = SdmxDecimal::new(String::from("1.5")).unwrap();
-        assert_eq!(d.clone().into_inner(), "1.5");
-        assert_eq!(String::from(d), "1.5");
-        let i = SdmxInteger::new(String::from("42")).unwrap();
-        assert_eq!(i.clone().into_inner(), "42");
-        assert_eq!(String::from(i), "42");
-        let r = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
-        assert_eq!(r.clone().into_inner(), "2010-01-01/P2M");
-        assert_eq!(String::from(r.clone()), "2010-01-01/P2M");
+        let decimal = SdmxDecimal::new(String::from("1.5")).unwrap();
+        assert_eq!(decimal.clone().into_inner(), "1.5");
+        assert_eq!(String::from(decimal), "1.5");
+        let integer = SdmxInteger::new(String::from("42")).unwrap();
+        assert_eq!(integer.clone().into_inner(), "42");
+        assert_eq!(String::from(integer), "42");
+        let range = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
+        assert_eq!(range.clone().into_inner(), "2010-01-01/P2M");
+        assert_eq!(String::from(range.clone()), "2010-01-01/P2M");
         // The unwrapped string reconstructs the same value through the constructor.
-        assert_eq!(SdmxTimeRange::new(r.clone().into_inner()).unwrap(), r);
+        assert_eq!(SdmxTimeRange::new(range.clone().into_inner()).unwrap(), range);
+        let period = SdmxTimePeriod::new(String::from("2024-Q4")).unwrap();
+        assert_eq!(period.clone().into_inner(), "2024-Q4");
+        assert_eq!(String::from(period.clone()), "2024-Q4");
+        assert_eq!(SdmxTimePeriod::new(period.clone().into_inner()).unwrap(), period);
+        // The union consumes to its member's lexeme, whichever member it holds.
+        let observational = ObservationalTimePeriod::new(String::from("2010-01-01/P2M")).unwrap();
+        assert_eq!(observational.clone().into_inner(), "2010-01-01/P2M");
+        assert_eq!(String::from(observational.clone()), "2010-01-01/P2M");
+        assert_eq!(
+            ObservationalTimePeriod::new(observational.clone().into_inner()).unwrap(),
+            observational
+        );
+        // An offsetless date-time is a spelling-distinct case: the stored lexeme survives verbatim.
+        let date_time = SdmxDateTime::new(String::from("2024-05-01T09:30:00")).unwrap();
+        assert_eq!(date_time.clone().into_inner(), "2024-05-01T09:30:00");
+        assert_eq!(String::from(date_time.clone()), "2024-05-01T09:30:00");
+        assert_eq!(SdmxDateTime::new(date_time.clone().into_inner()).unwrap(), date_time);
     }
 
     #[test]
     fn raw_backed_newtypes_compare_to_literals_by_identity() {
-        // `PartialEq<str>`/`PartialEq<&str>` are string identity with the stored lexeme,
-        // never a normalised or numeric view (D-0027 lossless-distinct).
+        // `PartialEq<str>`/`PartialEq<&str>` are string identity with the stored lexeme, never a
+        // normalised or numeric view (D-0027 lossless-distinct). The reverse impls make the
+        // comparison symmetric, so each `value == "x"` is asserted alongside its `"x" == value`
+        // mirror (both `&str` and `str` receivers) and each negative case fails in both
+        // directions too. (The two directions are kept in separate assertions because
+        // `clippy::nonminimal_bool` folds `a == b && b == a` into one.)
         let decimal = SdmxDecimal::new(String::from("1.0")).unwrap();
-        assert!(decimal == *"1.0");
         assert!(decimal == "1.0");
+        assert!("1.0" == decimal);
+        assert!(*"1.0" == decimal);
         assert!(decimal != "1.00"); // numerically equal, lexically distinct
+        assert!("1.00" != decimal);
+        assert!(*"1.00" != decimal);
         let integer = SdmxInteger::new(String::from("7")).unwrap();
-        assert!(integer == *"7");
         assert!(integer == "7");
+        assert!("7" == integer);
+        assert!(*"7" == integer);
         assert!(integer != "+7");
+        assert!("+7" != integer);
+        assert!(*"+7" != integer);
         let period = SdmxTimePeriod::new(String::from("2024-Q4")).unwrap();
-        assert!(period == *"2024-Q4");
         assert!(period == "2024-Q4");
+        assert!("2024-Q4" == period);
+        assert!(*"2024-Q4" == period);
         assert!(period != "2024-Q4Z"); // stated timezone is part of the lexeme
+        assert!("2024-Q4Z" != period);
+        assert!(*"2024-Q4Z" != period);
         let range = SdmxTimeRange::new(String::from("2010-01-01/P2M")).unwrap();
-        assert!(range == *"2010-01-01/P2M");
         assert!(range == "2010-01-01/P2M");
+        assert!("2010-01-01/P2M" == range);
+        assert!(*"2010-01-01/P2M" == range);
         assert!(range != "2010-01-01/P60D"); // equivalent span, distinct lexeme
+        assert!("2010-01-01/P60D" != range);
+        assert!(*"2010-01-01/P60D" != range);
         let observational = ObservationalTimePeriod::new(String::from("2024-Q4")).unwrap();
-        assert!(observational == *"2024-Q4");
         assert!(observational == "2024-Q4");
+        assert!("2024-Q4" == observational);
+        assert!(*"2024-Q4" == observational);
         assert!(observational != "2010-01-01/P2M"); // the other member's grammar
+        assert!("2010-01-01/P2M" != observational);
+        assert!(*"2010-01-01/P2M" != observational);
+        let date_time = SdmxDateTime::new(String::from("2024-05-01T09:30:00Z")).unwrap();
+        assert!(date_time == "2024-05-01T09:30:00Z");
+        assert!("2024-05-01T09:30:00Z" == date_time);
+        assert!(*"2024-05-01T09:30:00Z" == date_time);
+        assert!(date_time != "2024-05-01T09:30:00+00:00"); // same instant, distinct spelling
+        assert!("2024-05-01T09:30:00+00:00" != date_time);
+        assert!(*"2024-05-01T09:30:00+00:00" != date_time);
+        let duration = SdmxDuration::new(String::from("P1M")).unwrap();
+        assert!(duration == "P1M");
+        assert!("P1M" == duration);
+        assert!(*"P1M" == duration);
+        assert!(duration != "P01M"); // equal value, distinct lexeme
+        assert!("P01M" != duration);
+        assert!(*"P01M" != duration);
     }
 
     // Property tests: fuzzed breadth over the validated grammars, generated through the
