@@ -653,10 +653,50 @@ mod tests {
     }
 
     #[test]
-    fn datatype_code_excludes_uncoded_only_types() {
-        assert!(DataType::String.is_code());
-        assert!(DataType::Count.is_code());
-        // Uncoded-only types are outside the Code subset.
+    fn datatype_code_membership_is_exact() {
+        // The full Code subset (the Simple set minus the seven uncoded-only types), asserted value
+        // by value. A membership change fails the length check.
+        let code = [
+            DataType::String,
+            DataType::Alpha,
+            DataType::AlphaNumeric,
+            DataType::Numeric,
+            DataType::BigInteger,
+            DataType::Integer,
+            DataType::Long,
+            DataType::Short,
+            DataType::Boolean,
+            DataType::URI,
+            DataType::Count,
+            DataType::InclusiveValueRange,
+            DataType::ExclusiveValueRange,
+            DataType::Incremental,
+            DataType::ObservationalTimePeriod,
+            DataType::StandardTimePeriod,
+            DataType::BasicTimePeriod,
+            DataType::GregorianTimePeriod,
+            DataType::GregorianYear,
+            DataType::GregorianYearMonth,
+            DataType::GregorianDay,
+            DataType::ReportingTimePeriod,
+            DataType::ReportingYear,
+            DataType::ReportingSemester,
+            DataType::ReportingTrimester,
+            DataType::ReportingQuarter,
+            DataType::ReportingMonth,
+            DataType::ReportingWeek,
+            DataType::ReportingDay,
+            DataType::Month,
+            DataType::MonthDay,
+            DataType::Day,
+            DataType::Duration,
+        ];
+        assert_eq!(code.len(), 33);
+        for value in code {
+            assert!(value.is_code(), "{value:?} must be in the Code subset");
+        }
+        // Uncoded-only types, and the reference/collection types outside Simple, are outside
+        // the Code subset.
         for excluded in [
             DataType::XHTML,
             DataType::DateTime,
@@ -666,6 +706,9 @@ mod tests {
             DataType::GeospatialInformation,
             DataType::Time,
             DataType::TimeRange,
+            DataType::KeyValues,
+            DataType::IdentifiableReference,
+            DataType::DataSetReference,
         ] {
             assert!(!excluded.is_code(), "{excluded:?} must not be in the Code subset");
         }
@@ -1170,18 +1213,51 @@ mod tests {
     }
 
     #[test]
-    fn time_representation_rejects_a_prohibited_facet() {
-        let mut repr = text_format(Some(DataType::ObservationalTimePeriod));
-        if let RepresentationChoice::TextFormat(text_format) = &mut repr.choice {
-            text_format.pattern = Some(String::from("[0-9]+"));
-        }
-        assert_eq!(
-            validate_time_representation(&repr),
-            Err(Error::ProhibitedRepresentationFacet {
-                component: String::from("TimeDimension"),
-                facet: String::from("pattern")
-            })
+    fn time_representation_rejects_every_prohibited_facet() {
+        // The prohibited table returns the FIRST facet present, so set exactly one facet on an
+        // otherwise-valid time TextFormat per case and assert each row is rejected by name.
+        // startTime and endTime are allowed at the time position and are deliberately absent here.
+        let rejects = |set: &dyn Fn(&mut TextFormat), facet: &str| {
+            let mut repr = text_format(Some(DataType::ObservationalTimePeriod));
+            if let RepresentationChoice::TextFormat(text_format) = &mut repr.choice {
+                set(text_format);
+            }
+            assert_eq!(
+                validate_time_representation(&repr),
+                Err(Error::ProhibitedRepresentationFacet {
+                    component: String::from("TimeDimension"),
+                    facet: String::from(facet)
+                })
+            );
+        };
+
+        rejects(&|tf| tf.is_sequence = Some(true), "isSequence");
+        rejects(&|tf| tf.interval = Some(SdmxDecimal::new(String::from("1")).unwrap()), "interval");
+        rejects(
+            &|tf| tf.start_value = Some(SdmxDecimal::new(String::from("1")).unwrap()),
+            "startValue",
         );
+        rejects(
+            &|tf| tf.end_value = Some(SdmxDecimal::new(String::from("10")).unwrap()),
+            "endValue",
+        );
+        rejects(
+            &|tf| tf.time_interval = Some(SdmxDuration::new(String::from("P1Y")).unwrap()),
+            "timeInterval",
+        );
+        rejects(&|tf| tf.min_length = Some(NonZeroU32::new(1).unwrap()), "minLength");
+        rejects(&|tf| tf.max_length = Some(NonZeroU32::new(10).unwrap()), "maxLength");
+        rejects(
+            &|tf| tf.min_value = Some(SdmxDecimal::new(String::from("1")).unwrap()),
+            "minValue",
+        );
+        rejects(
+            &|tf| tf.max_value = Some(SdmxDecimal::new(String::from("10")).unwrap()),
+            "maxValue",
+        );
+        rejects(&|tf| tf.decimals = Some(NonZeroU32::new(2).unwrap()), "decimals");
+        rejects(&|tf| tf.pattern = Some(String::from("[0-9]+")), "pattern");
+        rejects(&|tf| tf.is_multi_lingual = Some(true), "isMultiLingual");
     }
 
     // Property tests: the internal serde round-trip over position-valid generated

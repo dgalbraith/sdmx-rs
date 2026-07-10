@@ -2787,6 +2787,28 @@ mod tests {
     }
 
     #[test]
+    fn data_keys_deserialize_rejects_empty_on_the_wire() {
+        // Custom Deserialize over `Vec<DataKey>`; deserialize routes through `new()`, which rejects
+        // an empty list. postcard is positional, so an empty inner vector decodes to the same bytes.
+        assert!(
+            postcard::from_bytes::<DataKeys>(
+                &postcard::to_allocvec(&Vec::<DataKey>::new()).unwrap()
+            )
+            .is_err()
+        );
+        let key = DataKey {
+            key_values: vec![data_key_value("FREQ", "A")],
+            components: Vec::new(),
+            include: FixedInclude::new(None).unwrap(),
+            annotations: Vec::new(),
+            valid_from: None,
+            valid_to: None,
+        };
+        let keys = DataKeys::new(vec![key]).unwrap();
+        crate::test_support::round_trip(&keys);
+    }
+
+    #[test]
     fn data_key_value_carries_3_1_multi_value_superset() {
         // The 3.1 unbounded shape (FREQ = A or M or Q) is the carried superset; 3.0's single value
         // is the degenerate one-element case.
