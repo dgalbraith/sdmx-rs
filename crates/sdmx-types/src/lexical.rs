@@ -2989,6 +2989,13 @@ mod tests {
             ObservationalTimePeriod::new(observational.clone().into_inner()).unwrap(),
             observational
         );
+        let observational = ObservationalTimePeriod::new(String::from("2024-Q4")).unwrap();
+        assert_eq!(observational.clone().into_inner(), "2024-Q4");
+        assert_eq!(String::from(observational.clone()), "2024-Q4");
+        assert_eq!(
+            ObservationalTimePeriod::new(observational.clone().into_inner()).unwrap(),
+            observational
+        );
         // An offsetless date-time is a spelling-distinct case: the stored lexeme survives verbatim.
         let date_time = SdmxDateTime::new(String::from("2024-05-01T09:30:00")).unwrap();
         assert_eq!(date_time.clone().into_inner(), "2024-05-01T09:30:00");
