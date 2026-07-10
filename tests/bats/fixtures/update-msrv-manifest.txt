@@ -5,6 +5,7 @@ rust-toolchain.toml
 maintenance.toml
 README.md
 CONTRIBUTING.md
+ROADMAP.md
 docs/project/msrv.md
 crates/sdmx-rs/release-notes/templates/template.md
 crates/sdmx-types/Cargo.toml
