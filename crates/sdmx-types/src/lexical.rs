@@ -1174,7 +1174,7 @@ impl From<SdmxDuration> for String {
 // path that clones into ownership.
 //
 // `PartialEq<str>`/`PartialEq<&str>` sit only on the lexeme-storing types — the raw-backed
-// `SdmxDecimal`/`SdmxInteger`/`SdmxTimePeriod`/`SdmxTimeRange` and the
+// `SdmxDecimal`/`SdmxInteger`/`SdmxDateTime`/`SdmxDuration`/`SdmxTimePeriod`/`SdmxTimeRange` and the
 // `ObservationalTimePeriod` union of the latter two — whose stored lexeme is the datum, so
 // string identity is the type's defined equality (D-0027). The raw-free grammar types
 // (`SdmxVersion`, `VersionRef`) take no string comparison operator: `version == "1.0.0"`
