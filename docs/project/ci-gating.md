@@ -155,6 +155,18 @@ Six jobs are deliberately **excluded** from the aggregator. Including any of the
 | **check-msrv**            | Scheduled/informational | Opportunistic MSRV-floor detection; schedule-only, non-blocking. |
 | **msrv-features-check**   | Scheduled/informational | MSRV feature-matrix check; schedule-only, non-blocking. |
 
+### Checks enforced locally, not in CI
+
+Not every check in `just verify` has a matching CI job. `check-conventions`
+(the greppable source conventions in `crates/*/src`, e.g. typed `None::<T>` and
+empty `Vec::new()`) runs only through the `verify-rust` chain: locally in `just
+verify`, and on every push through the `run-just-verify-rust` pre-push hook. It
+is deliberately not mirrored as a standalone CI job: the convention is cheap to
+enforce at the point of change and carries no cross-platform or release risk
+that would justify a dedicated runner. The other `verify-rust` steps
+(formatting, clippy, docs, doctests, semver, coverage, release dry-run) each do
+have a CI job, so this is the one local-only member of that chain.
+
 ## Check Details
 
 ### Always-Mandatory Checks
