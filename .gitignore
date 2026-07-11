@@ -455,6 +455,7 @@
 # Diagnostics tests (doctor-*)
 !/tests/bats/doctor-ci.bats
 !/tests/bats/doctor-forge.bats
+!/tests/bats/doctor-hooks.bats
 !/tests/bats/doctor-provenance.bats
 !/tests/bats/doctor-registry.bats
 
