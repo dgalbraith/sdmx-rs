@@ -376,7 +376,7 @@ The in-tree `=0.0.0` pins reference a version that was never published and never
 **Rehearsal.** Before the first real release, the full documented release pipeline (sections 0–6) is exercised end to end at `0.1.0-alpha.2` across all five crates. A pre-release is equally invisible to resolution, so the rehearsal proves the tag-triggered publish path against the live registry with zero consumer stakes.
 
 > [!IMPORTANT]
-> **Never create or push a `sdmx-*/v0.0.0` git tag.** `0.0.0` is never published, and a `v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and fire the publish workflow for a version that must not exist on the registry. This is a standing rule, not a bootstrap-window concern. The first tags the pipeline ever sees are the `sdmx-<crate>/v0.1.0-alpha.2` rehearsal tags.
+> **Never create or push a `sdmx-*/v0.0.0` git tag.** `0.0.0` is never published, and a `v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and fire the publish workflow for a version that must not exist on the registry. This is a standing rule, not a bootstrap-window concern. The first tags the pipeline ever sees are the `sdmx-<crate>/v0.1.0-alpha.2` rehearsal tags. As a backstop, `publish.yml`'s tag validation rejects any tag naming the `0.0.0` core before the publish path can act on it.
 
 ### 4. Register Trusted Publishers
 

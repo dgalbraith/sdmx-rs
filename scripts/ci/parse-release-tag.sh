@@ -19,7 +19,8 @@ set -eu
 #
 # Exit codes:
 #   0 = parsed and version-consistent
-#   1 = malformed tag, unknown crate, or tag/Cargo.toml version mismatch
+#   1 = malformed tag, 0.0.0-core version, unknown crate, or tag/Cargo.toml
+#       version mismatch
 # ==============================================================================
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -45,6 +46,21 @@ case "$VTAIL" in
     v*) TAG_VERSION="${VTAIL#v}" ;;
     *)
         log_err_ci "Malformed release tag '${TAG}' — version segment must start with 'v'."
+        exit 1
+        ;;
+esac
+
+# Categorical 0.0.0 rejection, keyed on the tag's version string alone. The
+# version-match assertion below cannot catch this case: between releases every
+# in-tree manifest reads version = "0.0.0", so a mistakenly pushed v0.0.0 tag
+# would AGREE with Cargo.toml and sail through toward a version that is
+# deliberately never published (the crate names were reserved with
+# 0.1.0-alpha.1 placeholders; the 0.0.0 core stays permanently off the
+# registry). Reject the whole 0.0.0 core — pre-release and build-metadata
+# suffixes included — before any manifest comparison can vouch for the tag.
+case "$TAG_VERSION" in
+    0.0.0|0.0.0-*|0.0.0+*)
+        log_err_ci "Release tag '${TAG}' names version ${TAG_VERSION}: 0.0.0 is never published and must not drive the publish path."
         exit 1
         ;;
 esac

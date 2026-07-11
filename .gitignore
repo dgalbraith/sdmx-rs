@@ -435,6 +435,7 @@
 # CI script tests
 !/tests/bats/compare-registry-crate.bats
 !/tests/bats/create-release.bats
+!/tests/bats/parse-release-tag.bats
 !/tests/bats/run-coverage.bats
 !/tests/bats/secrets-scan.bats
 !/tests/bats/verify-signature.bats
