@@ -99,7 +99,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    This runs `cargo publish --dry-run` for each crate in topological order (catching missing license, oversized package, invalid metadata) **and** re-runs `check-release-notes` for the facade, so the curated notes from step 7 must already exist.
 
    > [!NOTE]
-   > `cargo publish --dry-run` verify-compiles each crate against its **registry** dependencies, so a downstream crate (`sdmx-parsers` … `sdmx-rs`) can only pass this check once the crate it depends on is already on crates.io. For the very **first** release, that is not yet true — run `prepublish-check` *after* the [bootstrap placeholder publish](#3-bootstrap-publish--reserve-crate-names) has put the `0.0.0` versions on the index. On every subsequent release the prior versions are already published, so it works from section 0 as written.
+   > This check proves packaging, metadata, licences, and compilation, not registry lookup. To package a crate for the dry-run, cargo strips the workspace `path` from each intra-workspace dependency and would resolve the bare `version = "=X"` pin against crates.io. That pinned version is never on the index at check time: the in-tree pins are `=0.0.0`, and at release time `prep-release` rewrites them to the not-yet-published batch version. So `prepublish-check` injects a `[patch.crates-io]` overlay (via cargo `--config`, mutating no file) that points each `sdmx-*` dependency at its workspace path, and the verify step compiles and validates against the local sources. Resolving the real pins against the registry is left to publish time: `publish.yml` blocks each crate on `wait-for-deps` until its dependencies are indexed, then the real publish resolves them per crate. Because the overlay drops the "dependency must already be published" precondition, this check runs from section 0 as written on every release, including the first.
 
 ---
 
@@ -124,7 +124,7 @@ There are **two distinct artefacts**, and conflating them is a trap the gates wi
    just check-release-notes <version>
    ```
 
-   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 7) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
+   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 8) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
 
 > [!NOTE]
 > **Why two files.** `CHANGELOG.md` is the machine record (gated, never curated); `release-notes/<version>.md` is the curated facade record (mandatory, drives the Release body). Leaf crates (`sdmx-types`, `sdmx-parsers`, `sdmx-writers`, `sdmx-client`) are **not** curated — their GitHub Release body is the auto changelog section, or a provenance placeholder when a lockstep batch leaves a crate with no user-facing changes. See [docs/design/0004 §9](../design/0004-release-publish-pipeline-and-supply-chain-provenance.md) and [`crates/sdmx-rs/release-notes/README.md`](../../crates/sdmx-rs/release-notes/README.md).
@@ -298,7 +298,7 @@ These mistakes are easy to make but have costly consequences. Avoid them:
 - **❌ Don't skip `just prepublish-check` before executing**
   - Saves a few seconds locally but costs CI time later
   - Catches metadata errors that would fail the publish job
-  - Instead: always run prepublish-check as part of section 0, step 6
+  - Instead: always run prepublish-check as part of section 0, step 8
 
 - **❌ Don't edit crate versions in Cargo.toml manually**
   - cargo-release has logic for managing versions and dependencies
