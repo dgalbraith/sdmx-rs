@@ -12,8 +12,15 @@ bats_require_minimum_version 1.5.0
 #     (the regression: the gate runs on a deliberately-dirty tree per
 #      releasing.md §0 — generated-but-uncommitted changelogs — so without
 #      --allow-dirty cargo aborts on its dirty guard before validating anything),
+#   - each crate's intra-workspace sdmx-* deps are remapped to their workspace
+#     path via a `--config patch.crates-io.<dep>.path=...` overlay, so the verify
+#     step never resolves the "=version" pins against the registry,
 #   - cargo's real exit code is propagated, not flattened to 1,
 #   - a crate-name argument scopes the run.
+#
+# cargo is stubbed, so these tests are structurally blind to registry
+# resolution: they assert the overlay ARGUMENTS reach the stub, not that a real
+# dry-run resolves against the index.
 #
 # Run with: bats tests/bats/prepublish-check.bats
 # ==============================================================================
@@ -162,4 +169,45 @@ sdmx-rs"
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
     grep -q -- 'publish -p sdmx-types' "$CARGO_LOG"
+}
+
+# ---------------------------------------------------------------------------
+# THE OVERLAY: a crate with intra-workspace deps gets a `[patch.crates-io]`
+# overlay remapping each sdmx-* dep to its workspace path, so the verify step
+# never resolves the "=version" pin against the registry. Read from the crate's
+# OWN manifest, so the overlay is exact (one --config per declared sdmx-* dep).
+# ---------------------------------------------------------------------------
+@test "prepublish-check: injects a [patch.crates-io] overlay for a crate's intra-workspace deps" {
+    mkdir -p crates/sdmx-client
+    cat > crates/sdmx-client/Cargo.toml <<'MANIFEST'
+version = "0.2.0"
+sdmx-types = { version = "=0.2.0", path = "../sdmx-types" }
+sdmx-parsers = { version = "=0.2.0", path = "../sdmx-parsers" }
+MANIFEST
+    run_isolated ./scripts/prepublish-check.sh sdmx-client
+    echo "STATUS: $status" >&2
+    echo "CARGO CALLS:" >&2; cat "$CARGO_LOG" >&2
+    [ "$status" -eq 0 ]
+    # Both declared deps remapped, on the sdmx-client invocation.
+    grep -q -- '--config patch.crates-io.sdmx-types.path=' "$CARGO_LOG"
+    grep -q -- '--config patch.crates-io.sdmx-parsers.path=' "$CARGO_LOG"
+    # Absolute path (cargo resolves relative --config paths oddly).
+    grep -qE 'patch.crates-io.sdmx-types.path="/.*/crates/sdmx-types"' "$CARGO_LOG"
+    # No overlay entry for a crate this one does NOT depend on.
+    run ! grep -q -- 'patch.crates-io.sdmx-writers' "$CARGO_LOG"
+}
+
+# ---------------------------------------------------------------------------
+# A crate with no intra-workspace deps (a leaf like sdmx-types) gets NO overlay:
+# nothing to remap, so no --config is passed and no unused-patch warning arises.
+# ---------------------------------------------------------------------------
+@test "prepublish-check: a crate with no intra-workspace deps gets no overlay" {
+    mkdir -p crates/sdmx-types
+    printf 'version = "0.2.0"\n' > crates/sdmx-types/Cargo.toml
+    run_isolated ./scripts/prepublish-check.sh sdmx-types
+    echo "STATUS: $status" >&2
+    echo "CARGO CALLS:" >&2; cat "$CARGO_LOG" >&2
+    [ "$status" -eq 0 ]
+    grep -q -- 'publish -p sdmx-types' "$CARGO_LOG"
+    run ! grep -q -- '--config' "$CARGO_LOG"
 }

@@ -99,7 +99,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    This runs `cargo publish --dry-run` for each crate in topological order (catching missing license, oversized package, invalid metadata) **and** re-runs `check-release-notes` for the facade, so the curated notes from step 7 must already exist.
 
    > [!NOTE]
-   > `cargo publish --dry-run` verify-compiles each crate against its **registry** dependencies, so a downstream crate (`sdmx-parsers` … `sdmx-rs`) can only pass this check once the crate it depends on is already on crates.io. For the very **first** release, that is not yet true — run `prepublish-check` *after* the [bootstrap placeholder publish](#3-bootstrap-publish--reserve-crate-names) has put the `0.0.0` versions on the index. On every subsequent release the prior versions are already published, so it works from section 0 as written.
+   > This check proves packaging, metadata, licences, and compilation, not registry lookup. To package a crate for the dry-run, cargo strips the workspace `path` from each intra-workspace dependency and would resolve the bare `version = "=X"` pin against crates.io. That pinned version is never on the index at check time: the in-tree pins are `=0.0.0`, and at release time `prep-release` rewrites them to the not-yet-published batch version. So `prepublish-check` injects a `[patch.crates-io]` overlay (via cargo `--config`, mutating no file) that points each `sdmx-*` dependency at its workspace path, and the verify step compiles and validates against the local sources. Resolving the real pins against the registry is left to publish time: `publish.yml` blocks each crate on `wait-for-deps` until its dependencies are indexed, then the real publish resolves them per crate. Because the overlay drops the "dependency must already be published" precondition, this check runs from section 0 as written on every release, including the first.
 
 ---
 
@@ -124,7 +124,7 @@ There are **two distinct artefacts**, and conflating them is a trap the gates wi
    just check-release-notes <version>
    ```
 
-   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 7) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
+   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 8) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
 
 > [!NOTE]
 > **Why two files.** `CHANGELOG.md` is the machine record (gated, never curated); `release-notes/<version>.md` is the curated facade record (mandatory, drives the Release body). Leaf crates (`sdmx-types`, `sdmx-parsers`, `sdmx-writers`, `sdmx-client`) are **not** curated — their GitHub Release body is the auto changelog section, or a provenance placeholder when a lockstep batch leaves a crate with no user-facing changes. See [docs/design/0004 §9](../design/0004-release-publish-pipeline-and-supply-chain-provenance.md) and [`crates/sdmx-rs/release-notes/README.md`](../../crates/sdmx-rs/release-notes/README.md).
@@ -298,7 +298,7 @@ These mistakes are easy to make but have costly consequences. Avoid them:
 - **❌ Don't skip `just prepublish-check` before executing**
   - Saves a few seconds locally but costs CI time later
   - Catches metadata errors that would fail the publish job
-  - Instead: always run prepublish-check as part of section 0, step 6
+  - Instead: always run prepublish-check as part of section 0, step 8
 
 - **❌ Don't edit crate versions in Cargo.toml manually**
   - cargo-release has logic for managing versions and dependencies
@@ -351,30 +351,32 @@ gh repo edit "${OWNER}/${REPO}" --visibility public
 
 Immediately enable secret scanning and Push Protection — free once public, and the only server-side control that *rejects* a secret-bearing push (the local hooks and CI scan are bypassable / detect-after-the-fact). See [forge-setup.md — Secret Scanning & Push Protection](forge-setup.md#secret-scanning--push-protection).
 
-### 3. Bootstrap publish — reserve crate names
+### 3. Bootstrap publish: reserve crate names
 
-This is the only time a long-lived API token touches the publish path. crates.io has no "reserve a name" feature and no pending-publisher feature: the name comes into existence only by publishing an artifact. So publish a throwaway-but-permanent `0.0.0` for each crate, in topological order, to create the names a Trusted Publisher can later attach to.
+**Executed 2026-07-09.** This step ran once; what follows records what was done and the rules that remain standing.
 
-Run this from the infrastructure-baseline commit while every crate's `Cargo.toml` still reads `version = "0.0.0"` (a detached checkout is fine — `cargo publish` does not mutate the tree):
+crates.io has no reserve-a-name feature and no pending-publisher feature: a name comes into existence only by publishing an artifact. So a synthetic placeholder for each crate was published manually at version `0.1.0-alpha.1` with a short-lived API token, in topological order: `sdmx-types` first, then `sdmx-parsers`, `sdmx-writers`, and `sdmx-client`, then `sdmx-rs`, waiting for the index between tiers because a dependent cannot package until its dependency is on the index. This is the only time an API token has touched the publish path; the token was revoked after the Trusted Publishers were registered (step 4).
 
-```bash
-git switch --detach <baseline-commit-sha>
+The placeholders were not built from the repository tree. They are minimal synthetic stubs with honest metadata: future-tense descriptions ("Future home of the `<role>` for sdmx-rs; no functionality is published at this version."), the real crates' `no_std` postures mirrored, the facade's real feature table mirrored, and the intra-toolkit dependencies declared at `=0.1.0-alpha.1` so the registry index shows the family's dependency shape.
 
-cargo publish --manifest-path crates/sdmx-types/Cargo.toml   --token <token>
-cargo publish --manifest-path crates/sdmx-parsers/Cargo.toml --token <token>
-cargo publish --manifest-path crates/sdmx-writers/Cargo.toml --token <token>
-cargo publish --manifest-path crates/sdmx-client/Cargo.toml  --token <token>
-cargo publish --manifest-path crates/sdmx-rs/Cargo.toml      --token <token>
+Provenance: the maintainer retains the stub source tree outside the repository, and the registry index checksums were recorded at publish time:
 
-git switch -   # back to your working branch
-```
+| Crate | Registry index checksum at publish |
+|---|---|
+| `sdmx-types` | `0d1bac4e9b71274162a7c4394f01246d4879a049f884c560ef197f044f43c554` |
+| `sdmx-parsers` | `e2154cfdab22066f2ecbea37f7a3124cf959367d527401576b39a7d5ceb04a2a` |
+| `sdmx-writers` | `d5263f51138a8fa40bf83b2890a89a87d11ff705efdc6dc53eba2c6a019b31a8` |
+| `sdmx-client` | `b27c6168ed5b4131f4de1dbdd4e232652dba88b5a013573998e7efbaf5a9588b` |
+| `sdmx-rs` | `8d1d9978e4d005206bf7e937663f6f52853b0e72c93cd414890c3c6fa486ef4a` |
 
-The order is mandatory: each crate's intra-workspace deps are pinned `version = "=0.0.0"`, so a crate cannot publish until the crate it depends on is on the index. crates.io indexing lags a few seconds behind each publish, so if a later crate fails to resolve a just-published dependency, wait a moment and re-run that one (publishing is idempotent per exact version).
+Why `0.1.0-alpha.1`, and why the placeholders are not yanked: a pre-release version never matches an ordinary version requirement unless a consumer requests it explicitly, so the placeholders are invisible to dependency resolution and yanking them is unnecessary.
+
+The in-tree `=0.0.0` pins reference a version that was never published and never will be; this is harmless because `prep-release` rewrites every pin to the batch version at release time.
+
+**Rehearsal.** Before the first real release, the full documented release pipeline (sections 0–6) is exercised end to end at `0.1.0-alpha.2` across all five crates. A pre-release is equally invisible to resolution, so the rehearsal proves the tag-triggered publish path against the live registry with zero consumer stakes.
 
 > [!IMPORTANT]
-> **Do not create or push a `v0.0.0` git tag.** Name reservation is done entirely by `cargo publish` above — no tag is involved. A `sdmx-*/v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and invoke the OIDC publish path **before** Trusted Publishers exist (step 4), producing a failed or misleading run during the most sensitive window. The first tag the pipeline ever sees must be `v0.1.0` (step 5).
->
-> This leaves an intentional asymmetry: `0.0.0` exists on crates.io as a token-published placeholder with **no matching git tag**, while `0.1.0` is the first version published through the pipeline and the first tagged in git. The infrastructure-baseline merge commit on `main` is the durable reference for the `0.0.0` content; it needs no tag.
+> **Never create or push a `sdmx-*/v0.0.0` git tag.** `0.0.0` is never published, and a `v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and fire the publish workflow for a version that must not exist on the registry. This is a standing rule, not a bootstrap-window concern. The first tags the pipeline ever sees are the `sdmx-<crate>/v0.1.0-alpha.2` rehearsal tags. As a backstop, `publish.yml`'s tag validation rejects any tag naming the `0.0.0` core before the publish path can act on it.
 
 ### 4. Register Trusted Publishers
 

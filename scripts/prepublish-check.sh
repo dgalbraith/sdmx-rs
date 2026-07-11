@@ -5,7 +5,13 @@ set -e
 # scripts/prepublish-check.sh
 # Validates that all crates will publish successfully to crates.io without
 # actually pushing. Runs cargo publish --dry-run for each crate in topological
-# order to catch metadata errors before release.
+# order to catch metadata errors before release. A [patch.crates-io] overlay
+# (injected via cargo --config, so no tracked file is mutated) points each
+# crate's intra-workspace sdmx-* dependencies at their workspace paths, so the
+# dry-run's verify step validates packaging, metadata, licences, and compilation
+# without resolving the "=X" pins against the registry (those pins are never on
+# the index at check time). See the loop body for the overlay rationale and what
+# it deliberately leaves unproven.
 #
 # Runs with --allow-dirty by design: per releasing.md §0 this gate executes after
 # `changelog-generate` (which leaves crates/*/CHANGELOG.md uncommitted) and before
@@ -20,6 +26,11 @@ set -e
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck disable=SC1091
 . "${SCRIPT_DIR}/common.sh"
+
+# Absolute workspace root (parent of scripts/). Used to build absolute
+# [patch.crates-io] paths for the dry-run overlay below: cargo resolves relative
+# --config paths oddly, so the overlay uses absolute paths.
+WORKSPACE_ROOT=$(dirname "$SCRIPT_DIR")
 
 log_section "Pre-publish validation (dry-run)"
 
@@ -49,7 +60,7 @@ done
 
 for crate in $CRATES_TO_CHECK; do
     # --allow-dirty is REQUIRED here, not a convenience. Per releasing.md §0, this
-    # check runs at step 7 — AFTER `changelog-generate` (step 4, which writes
+    # check runs at step 8 — AFTER `changelog-generate` (step 5, which writes
     # crates/*/CHANGELOG.md but deliberately leaves them uncommitted) and BEFORE
     # `release-commit-changelogs` (§2). So the tree is ALWAYS dirty at this point,
     # and a plain `cargo publish --dry-run` aborts on cargo's dirty-tree guard
@@ -69,7 +80,34 @@ for crate in $CRATES_TO_CHECK; do
     # metadata rejection), and a caller or CI log reading the status learns more
     # from the real code than from a generic 1. `|| status=$?; exit $status` keeps
     # the fail-fast (first bad crate aborts) while preserving that information.
-    cargo publish -p "$crate" --dry-run --allow-dirty || { status=$?; exit "$status"; }
+    #
+    # [patch.crates-io] overlay for the dry-run's verify step. When cargo packages
+    # a crate it strips the `path` from each intra-workspace dependency, leaving the
+    # bare `version = "=X"` pin, which the verify step then resolves against the
+    # crates.io index. That pin is NEVER on the index at check time: the in-tree
+    # value is =0.0.0 (a placeholder that was never published — the reserved
+    # versions are 0.1.0-alpha.1), and at release time prep-release rewrites it to
+    # the new batch version, which is likewise not yet published. Either way the
+    # lookup fails ("failed to select a version for the requirement sdmx-types ...")
+    # for every dependent crate, aborting the dry-run before it validates anything.
+    #
+    # Remap each of this crate's sdmx-* dependencies to its workspace path via
+    # cargo's --config flag (no tracked file is mutated). The verify step then
+    # validates packaging, metadata, licences, and compilation against the local
+    # sources. Registry lookup itself is deliberately left unproven here: publish.yml
+    # covers it per crate at publish time (wait-for-deps blocks on the index, then
+    # the real publish resolves the pins for real). The dep list is read from the
+    # crate's own manifest, so the overlay stays exact and emits no unused-patch
+    # warnings. Absolute paths (WORKSPACE_ROOT) because cargo resolves relative
+    # --config paths oddly.
+    set --
+    if [ -f "crates/${crate}/Cargo.toml" ]; then
+        crate_deps=$(sed -n -E 's/^(sdmx-[a-z]+) = .*/\1/p' "crates/${crate}/Cargo.toml" | sort -u)
+        for dep in $crate_deps; do
+            set -- "$@" --config "patch.crates-io.${dep}.path=\"${WORKSPACE_ROOT}/crates/${dep}\""
+        done
+    fi
+    cargo publish -p "$crate" --dry-run --allow-dirty "$@" || { status=$?; exit "$status"; }
 done
 
 log_ok "prepublish: all crates passed validation"
