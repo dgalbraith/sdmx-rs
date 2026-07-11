@@ -85,7 +85,7 @@ just verify-minimal
 just verify
 
 # Modular sub-gates (run automatically locally via pre-push hooks based on changed paths)
-just verify-rust            # Rust codebase checks: clippy, nextest, and semver
+just verify-rust            # Rust codebase checks: formatting, clippy, docs + doctests, semver, and tests via the coverage gate
 just verify-wasm            # WASM target: compile check plus Node/V8 test execution
 just verify-scripts         # Repository scripts/CI: shellcheck, actionlint, and BATS tests
 just verify-docs            # Markdown documents: ledger structures and active link check

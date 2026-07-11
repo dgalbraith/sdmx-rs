@@ -67,6 +67,9 @@ Every text field owns its data; lifetimes are confined to parser tokenise loops.
 ## Consequences
 
 * **Positive**: `'static` domain types end-to-end; no lifetime parameters in any public API; caching and client storage are trivial; raw-lexeme preservation (ADR-0023's lossless `raw` fields) composes naturally with ownership.
+
+> **Corrected 2026-07-11**: The "no lifetime parameters in any public API" statement above is too broad. The public `VersionDisplay<'a>` adapter (returned by `VersionableArtefact::version_display`) carries a lifetime, so the accurate guarantee is narrower: no lifetime parameters on any *stored* domain type. Domain values remain `'static`, storable, and cacheable, with lifetimes confined to parser internals and transient borrow-based display adapters. `VersionDisplay<'a>` is exactly such an adapter, following the `std::path::Display` pattern: it borrows for the duration of a single format call and never enters storage. The decision itself stands.
+
 * **Negative**: Parsing allocates per text field; bulk-parsing throughput is reduced. If profiling ever demands, interning or arena strategies are additive *parser-internal* optimisations — the domain API does not change.
 * **Neutral**: Register entry D-0007 is promoted to this ADR (body retained as audit trail).
 
