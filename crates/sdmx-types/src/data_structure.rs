@@ -122,7 +122,9 @@ pub struct DataStructureDefinition {
 impl DataStructureDefinition {
     /// Resolves the [`Group`] an [`AttributeRelationship::Group`](crate::AttributeRelationship::Group)
     /// names: a first-match lookup view over the groups in wire order. A duplicate group id is
-    /// schema-valid but dubious (a catalogued lint, not a construction error).
+    /// schema-invalid under the `DataStructureUniqueComponent` `xs:unique`, so a non-conformant
+    /// document's duplicate is held verbatim and flagged by a catalogued lint, never a construction
+    /// error (D-0051).
     #[must_use]
     pub fn get_group(&self, id: &str) -> Option<&Group> {
         self.groups.iter().find(|group| group.id() == id)
