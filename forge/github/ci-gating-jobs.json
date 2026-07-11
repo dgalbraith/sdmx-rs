@@ -16,12 +16,12 @@
     "background infrastructure. `ci-gate` itself is NOT listed (a gate cannot gate",
     "itself).",
     "",
-    "For the SIX jobs deliberately EXCLUDED from this gate and the rationale, see",
+    "For the SEVEN jobs deliberately EXCLUDED from this gate and the rationale, see",
     "docs/project/ci-gating.md — 'What the gate does not cover'. In short: PR-only",
     "procedural checks (semver-check, check-commit-messages) and tag-scoped checks",
     "(validate-changelog) do not run on push events and would deadlock the staging",
     "fast-forward; informational/scheduled checks (detect-maintenance, check-msrv,",
-    "msrv-features-check) are non-blocking by design."
+    "msrv-features-check, coverage-strict) are non-blocking by design."
   ],
   "jobs": [
     { "job": "changes",              "why": "Path-filter engine; the gate asserts this job == success before trusting any skip." },

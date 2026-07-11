@@ -68,6 +68,7 @@ These checks run on schedule and report findings but do not block:
 |--------------------------|------------------------------------------|:-------------:|:---------------------:|
 | **check-msrv**           | MSRV floor detection (vs. declared)      | Schedule only | ❌ No (informational) |
 | **msrv-features-check**  | MSRV compatibility across feature combos | Schedule only | ❌ No (informational) |
+| **coverage-strict**      | Spillover-free per-crate coverage floors | Schedule only | ❌ No (informational) |
 
 ## Trigger Logic
 
@@ -144,7 +145,7 @@ The exact set of jobs the aggregator must cover is declared in [`forge/github/ci
 
 ### What the gate does *not* cover, and why
 
-Six jobs are deliberately **excluded** from the aggregator. Including any of them would either deadlock the staging fast-forward (they do not run on `push` events) or block a merge for non-code reasons:
+Seven jobs are deliberately **excluded** from the aggregator. Including any of them would either deadlock the staging fast-forward (they do not run on `push` events) or block a merge for non-code reasons:
 
 | Excluded job              | Class                   | Why excluded |
 |---------------------------|-------------------------|--------------|
@@ -154,6 +155,19 @@ Six jobs are deliberately **excluded** from the aggregator. Including any of the
 | **detect-maintenance**    | Informational           | Non-blocking maintenance tracker; runs on schedule/main-push and creates Issues, never gates a merge. |
 | **check-msrv**            | Scheduled/informational | Opportunistic MSRV-floor detection; schedule-only, non-blocking. |
 | **msrv-features-check**   | Scheduled/informational | MSRV feature-matrix check; schedule-only, non-blocking. |
+| **coverage-strict**       | Scheduled/informational | Spillover-free per-crate coverage audit; schedule-only, non-blocking. |
+
+### Checks enforced locally, not in CI
+
+Not every check in `just verify` has a matching CI job. `check-conventions`
+(the greppable source conventions in `crates/*/src`, e.g. typed `None::<T>` and
+empty `Vec::new()`) runs only through the `verify-rust` chain: locally in `just
+verify`, and on every push through the `run-just-verify-rust` pre-push hook. It
+is deliberately not mirrored as a standalone CI job: the convention is cheap to
+enforce at the point of change and carries no cross-platform or release risk
+that would justify a dedicated runner. The other `verify-rust` steps
+(formatting, clippy, docs, doctests, semver, coverage, release dry-run) each do
+have a CI job, so this is the one local-only member of that chain.
 
 ## Check Details
 
@@ -340,6 +354,14 @@ Verifies MSRV compatibility (see `rust-toolchain.toml`) across feature combinati
 **Result**: Confirms compilation succeeds with feature matrices (informational).
 
 **Purpose**: Catch regressions where feature flags introduce dependencies newer than MSRV. Developers can run locally (`just msrv-features`) when working on optional features.
+
+#### coverage-strict
+Runs each crate's suite in isolation (`just test-coverage-strict`) and enforces the same per-crate floors as the merge-gating `coverage` job, but without the cross-crate spillover the single-run gate allows. Slower than the gate, so it is not wired into `verify`; the weekly run is where a spillover-hidden drop below a floor surfaces.
+
+**Runs on**: Schedule only (weekly).
+**Result**: Confirms each crate meets its floor in isolation (informational).
+
+**Purpose**: Catch a crate whose own tests no longer cover its floor but which the replayed single-run gate keeps green via coverage from sibling crates' tests.
 
 ## Interpreting CI Failures
 
