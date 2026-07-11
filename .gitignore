@@ -332,6 +332,7 @@
 !/scripts/ci/
 /scripts/ci/*
 !/scripts/ci/check-published.sh
+!/scripts/ci/compare-registry-crate.sh
 !/scripts/ci/create-release.sh
 !/scripts/ci/parse-release-tag.sh
 !/scripts/ci/run-coverage.sh
@@ -432,6 +433,7 @@
 !/tests/bats/log-lib.bats
 
 # CI script tests
+!/tests/bats/compare-registry-crate.bats
 !/tests/bats/create-release.bats
 !/tests/bats/run-coverage.bats
 !/tests/bats/secrets-scan.bats

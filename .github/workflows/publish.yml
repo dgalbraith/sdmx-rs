@@ -173,6 +173,13 @@ jobs:
         if: steps.published.outputs.exists == 'false'
         run: nix develop --command scripts/ci/wait-for-index.sh "$CRATE" "$VERSION"
 
+      # Prove the bytes we are about to attest are the bytes crates.io serves.
+      # Runs unconditionally (even on an idempotent re-run where publish was
+      # skipped) so the attestation subject is always validated against the
+      # registry before anything is signed. Fails hard on a SHA-256 mismatch.
+      - name: Compare packaged crate against registry
+        run: nix develop --command scripts/ci/compare-registry-crate.sh "$CRATE" "$VERSION" "$CRATE_FILE"
+
       - name: Generate CycloneDX SBOM
         run: |
           nix develop --command cargo cyclonedx \
