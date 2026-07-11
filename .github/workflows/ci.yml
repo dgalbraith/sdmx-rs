@@ -485,6 +485,33 @@ jobs:
         run: |
           echo "::warning title=Codecov upload failed (non-blocking)::Coverage was generated but the upload to Codecov did not succeed (outcome: ${{ steps.codecov.outcome }}). PR coverage annotations are unavailable for this run. The coverage GATE is unaffected. See the 'Upload Coverage to Codecov' step log for details; the likeliest in-our-control cause is an expired CODECOV_TOKEN."
 
+  coverage-strict:
+    name: Strict Coverage Check
+    runs-on: ubuntu-latest
+    # Schedule-only, non-blocking audit. Runs each crate's suite in isolation
+    # (no cross-crate spillover) and enforces the same per-crate floors as the
+    # merge-gating `coverage` job. Slower than the replayed single-run gate, so
+    # it is not wired into `verify` or the CI Quality Gate; the weekly run
+    # surfaces any crate whose spillover-free coverage has quietly dropped below
+    # its floor. Deliberately NOT in the gate's `needs:` list, since it does not
+    # run on `push`: requiring it would deadlock the staging fast-forward (see
+    # docs/project/ci-gating.md, "What the gate does not cover").
+    if: github.event_name == 'schedule'
+    env:
+      RUSTC_WRAPPER: sccache
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup-nix
+
+      - uses: ./.github/actions/cargo-registry-cache
+
+      - uses: ./.github/actions/sccache-cache
+
+      - name: Run Strict Coverage Audit
+        run: nix develop --command just test-coverage-strict
+
   # NOTE: msrv-verify and test-matrix use dtolnay/rust-toolchain instead of the Nix
   # devShell for a practical reason: Nix sandboxes do not provide exact historic Rust
   # toolchains easily without a version bump to rust-overlay. The dtolnay action is the
