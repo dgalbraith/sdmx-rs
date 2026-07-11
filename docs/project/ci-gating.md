@@ -54,11 +54,11 @@ These checks run only on tag pushes and are not part of the PR or main-push qual
 | Check                  | Purpose                                                                   | Triggers                     | Blocks Publish |
 |------------------------|---------------------------------------------------------------------------|:----------------------------:|:--------------:|
 | **validate-changelog** | Verifies `CHANGELOG.md` matches `git-cliff` regeneration byte-for-byte    | Tag push                     | ✅ Yes         |
-| **release-dry-run**    | Continuous packaging health check — verifies crates would package cleanly | Non-PR pushes/tags, schedule | ✅ Yes         |
+| **release-dry-run**    | Simulates the release sequence (plan, hooks, tag names); packages nothing | Non-PR pushes/tags, schedule | ✅ Yes         |
 
 `validate-changelog` is gate 2 of the publish chain in `publish.yml` (after signature verification, before setup/tag resolution). See [releasing.md §6](releasing.md#6-ci-publishes-to-github--cratesio) for the full gate sequence.
 
-`release-dry-run` runs on `main` and tag pushes (never on PRs) as an early-warning check that packaging would succeed if a release were cut from the current tree. It is distinct from the local `just release-dry-run` step in the release workflow, which runs on the release branch as part of release preparation.
+`release-dry-run` runs on `main` and tag pushes (never on PRs) as an early-warning check that the release sequence would run cleanly if a release were cut from the current tree; it simulates the release plan and packages nothing. It is distinct from the local `just release-dry-run` step in the release workflow, which runs on the release branch as part of release preparation.
 
 ### 5. Scheduled & Informational (Weekly check)
 
@@ -316,10 +316,10 @@ Verifies that each crate's committed `CHANGELOG.md` matches what `git-cliff` reg
 **Purpose**: Enforce the machine-record integrity of `CHANGELOG.md`. Manual edits must never reach a release; fix the underlying commit messages instead and regenerate.
 
 #### release-dry-run
-Runs `cargo release --dry-run` across all crates to verify packaging would succeed from the current tree — catches missing metadata, oversized packages, and compilation errors before a real release is attempted.
+Runs `cargo release` in its default dry-run mode (no `--execute`) across all crates to simulate the release sequence from the current tree: release-config validity, per-crate change detection against the previous release tags, the derived publish order, pre-release hook wiring, and the tag names that would be stamped. Nothing is packaged or compiled in this path. Packaging validation (metadata, licences, package contents, compilation of the packaged sources) lives in the `prepublish-check` dry-run at release time, which resolves intra-workspace pins through its `[patch.crates-io]` workspace-path overlay and so does not depend on the registry.
 
-**Runs on**: Non-PR pushes (main and tag) and scheduled (weekly). Never on PRs — packaging every crate is slow and irrelevant to review feedback.
-**Purpose**: Continuous packaging health check. Distinct from the local `just release-dry-run` step in the release workflow (which runs on the release branch as part of release preparation) — this gate monitors the state of `main` between releases.
+**Runs on**: Non-PR pushes (main and tag) and scheduled (weekly). Never on PRs: it exercises the release path, not the PR's changes, so it is irrelevant to review feedback.
+**Purpose**: Early warning that the release simulation still passes from the current tree. Distinct from the local `just release-dry-run` step in the release workflow (which runs on the release branch as part of release preparation): this gate monitors the state of `main` between releases.
 
 ### Continuous Monitoring & Maintenance Checks
 

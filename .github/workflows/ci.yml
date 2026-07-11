@@ -799,10 +799,14 @@ jobs:
     name: Release Dry-Run Check
     runs-on: ubuntu-latest
     needs: [changes]
-    # Never on PRs: a dry-run packages every crate, which is slow and irrelevant
-    # to review feedback. Runs on main/tag pushes and the weekly schedule when
-    # Rust, infra, or the release configs changed, so packaging breakage surfaces
-    # before a real release.
+    # Simulates the release sequence with cargo-release (no --execute): release
+    # config validity, per-crate change detection, publish order, pre-release
+    # hook wiring, and tag naming. Nothing is packaged or compiled here;
+    # packaging is validated by the prepublish-check dry-run at release time.
+    # Never on PRs: it exercises the release path, not the PR's changes, so it
+    # is irrelevant to review feedback. Runs on main/tag pushes and the weekly
+    # schedule when Rust, infra, or the release configs changed, so release-path
+    # breakage surfaces before a real release.
     if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.infra == 'true' || needs.changes.outputs.releasecfg == 'true')
     env:
       RUSTC_WRAPPER: sccache
