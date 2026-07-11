@@ -40,6 +40,9 @@ commit_preprocessors = [
 commit_parsers = [
   { message = "^.*!:", group = "<!-- 0 -->⚠️ Breaking Changes" },
   { message = "^feat[:(]", group = "Features" },
+
+  # Skip CI-only fixes from the public changelog
+  { message = "^fix\\(ci\\)", skip = true },
   { message = "^fix[:(]", group = "Bug Fixes" },
 
   # Skip developer-only documentation scopes from the public changelog
