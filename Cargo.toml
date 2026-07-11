@@ -149,7 +149,7 @@ inherits = "release"
 debug = true
 strip = false
 
-# Fuzzing profile placeholder for the Phase 4 parser fuzzing suite (ADR-0010).
+# Fuzzing profile placeholder for the parser fuzzing suite (ADR-0010).
 # Add fuzz-specific tuning here when `cargo fuzz` targets land.
 [profile.fuzz]
 inherits = "release"

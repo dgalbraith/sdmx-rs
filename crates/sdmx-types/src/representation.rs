@@ -71,7 +71,8 @@ Decisions: D-0021, D-0048.
 "#
 )]
 // The all-caps `URI` and `XHTML` variants reproduce the spec's enumeration tokens verbatim so the
-// derived serde representation matches the wire; the lint that would lowercase them is waived here.
+// derived serde representation matches the wire; `clippy::upper_case_acronyms`, which would rename
+// them to `Uri`/`Xhtml`, is waived here.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum DataType {
