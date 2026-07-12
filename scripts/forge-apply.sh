@@ -308,9 +308,8 @@ forge_spec_security_toggles | while IFS="$FORGE_TAB" read -r key want endpoint _
 done
 
 # security_and_analysis.* (secret scanning + push protection) via PATCH /repos
-# with a nested object. PUBLIC-ONLY: GitHub rejects these on a private repo
-# (Advanced Security), so a failure here is a WARN, not fatal — they are enabled
-# at the go-live window once the repo is public (forge-setup.md).
+# with a nested object. A failure here is a WARN, not fatal — forge-setup.md is
+# the reference for these settings.
 forge_spec_security_analysis | while IFS="$FORGE_TAB" read -r key want; do
     if [ "$dry_run" = "1" ]; then
         log_info "[dry-run] PATCH repos/$owner_repo security_and_analysis.$key=$want" 1
@@ -319,7 +318,7 @@ forge_spec_security_analysis | while IFS="$FORGE_TAB" read -r key want; do
         if printf '%s' "$_body" | gh api --method PATCH "repos/$owner_repo" --input - >/dev/null 2>&1; then
             log_ok "PATCH security_and_analysis.$key=$want" 1
         else
-            log_warn "Could not set $key=$want (free only on public repos — defer to go-live)" 1
+            log_warn "Could not set $key=$want — verify manually" 1
         fi
     fi
 done

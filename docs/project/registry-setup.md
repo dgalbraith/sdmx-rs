@@ -47,7 +47,7 @@ separately.
 ### Prerequisites
 
 - All five crate names must already exist on crates.io (reserved via the bootstrap
-  publish — see [releasing.md](releasing.md#first-time-bootstrap-sequence)).
+  publish — see the [releasing.md bootstrap record](releasing.md#bootstrap-record)).
   crates.io has **no pending-publisher feature**: the name must exist before a
   Trusted Publisher can attach to it.
 - `publish.yml` must be merged to the default branch — crates.io validates the

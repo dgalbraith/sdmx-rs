@@ -26,9 +26,7 @@
 #                              (default: warn only — it may be intentionally
 #                              deferred until publishing goes live).
 #   FORGE_SECURITY_REQUIRED=1  treat disabled secret scanning / push protection as
-#                              a failure (default: warn only — these are free only
-#                              on public repos, so they are deferred until the repo
-#                              goes public at the release go-live window).
+#                              a failure (default: warn only).
 #   FORGE_WORKFLOWS_DIR=<dir>  override the workflows directory scanned by the
 #                              actions allowlist crosscheck (default: .github/workflows).
 #                              Also scans .github/actions/**/action.yml in the same
@@ -231,12 +229,11 @@ if repo_json="$(gh api "repos/$owner_repo" 2>/dev/null)"; then
         fi
     done
 
-    # security_and_analysis.* (secret scanning + push protection). PUBLIC-ONLY:
-    # free only on public repos, so a "disabled" reading is a deferred WARN by
-    # default (the repo is private until go-live) and a FAILURE only under the
+    # security_and_analysis.* (secret scanning + push protection). A mismatched
+    # reading is a WARN by default and a FAILURE only under the
     # FORGE_SECURITY_REQUIRED opt-in. Read off the same repo_json; the nested
     # status is .security_and_analysis.<key>.status ("enabled"/"disabled"/absent).
-    log_info "Security & analysis (public-only)" 1
+    log_info "Security & analysis" 1
     forge_spec_security_analysis | while IFS="$FORGE_TAB" read -r key want; do
         got="$(printf '%s' "$repo_json" | jq -r ".security_and_analysis.${key}.status // \"absent\"")"
         if [ "$got" = "$want" ]; then
@@ -245,7 +242,7 @@ if repo_json="$(gh api "repos/$owner_repo" 2>/dev/null)"; then
             log_fail "$key = $got (want $want; FORGE_SECURITY_REQUIRED=1)" 2
             echo "drift" >> "$drift_sink"
         else
-            log_warn "$key = $got (want $want — deferred until repo is public)" 2
+            log_warn "$key = $got (want $want; warning only — set FORGE_SECURITY_REQUIRED=1 to enforce)" 2
         fi
     done
 else
@@ -430,15 +427,16 @@ forge_spec_security_toggles | while IFS="$FORGE_TAB" read -r key want endpoint p
     if [ "$got" = "$want" ]; then
         log_ok "$key = $got" 2
     else
-        # private-vulnerability-reporting is free only on public repos — treat as
-        # deferred (consistent with secret scanning) until FORGE_SECURITY_REQUIRED=1.
+        # private-vulnerability-reporting is free only on public repos — a warning
+        # by default (consistent with secret scanning) and a failure only under
+        # the FORGE_SECURITY_REQUIRED opt-in.
         case "$key" in
             private-vulnerability-reporting)
                 if [ "${FORGE_SECURITY_REQUIRED:-0}" = "1" ]; then
                     log_fail "$key = $got (want $want; FORGE_SECURITY_REQUIRED=1)" 2
                     echo "drift" >> "$drift_sink"
                 else
-                    log_warn "$key = $got (want $want — deferred until repo is public)" 2
+                    log_warn "$key = $got (want $want; warning only — set FORGE_SECURITY_REQUIRED=1 to enforce)" 2
                 fi
                 ;;
             *)
@@ -575,7 +573,7 @@ else
         log_fail "release environment missing (FORGE_RELEASE_REQUIRED=1)" 2
         echo "drift" >> "$drift_sink"
     else
-        log_warn "release environment missing (may be deferred until go-live)" 2
+        log_warn "release environment missing (warning only)" 2
         log_hint "Set FORGE_RELEASE_REQUIRED=1 to treat this as a failure" 2
     fi
 fi

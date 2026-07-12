@@ -15,12 +15,13 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # Monorepo crates in topological (dependency) order
 # IMPORTANT: This order is critical for publishing workflows.
 #
-# Dependencies flow left-to-right:
+# Dependency shape (each crate lists its direct intra-workspace deps; every
+# crate below the root depends on sdmx-types directly):
 #   sdmx-types (base types, no internal dependencies)
-#       └─ sdmx-parsers (depends on sdmx-types)
-#           └─ sdmx-writers (depends on sdmx-types)
-#               └─ sdmx-client (depends on sdmx-types, sdmx-parsers, sdmx-writers)
-#                   └─ sdmx-rs (workspace facade, depends on all others)
+#       ├─ sdmx-parsers (depends on sdmx-types)
+#       ├─ sdmx-writers (depends on sdmx-types)
+#       ├─ sdmx-client (depends on sdmx-types, sdmx-parsers)
+#       └─ sdmx-rs (workspace facade, depends on all others)
 #
 # When publishing to crates.io or running cargo release, crates must be
 # processed in this order to satisfy dependency constraints. A crate cannot

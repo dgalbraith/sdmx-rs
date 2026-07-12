@@ -67,7 +67,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    ```
    This generates all `CHANGELOG.md` files in `crates/*/CHANGELOG.md` and `crates/sdmx-rs/CHANGELOG.md` (do not commit yet). A no-op crate's section renders as "No user-facing changes in this release." — this is correct (see [cliff.toml](../../cliff.toml)).
 
-6. **Dry-run version logic and compilation**:
+6. **Dry-run the release sequence**:
 
    > [!NOTE]
    > **Version increment rules**: Version bumps are derived automatically from conventional commit types since the last tag:
@@ -81,7 +81,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    ```bash
    just release-dry-run sdmx-types sdmx-parsers sdmx-writers sdmx-client sdmx-rs
    ```
-   Review output for version increments, dependency resolution, and compilation errors. If issues appear, fix them on a feature branch, merge to main, create a fresh release branch, and restart from section 0.
+   Review the output for version increments, the derived publish order, and any release-config or hook errors. The dry-run simulates the release sequence only (plan, hooks, tag names); it does not compile or package anything, and packaging is validated separately at step 8. If issues appear, fix them on a feature branch, merge to main, create a fresh release branch, and restart from section 0.
 
 7. **Curate the facade release notes** (see [§1](#1-review-changelogs--curate-facade-release-notes) for the full guidance):
    The facade's user-facing prose lives in a curated file that drives its GitHub Release body. Scaffold it from the template, curate every section, then verify — before pre-publish validation, because the gate enforces it:
@@ -329,80 +329,24 @@ These mistakes are easy to make but have costly consequences. Avoid them:
 
 ---
 
-## First-Time Bootstrap Sequence
+## Bootstrap Record
 
-This section applies only once — before the first real release. It reserves crate names on crates.io, wires up Trusted Publishing, and validates the full pipeline end-to-end. Several steps are irreversible; follow the order below exactly.
+The five crate names were reserved on crates.io on 2026-07-09 by publishing synthetic placeholders at `0.1.0-alpha.1`; the API token used was revoked afterwards. A pre-release version never matches an ordinary version requirement, so the placeholders are invisible to dependency resolution and were not yanked.
 
-### 1. Create the protected `release` environment
-
-Do this as soon as `publish.yml` is merged to `main`, before the repository goes public. It is pure reversible config with no dependency on crate names or tokens, and completing it now removes one item from the time-pressured go-live window below.
-
-Follow the instructions in [forge-setup.md — Release Environment](forge-setup.md#release-environment). Verify the environment appears in **GitHub → Settings → Environments** with the correct reviewer and `prevent_self_review: false`.
-
-### Go-live window
-
-Once the repository goes public, crate names on crates.io become squattable. Execute steps 2 and 3 in immediate succession — do not leave the repo public with names unreserved.
-
-### 2. Make the repository public
-
-```bash
-gh repo edit "${OWNER}/${REPO}" --visibility public
-```
-
-Immediately enable secret scanning and Push Protection — free once public, and the only server-side control that *rejects* a secret-bearing push (the local hooks and CI scan are bypassable / detect-after-the-fact). See [forge-setup.md — Secret Scanning & Push Protection](forge-setup.md#secret-scanning--push-protection).
-
-### 3. Bootstrap publish: reserve crate names
-
-**Executed 2026-07-09.** This step ran once; what follows records what was done and the rules that remain standing.
-
-crates.io has no reserve-a-name feature and no pending-publisher feature: a name comes into existence only by publishing an artifact. So a synthetic placeholder for each crate was published manually at version `0.1.0-alpha.1` with a short-lived API token, in topological order: `sdmx-types` first, then `sdmx-parsers`, `sdmx-writers`, and `sdmx-client`, then `sdmx-rs`, waiting for the index between tiers because a dependent cannot package until its dependency is on the index. This is the only time an API token has touched the publish path; the token was revoked after the Trusted Publishers were registered (step 4).
-
-The placeholders were not built from the repository tree. They are minimal synthetic stubs with honest metadata: future-tense descriptions ("Future home of the `<role>` for sdmx-rs; no functionality is published at this version."), the real crates' `no_std` postures mirrored, the facade's real feature table mirrored, and the intra-toolkit dependencies declared at `=0.1.0-alpha.1` so the registry index shows the family's dependency shape.
-
-Provenance: the maintainer retains the stub source tree outside the repository, and the registry index checksums were recorded at publish time:
-
-| Crate | Registry index checksum at publish |
-|---|---|
-| `sdmx-types` | `0d1bac4e9b71274162a7c4394f01246d4879a049f884c560ef197f044f43c554` |
+| Crate          | Registry index checksum at publish                                 |
+|----------------|--------------------------------------------------------------------|
+| `sdmx-types`   | `0d1bac4e9b71274162a7c4394f01246d4879a049f884c560ef197f044f43c554` |
 | `sdmx-parsers` | `e2154cfdab22066f2ecbea37f7a3124cf959367d527401576b39a7d5ceb04a2a` |
 | `sdmx-writers` | `d5263f51138a8fa40bf83b2890a89a87d11ff705efdc6dc53eba2c6a019b31a8` |
-| `sdmx-client` | `b27c6168ed5b4131f4de1dbdd4e232652dba88b5a013573998e7efbaf5a9588b` |
-| `sdmx-rs` | `8d1d9978e4d005206bf7e937663f6f52853b0e72c93cd414890c3c6fa486ef4a` |
-
-Why `0.1.0-alpha.1`, and why the placeholders are not yanked: a pre-release version never matches an ordinary version requirement unless a consumer requests it explicitly, so the placeholders are invisible to dependency resolution and yanking them is unnecessary.
+| `sdmx-client`  | `b27c6168ed5b4131f4de1dbdd4e232652dba88b5a013573998e7efbaf5a9588b` |
+| `sdmx-rs`      | `8d1d9978e4d005206bf7e937663f6f52853b0e72c93cd414890c3c6fa486ef4a` |
 
 The in-tree `=0.0.0` pins reference a version that was never published and never will be; this is harmless because `prep-release` rewrites every pin to the batch version at release time.
 
-**Rehearsal.** Before the first real release, the full documented release pipeline (sections 0–6) is exercised end to end at `0.1.0-alpha.2` across all five crates. A pre-release is equally invisible to resolution, so the rehearsal proves the tag-triggered publish path against the live registry with zero consumer stakes.
-
 > [!IMPORTANT]
-> **Never create or push a `sdmx-*/v0.0.0` git tag.** `0.0.0` is never published, and a `v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and fire the publish workflow for a version that must not exist on the registry. This is a standing rule, not a bootstrap-window concern. The first tags the pipeline ever sees are the `sdmx-<crate>/v0.1.0-alpha.2` rehearsal tags. As a backstop, `publish.yml`'s tag validation rejects any tag naming the `0.0.0` core before the publish path can act on it.
+> **Never create or push a `sdmx-*/v0.0.0` git tag.** `0.0.0` is never published, and a `v0.0.0` tag would match `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and fire the publish workflow for a version that must not exist on the registry. The first tags the pipeline ever sees are the `sdmx-<crate>/v0.1.0-alpha.2` rehearsal tags. As a backstop, `publish.yml`'s tag validation rejects any tag naming the `0.0.0` core before the publish path can act on it.
 
-### 4. Register Trusted Publishers
-
-Follow [registry-setup.md — Trusted Publisher registration](registry-setup.md#trusted-publisher-registration): run `scripts/registry-tp.sh --print-register`, execute the printed registration command for each crate, then confirm with `just doctor-registry`. All five crates must be registered before proceeding.
-
-> [!IMPORTANT]
-> The crate name must exist on crates.io before a Trusted Publisher can be registered for it — crates.io has no pending-publisher feature. Complete step 3 before this step.
-
-### 5. First real release through the Trusted Publishing path
-
-Run the standard release workflow (sections 0–6) for the `0.1.0` batch. `cargo release` stamps one signed `sdmx-<crate>/v0.1.0` tag per crate on the release branch; merging to `main` is history only — it is the **push of those per-crate tags** (not the merge commit) that matches `publish.yml`'s `tags: ['sdmx-*/v*']` trigger and drives the OIDC publish of each crate's `0.1.0` to crates.io. This validates that the OIDC path works end-to-end before the token fallback is removed. Confirm all of the following before proceeding to step 6:
-
-- `gh attestation verify` resolves for build provenance and both SBOMs per crate
-- `git verify-tag` passes for each release tag
-- GitHub Releases are created with changelog notes and SBOM assets attached
-
-### 6. Enable enforcement — disable API-token publishing
-
-Once step 5 is confirmed working, disable API-token publishing per crate. Run `scripts/registry-tp.sh --print-enforce` (it refuses to print for any crate not yet published + registered) and execute the printed command, or use the UI:
-
-**crates.io → Your crates → `<crate-name>` → Settings → Trusted Publishing → Require Trusted Publishing**
-
-Repeat for all five crates. Verify with `REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry`, and by attempting a token publish — it should be rejected. See [registry-setup.md — Enforcement](registry-setup.md#enforcement-after-the-first-successful-tp-publish).
-
-> [!WARNING]
-> Do not enable enforcement until step 5 completes successfully. Enabling it while the OIDC binding is unproven removes the token fallback needed to diagnose and recover from a misconfigured Trusted Publisher registration.
+"Require Trusted Publishing for all new versions" is enabled for all five crates and no API token exists, so token-based publishing is structurally impossible. If a Trusted Publisher binding ever proves misconfigured, the emergency path is the crate owner toggling that setting off first in the crates.io web UI (**crates.io → Your crates → `<crate-name>` → Settings → Trusted Publishing**). Verify the standing state at any time with `REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry`; registry procedures live in [registry-setup.md](registry-setup.md).
 
 ---
 

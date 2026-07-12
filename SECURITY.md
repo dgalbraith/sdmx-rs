@@ -102,10 +102,10 @@ Distinct from dependency integrity above, committed secrets (API keys, tokens, p
 - **CI `check-secrets`** — `just secrets-scan` runs on every push and PR (unconditionally, not path-filtered, over full git history). Blocks merge, but detects only *after* the push reaches the remote.
 - **Push Protection** (GitHub server-side) — rejects a secret-bearing push at the forge before history is accepted. This is the only layer that *prevents* exposure rather than detecting it, and the one that closes the force-push vector.
 
-The local and CI layers are git/Nix-based and portable across forges; Push Protection is GitHub-native. Configuration and the enable-at-go-live timing are documented in [forge-setup.md — Secret Scanning & Push Protection](docs/project/forge-setup.md#secret-scanning--push-protection).
+The local and CI layers are git/Nix-based and portable across forges; Push Protection is GitHub-native. The settings and their apply/verify procedure are documented in [forge-setup.md — Secret Scanning & Push Protection](docs/project/forge-setup.md#secret-scanning--push-protection).
 
 > [!NOTE]
-> Push Protection is free only on public repositories and is enabled when the repository is made public during the release go-live window. While the repository is private, the local hooks and CI scan are the active layers.
+> Secret scanning and Push Protection are enabled on this repository.
 
 ### Vulnerability Monitoring & Remediation (Dependabot Alerts)
 

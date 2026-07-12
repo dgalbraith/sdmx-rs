@@ -189,10 +189,9 @@ forge_spec_security_toggles() {
 #   <key>\t<want>
 # These are nested under `.security_and_analysis.<key>.status` on the repo object
 # (values "enabled"/"disabled"); applied via PATCH /repos with a nested object.
-# PUBLIC-ONLY: secret scanning + push protection are free only on public repos
-# (GitHub Advanced Security otherwise). doctor-forge treats these as deferred-warn
-# until the repo is public (see FORGE_SECURITY_REQUIRED), mirroring the release-env
-# deferral. forge-setup.md times their enablement to the go-live window.
+# doctor-forge treats a mismatched reading for these as a warning by default and
+# a failure only under the FORGE_SECURITY_REQUIRED opt-in. forge-setup.md is the
+# reference for the settings themselves.
 forge_spec_security_analysis() {
     printf '%s\t%s\n' "secret_scanning" "enabled"
     printf '%s\t%s\n' "secret_scanning_push_protection" "enabled"
