@@ -443,8 +443,9 @@ just doctor-forge               # verifies live state matches spec (read-only)
 > (signed), not by bot PRs.
 
 **Secret scanning and Push Protection:** see below. `doctor-forge` reports a
-disabled reading for these as a warning by default; `FORGE_SECURITY_REQUIRED=1`
-makes it a hard failure.
+disabled reading for these as a failure by default; `FORGE_SECURITY_REQUIRED=0`
+downgrades it to a warning, for clones pushed to private repositories that
+cannot enable these settings without GitHub Advanced Security.
 
 #### Secret Scanning & Push Protection
 
