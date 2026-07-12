@@ -112,6 +112,20 @@ run_doctor() {
     run sh scripts/doctor-forge.sh
 }
 
+# Build a restricted PATH for a single run: symlinks to every tool the script
+# needs, minus gh, so `command -v gh` misses hermetically. git resolves to the
+# verify-commit shim (already first on PATH at symlink time). The ambient PATH
+# is untouched outside the prefixed run.
+path_without_gh() {
+    local dir="$BATS_TEST_TMPDIR/nobin" cmd p
+    mkdir -p "$dir"
+    for cmd in sh dirname basename mktemp rm grep sed awk git cut tail head sort find jq cat tr date diff wc; do
+        p="$(command -v "$cmd" 2>/dev/null)" || continue
+        ln -sf "$p" "$dir/$cmd"
+    done
+    printf '%s' "$dir"
+}
+
 # ==============================================================================
 # Auth gating
 # ==============================================================================
@@ -127,7 +141,50 @@ run_doctor() {
     [[ "$output" == *"Maintainer key file present"* ]]
     # ...and the online tier degraded to a warning + hint, not a hard failure.
     [[ "$output" == *"not authenticated"* ]]
-    [[ "$output" == *"offline checks passed"* ]]
+    # The partial-run summary must qualify the pass, not wear an unqualified glyph.
+    [[ "$output" == *"offline checks passed; online tier NOT verified (no auth)"* ]]
+}
+
+@test "doctor-forge: auth absent + FORGE_ONLINE_REQUIRED=1 -> exit 1 (online tier required)" {
+    mock_gh --no-auth
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_ONLINE_REQUIRED=1 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"FORGE_ONLINE_REQUIRED=1"* ]]
+    [[ "$output" == *"not authenticated"* ]]
+}
+
+@test "doctor-forge: FORGE_ONLINE_REQUIRED=1 with auth is inert -> exit 0" {
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_ONLINE_REQUIRED=1 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"matches spec"* ]]
+}
+
+@test "doctor-forge: gh binary absent -> online tier skipped, offline ran, exit 0" {
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    PATH="$(path_without_gh)" run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Offline checks"* ]]
+    [[ "$output" == *"gh CLI not found"* ]]
+    [[ "$output" == *"offline checks passed; online tier NOT verified (no gh)"* ]]
+}
+
+@test "doctor-forge: gh binary absent + FORGE_ONLINE_REQUIRED=1 -> exit 1 (online tier required)" {
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_ONLINE_REQUIRED=1 PATH="$(path_without_gh)" run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"FORGE_ONLINE_REQUIRED=1"* ]]
+    [[ "$output" == *"gh CLI not found"* ]]
 }
 
 # ==============================================================================

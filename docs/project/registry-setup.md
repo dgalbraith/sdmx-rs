@@ -89,7 +89,9 @@ supply-chain risk).
 exists, so token-based publishing is structurally impossible. Verify with
 `just doctor-registry`, which fails if any crate's enforcement has been turned
 off; the check needs `CRATES_IO_TOKEN` exported (see
-[Authentication](#authentication)), and without it the online tier is skipped.
+[Authentication](#authentication)), and without it the online tier is skipped and
+the summary reports it as not verified. Set `REGISTRY_ONLINE_REQUIRED=1` to make a
+skipped online tier a failure where the live assertion is mandatory.
 The emergency path (the crate owner toggling the setting off in the web UI) is
 recorded in the [releasing.md bootstrap record](releasing.md#bootstrap-record).
 

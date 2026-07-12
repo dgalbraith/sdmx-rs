@@ -20,12 +20,16 @@
 #     metadata (license / repository / rust-version); the release.toml tag glob
 #     still matches publish.yml's trigger.
 #   ONLINE  — checks that query crates.io. Gated behind a token probe: if
-#     CRATES_IO_TOKEN is absent, this tier is SKIPPED with a warning + hint and
-#     the script still exits 0 (the offline tier having run). With a token,
-#     online drift fails the run (exit 1).
+#     CRATES_IO_TOKEN is absent, this tier is SKIPPED with a warning + hint, the
+#     summary reports the online tier as NOT verified, and the script still exits
+#     0 by default (the offline tier having run). Set REGISTRY_ONLINE_REQUIRED=1
+#     to turn a skipped online tier into a failure. With a token, online drift
+#     fails the run (exit 1).
 #
-# Exit: 0 = all run checks matched (or online tier skipped for missing token);
-#       1 = a check that ran found drift.
+# Exit: 0 = all run checks matched, or the online tier was skipped for a missing
+#           token (unless REGISTRY_ONLINE_REQUIRED=1);
+#       1 = a check that ran found drift, or the online tier was required but
+#           skipped.
 #
 # Usage: scripts/doctor-registry.sh
 #   CRATES_IO_TOKEN              a crates.io API token (Account -> API Tokens),
@@ -37,6 +41,11 @@
 #                               false to a WARNING (default: FAIL — enforcement is
 #                               enabled for the family's crates, so a false reading
 #                               means the setting was turned off).
+#   REGISTRY_ONLINE_REQUIRED=1  treat a skipped online tier (no CRATES_IO_TOKEN, or
+#                               curl absent) as a FAILURE naming the missing
+#                               dependency (default: warn and skip, exit 0 — a
+#                               tokenless run is the standing state). Opt-in for
+#                               contexts where the live assertion is mandatory.
 # ==============================================================================
 set -eu
 
@@ -161,8 +170,12 @@ if ! command -v curl >/dev/null 2>&1; then
     log_warn "curl not found — skipping online registry checks"
     log_hint "Install curl to verify live crates.io Trusted Publishing state"
     echo ""
+    if [ "${REGISTRY_ONLINE_REQUIRED:-0}" = "1" ]; then
+        log_fail "doctor-registry: online tier required (REGISTRY_ONLINE_REQUIRED=1) but curl not found — cannot verify live registry state"
+        exit 1
+    fi
     if [ "$failed" -eq 0 ]; then
-        log_ok "doctor-registry: offline checks passed (online tier skipped — no curl)"
+        log_warn "doctor-registry: offline checks passed; online tier NOT verified (no curl)"
         exit 0
     fi
     log_fail "doctor-registry: offline checks found drift — see above"
@@ -174,8 +187,12 @@ if [ -z "${CRATES_IO_TOKEN:-}" ]; then
     log_hint "Mint a token at https://crates.io/settings/tokens and export CRATES_IO_TOKEN"
     log_hint "Use a minimal-scope, short-lived token and revoke it after setup"
     echo ""
+    if [ "${REGISTRY_ONLINE_REQUIRED:-0}" = "1" ]; then
+        log_fail "doctor-registry: online tier required (REGISTRY_ONLINE_REQUIRED=1) but CRATES_IO_TOKEN not set — cannot verify live registry state"
+        exit 1
+    fi
     if [ "$failed" -eq 0 ]; then
-        log_ok "doctor-registry: offline checks passed (online tier skipped — no token)"
+        log_warn "doctor-registry: offline checks passed; online tier NOT verified (no token)"
         exit 0
     fi
     log_fail "doctor-registry: offline checks found drift — see above"

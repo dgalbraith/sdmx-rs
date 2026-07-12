@@ -28,6 +28,11 @@ Verify `gh` authentication before applying any configuration:
 gh auth status
 ```
 
+`just doctor-forge` also needs this authentication for its online tier; without it
+the online checks are skipped and the summary reports them as not verified. Set
+`FORGE_ONLINE_REQUIRED=1` to make a skipped online tier a failure where the live
+assertion is mandatory.
+
 ---
 
 ### Local Maintainer Git Configuration
