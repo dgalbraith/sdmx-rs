@@ -14,12 +14,16 @@
 #     key file present, primary fingerprint in the CI trust root, local git
 #     signing config, signed root commit, fan-out remotes.
 #   ONLINE  — checks that query the forge via `gh`. Gated behind a `gh auth`
-#     probe: if auth is absent, this tier is SKIPPED with a warning + hint and
-#     the script still exits 0 (the offline tier having run). With auth, online
-#     drift fails the run (exit 1).
+#     probe: if auth is absent, this tier is SKIPPED with a warning + hint, the
+#     summary reports the online tier as NOT verified, and the script still exits
+#     0 by default (the offline tier having run). Set FORGE_ONLINE_REQUIRED=1 to
+#     turn a skipped online tier into a failure. With auth, online drift fails the
+#     run (exit 1).
 #
-# Exit: 0 = all run checks matched (or online tier skipped for missing auth);
-#       1 = a check that ran found drift.
+# Exit: 0 = all run checks matched, or the online tier was skipped for missing
+#           auth (unless FORGE_ONLINE_REQUIRED=1);
+#       1 = a check that ran found drift, or the online tier was required but
+#           skipped.
 #
 # Usage: scripts/doctor-forge.sh
 #   FORGE_RELEASE_REQUIRED=1   treat a missing `release` environment, or drift in
@@ -36,6 +40,11 @@
 #                              actions allowlist crosscheck (default: .github/workflows).
 #                              Also scans .github/actions/**/action.yml in the same
 #                              parent. Set in tests to point at a fixture workflow tree.
+#   FORGE_ONLINE_REQUIRED=1    treat a skipped online tier (gh absent or not
+#                              authenticated) as a FAILURE naming the missing
+#                              dependency (default: warn and skip, exit 0 — a run
+#                              without forge auth is a normal state). Opt-in for
+#                              contexts where the live assertion is mandatory.
 # ==============================================================================
 set -eu
 
@@ -170,8 +179,12 @@ if ! command -v gh >/dev/null 2>&1; then
     log_hint "Install gh and run 'gh auth login' to verify live forge state"
     echo ""
     # Offline tier already ran; honour its result without online drift.
+    if [ "${FORGE_ONLINE_REQUIRED:-0}" = "1" ]; then
+        log_fail "doctor-forge: online tier required (FORGE_ONLINE_REQUIRED=1) but gh CLI not found — cannot verify live forge state"
+        exit 1
+    fi
     if [ "$failed" -eq 0 ]; then
-        log_ok "doctor-forge: offline checks passed (online tier skipped — no gh)"
+        log_warn "doctor-forge: offline checks passed; online tier NOT verified (no gh)"
         exit 0
     fi
     log_fail "doctor-forge: offline checks found drift — see above"
@@ -182,8 +195,12 @@ if ! gh auth status >/dev/null 2>&1; then
     log_warn "gh is not authenticated — skipping online forge checks"
     log_hint "Run 'gh auth login' to verify live forge state, then re-run"
     echo ""
+    if [ "${FORGE_ONLINE_REQUIRED:-0}" = "1" ]; then
+        log_fail "doctor-forge: online tier required (FORGE_ONLINE_REQUIRED=1) but gh is not authenticated — cannot verify live forge state"
+        exit 1
+    fi
     if [ "$failed" -eq 0 ]; then
-        log_ok "doctor-forge: offline checks passed (online tier skipped — no auth)"
+        log_warn "doctor-forge: offline checks passed; online tier NOT verified (no auth)"
         exit 0
     fi
     log_fail "doctor-forge: offline checks found drift — see above"

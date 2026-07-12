@@ -77,6 +77,19 @@ run_doctor() {
     run sh scripts/doctor-registry.sh
 }
 
+# Build a restricted PATH for a single run: symlinks to every tool the script
+# needs, minus curl, so `command -v curl` misses hermetically. The ambient PATH
+# is untouched outside the prefixed run.
+path_without_curl() {
+    local dir="$BATS_TEST_TMPDIR/nobin" cmd p
+    mkdir -p "$dir"
+    for cmd in sh dirname basename mktemp rm grep sed awk git cut tail head sort find jq cat tr date diff wc; do
+        p="$(command -v "$cmd" 2>/dev/null)" || continue
+        ln -sf "$p" "$dir/$cmd"
+    done
+    printf '%s' "$dir"
+}
+
 # ==============================================================================
 # Token gating
 # ==============================================================================
@@ -90,7 +103,46 @@ run_doctor() {
     [[ "$output" == *"Offline checks"* ]]
     [[ "$output" == *"Publish workflow present"* ]]
     [[ "$output" == *"CRATES_IO_TOKEN not set"* ]]
-    [[ "$output" == *"offline checks passed"* ]]
+    # The partial-run summary must qualify the pass, not wear an unqualified glyph.
+    [[ "$output" == *"offline checks passed; online tier NOT verified (no token)"* ]]
+}
+
+@test "doctor-registry: no token + REGISTRY_ONLINE_REQUIRED=1 -> exit 1 (online tier required)" {
+    mock_crates
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE CRATES_IO_TOKEN
+    REGISTRY_ONLINE_REQUIRED=1 run sh scripts/doctor-registry.sh
+    echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REGISTRY_ONLINE_REQUIRED=1"* ]]
+    [[ "$output" == *"CRATES_IO_TOKEN"* ]]
+}
+
+@test "doctor-registry: REGISTRY_ONLINE_REQUIRED=1 with a token is inert -> exit 0" {
+    mock_crates
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE REGISTRY_ENFORCEMENT_REQUIRED
+    REGISTRY_ONLINE_REQUIRED=1 CRATES_IO_TOKEN=tok run sh scripts/doctor-registry.sh
+    echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"matches spec"* ]]
+}
+
+@test "doctor-registry: curl absent -> online tier skipped, offline ran, exit 0" {
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE CRATES_IO_TOKEN
+    PATH="$(path_without_curl)" run sh scripts/doctor-registry.sh
+    echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Offline checks"* ]]
+    [[ "$output" == *"curl not found"* ]]
+    [[ "$output" == *"offline checks passed; online tier NOT verified (no curl)"* ]]
+}
+
+@test "doctor-registry: curl absent + REGISTRY_ONLINE_REQUIRED=1 -> exit 1 (online tier required)" {
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE CRATES_IO_TOKEN
+    REGISTRY_ONLINE_REQUIRED=1 PATH="$(path_without_curl)" run sh scripts/doctor-registry.sh
+    echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"REGISTRY_ONLINE_REQUIRED=1"* ]]
+    [[ "$output" == *"curl not found"* ]]
 }
 
 # ==============================================================================
