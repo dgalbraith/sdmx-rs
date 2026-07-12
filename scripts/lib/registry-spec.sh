@@ -66,10 +66,10 @@ registry_spec_tp_environment() {
 # --- Enforcement --------------------------------------------------------------
 
 # registry_spec_enforcement — echo the desired value of the crate's `trustpub_only`
-# flag (crates.io "Require Trusted Publishing"). `true` is the end state: once a TP
-# publish is proven, API-token publishing is disabled. doctor-registry treats a
-# live `false` as NOT-YET-ENFORCED (warn), not drift, until the caller opts in via
-# REGISTRY_ENFORCEMENT_REQUIRED=1 — mirroring forge's FORGE_RELEASE_REQUIRED.
+# flag (crates.io "Require Trusted Publishing"). Enforcement is enabled for the
+# family's crates, so `true` is the standing state. doctor-registry currently
+# treats a live `false` as a warning by default and a failure only under the
+# REGISTRY_ENFORCEMENT_REQUIRED=1 opt-in.
 registry_spec_enforcement() {
     printf '%s\n' "true"
 }
