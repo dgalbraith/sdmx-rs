@@ -442,9 +442,9 @@ just doctor-forge               # verifies live state matches spec (read-only)
 > invariant. Dependency bumps are made by the maintainer via `just update-deps`
 > (signed), not by bot PRs.
 
-**Public-only (deferred to the go-live window):** secret scanning and Push
-Protection — see below. `doctor-forge` treats these as a deferred warning until
-the repo is public (`FORGE_SECURITY_REQUIRED=1` makes them a hard failure).
+**Secret scanning and Push Protection:** see below. `doctor-forge` reports a
+disabled reading for these as a warning by default; `FORGE_SECURITY_REQUIRED=1`
+makes it a hard failure.
 
 #### Secret Scanning & Push Protection
 
@@ -458,10 +458,7 @@ The three layers are defence-in-depth, not redundancy:
 | CI `check-secrets` (`just secrets-scan`) | runner | No — detects after push lands | No, but too late |
 | **Push Protection** | **forge** | **Yes — rejects the push** | Only via logged, explicit bypass |
 
-> [!IMPORTANT]
-> **Timing**: secret scanning and Push Protection are **free only on public repositories**. While the repo is private they require GitHub Advanced Security (a paid add-on). Enable these **immediately after** the repository is made public in the [releasing.md go-live window](releasing.md#go-live-window) — alongside crate-name reservation — not before.
-
-Enable both once the repo is public:
+Secret scanning and Push Protection are free only on public repositories; on a private repository they require GitHub Advanced Security (a paid add-on). Both settings are applied with:
 
 ```bash
 gh api --method PATCH "repos/${OWNER}/${REPO}" --input - <<'EOF'

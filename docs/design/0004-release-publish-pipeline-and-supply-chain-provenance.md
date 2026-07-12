@@ -53,7 +53,7 @@ on:
     tags: ['sdmx-*/v*']
 ```
 
-Per-crate tags follow the existing `cargo-release` convention (e.g. `sdmx-types/v0.1.0`), not a flat `v0.1.0`. The bootstrap baseline anchor is `sdmx-<crate>/v0.0.0` per crate. The glob matches this convention while excluding arbitrary tags: in GitHub tag filters `*` does not span `/`, so `sdmx-*/v*` matches `sdmx-types/v0.1.0` but never a stray `wip` or docs tag, which must not start the publish chain. (Signature *enforcement* is broader — `verify-signature.yml` runs on `tags: ['**']` so every tag object is checked regardless; only *publishing* is scoped to release tags.)
+Per-crate tags follow the existing `cargo-release` convention (e.g. `sdmx-types/v0.1.0`), not a flat `v0.1.0`. The bootstrap crate-name reservation has no tag anchor by design; its durable record is the [Bootstrap Record in releasing.md](../project/releasing.md#bootstrap-record). The glob matches this convention while excluding arbitrary tags: in GitHub tag filters `*` does not span `/`, so `sdmx-*/v*` matches `sdmx-types/v0.1.0` but never a stray `wip` or docs tag, which must not start the publish chain. (Signature *enforcement* is broader — `verify-signature.yml` runs on `tags: ['**']` so every tag object is checked regardless; only *publishing* is scoped to release tags.)
 
 Publishing is gated on the `verify-signature` job (from `verify-signature.yml`), which verifies that the tag object and its commit history carry a valid signature whose **primary** key fingerprint is in the maintainer allowlist. It sits at the head of the `needs:` chain (`verify-signature → check-changelog → setup → publish`), so a tag with an absent, invalid, or unauthorised signature halts the run before any artifact reaches crates.io. Job ordering matters: publish must run *after* the signature gate, never in parallel with it.
 
@@ -328,8 +328,8 @@ The repository stays private until just before the Phase 1 publish.
 **Testing strategy**:
 
 - `actionlint` (via the existing `check-workflows` CI job) validates `publish.yml` syntax and security on infra changes.
-- `release-dry-run` CI job and `just prepublish-check` (`cargo publish --dry-run` per crate, topological) validate packaging and metadata before any real publish.
-- The one-time manual bootstrap exercises packaging and naming end-to-end before enforcement is enabled.
+- `just prepublish-check` (`cargo publish --dry-run` per crate, topological) validates packaging and metadata before any real publish; the `release-dry-run` CI job simulates the release sequence (plan, hooks, tag names) without packaging.
+- The one-time manual bootstrap exercises packaging and naming end-to-end.
 - After `0.1.0`, run the documented `gh attestation verify` and `git verify-tag` commands against the published artifacts to confirm the chain resolves end-to-end.
 - With enforcement enabled, confirm an attempted API-token publish is rejected by crates.io.
 

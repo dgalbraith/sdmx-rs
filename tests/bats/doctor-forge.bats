@@ -187,7 +187,7 @@ run_doctor() {
     [[ "$output" == *"automated-security-fixes = true (want false)"* ]]
 }
 
-@test "doctor-forge: secret scanning disabled -> warn, exit 0 (default, public-only deferral)" {
+@test "doctor-forge: secret scanning disabled -> warn, exit 0 (default; FORGE_SECURITY_REQUIRED=1 enforces)" {
     GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
     # Disable secret scanning in the live repo response.
     jq '.security_and_analysis.secret_scanning.status = "disabled"' \
@@ -198,7 +198,7 @@ run_doctor() {
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
     [[ "$output" == *"secret_scanning = disabled"* ]]
-    [[ "$output" == *"deferred until repo is public"* ]]
+    [[ "$output" == *"warning only — set FORGE_SECURITY_REQUIRED=1 to enforce"* ]]
 }
 
 @test "doctor-forge: default workflow token permissions = write -> exit 1" {
