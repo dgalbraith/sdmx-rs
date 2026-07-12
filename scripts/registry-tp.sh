@@ -176,7 +176,7 @@ print_enforce() {
         echo "        -d '{\"crate\":{\"trustpub_only\":true}}'"
     done
     echo ""
-    log_hint "Then verify with: REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry" 1
+    log_hint "Then verify with: just doctor-registry" 1
 }
 
 case "$mode" in

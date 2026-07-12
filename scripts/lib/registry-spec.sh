@@ -67,9 +67,9 @@ registry_spec_tp_environment() {
 
 # registry_spec_enforcement — echo the desired value of the crate's `trustpub_only`
 # flag (crates.io "Require Trusted Publishing"). Enforcement is enabled for the
-# family's crates, so `true` is the standing state. doctor-registry currently
-# treats a live `false` as a warning by default and a failure only under the
-# REGISTRY_ENFORCEMENT_REQUIRED=1 opt-in.
+# family's crates, so `true` is the standing state. doctor-registry treats a live
+# `false` as a failure by default; the REGISTRY_ENFORCEMENT_REQUIRED=0 opt-out
+# downgrades it to a warning for clones whose crates are not enforced.
 registry_spec_enforcement() {
     printf '%s\n' "true"
 }
