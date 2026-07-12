@@ -187,7 +187,7 @@ run_doctor() {
     [[ "$output" == *"automated-security-fixes = true (want false)"* ]]
 }
 
-@test "doctor-forge: secret scanning disabled -> warn, exit 0 (default; FORGE_SECURITY_REQUIRED=1 enforces)" {
+@test "doctor-forge: secret scanning disabled -> exit 1 (failure by default)" {
     GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
     # Disable secret scanning in the live repo response.
     jq '.security_and_analysis.secret_scanning.status = "disabled"' \
@@ -196,9 +196,10 @@ run_doctor() {
     run_doctor
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 1 ]
     [[ "$output" == *"secret_scanning = disabled"* ]]
-    [[ "$output" == *"warning only — set FORGE_SECURITY_REQUIRED=1 to enforce"* ]]
+    # The failure message names the opt-out.
+    [[ "$output" == *"set FORGE_SECURITY_REQUIRED=0 to downgrade to a warning"* ]]
 }
 
 @test "doctor-forge: default workflow token permissions = write -> exit 1" {
@@ -214,17 +215,53 @@ run_doctor() {
     [[ "$output" == *"default_workflow_permissions = write (want read)"* ]]
 }
 
-@test "doctor-forge: secret scanning disabled + FORGE_SECURITY_REQUIRED=1 -> exit 1" {
-    mock_gh
+@test "doctor-forge: secret scanning disabled + FORGE_SECURITY_REQUIRED=0 -> warn, exit 0 (opt-out)" {
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
     jq '.security_and_analysis.secret_scanning.status = "disabled"' \
         "$FORGE_FIXTURES/repo.json" > "$FORGE_FIXTURES/repo.json.tmp"
     mv "$FORGE_FIXTURES/repo.json.tmp" "$FORGE_FIXTURES/repo.json"
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
-    FORGE_SECURITY_REQUIRED=1 run sh scripts/doctor-forge.sh
+    FORGE_SECURITY_REQUIRED=0 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"secret_scanning = disabled"* ]]
+    [[ "$output" == *"FORGE_SECURITY_REQUIRED=0"* ]]
+}
+
+@test "doctor-forge: security settings enabled + FORGE_SECURITY_REQUIRED=0 -> exit 0" {
+    # The opt-out must not disturb the enabled/happy path (the default-mode
+    # enabled pass is the all-matches test above).
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_SECURITY_REQUIRED=0 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"secret_scanning = enabled"* ]]
+    [[ "$output" == *"private-vulnerability-reporting = true"* ]]
+}
+
+@test "doctor-forge: private vulnerability reporting disabled -> exit 1 (failure by default)" {
+    GH_MOCK_ALLOWED_ACTIONS=selected GH_MOCK_PRIVATE_VULN=off mock_gh
+    run_doctor
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 1 ]
-    [[ "$output" == *"secret_scanning = disabled"* ]]
+    [[ "$output" == *"private-vulnerability-reporting = false (want true"* ]]
+    # The failure message names the opt-out.
+    [[ "$output" == *"set FORGE_SECURITY_REQUIRED=0 to downgrade to a warning"* ]]
+}
+
+@test "doctor-forge: private vulnerability reporting disabled + FORGE_SECURITY_REQUIRED=0 -> warn, exit 0" {
+    GH_MOCK_ALLOWED_ACTIONS=selected GH_MOCK_PRIVATE_VULN=off mock_gh
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_SECURITY_REQUIRED=0 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"private-vulnerability-reporting = false"* ]]
+    [[ "$output" == *"FORGE_SECURITY_REQUIRED=0"* ]]
 }
 
 # ==============================================================================
@@ -397,6 +434,32 @@ run_doctor() {
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
     [[ "$output" == *"release environment exists; prevent_self_review=false"* ]]
+}
+
+@test "doctor-forge: prevent_self_review drift -> warn, exit 0 (default)" {
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
+    # Drift the nested rule away from the spec value (false).
+    jq '(.protection_rules[] | select(.type == "required_reviewers") | .prevent_self_review) = true' \
+        "$FORGE_FIXTURES/environment-release.json" > "$FORGE_FIXTURES/env.tmp"
+    mv "$FORGE_FIXTURES/env.tmp" "$FORGE_FIXTURES/environment-release.json"
+    run_doctor
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"release environment prevent_self_review=true (want false"* ]]
+}
+
+@test "doctor-forge: prevent_self_review drift + FORGE_RELEASE_REQUIRED=1 -> exit 1" {
+    GH_MOCK_ALLOWED_ACTIONS=selected mock_gh
+    jq '(.protection_rules[] | select(.type == "required_reviewers") | .prevent_self_review) = true' \
+        "$FORGE_FIXTURES/environment-release.json" > "$FORGE_FIXTURES/env.tmp"
+    mv "$FORGE_FIXTURES/env.tmp" "$FORGE_FIXTURES/environment-release.json"
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    FORGE_RELEASE_REQUIRED=1 run sh scripts/doctor-forge.sh
+    echo "STATUS: $status" >&2
+    echo "OUTPUT: $output" >&2
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"prevent_self_review=true (want false; required_reviewers rule absent or drifted; FORGE_RELEASE_REQUIRED=1)"* ]]
 }
 
 # ==============================================================================

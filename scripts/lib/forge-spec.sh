@@ -189,9 +189,9 @@ forge_spec_security_toggles() {
 #   <key>\t<want>
 # These are nested under `.security_and_analysis.<key>.status` on the repo object
 # (values "enabled"/"disabled"); applied via PATCH /repos with a nested object.
-# doctor-forge treats a mismatched reading for these as a warning by default and
-# a failure only under the FORGE_SECURITY_REQUIRED opt-in. forge-setup.md is the
-# reference for the settings themselves.
+# doctor-forge treats a mismatched reading for these as a failure by default;
+# the FORGE_SECURITY_REQUIRED=0 opt-out downgrades it to a warning. forge-setup.md
+# is the reference for the settings themselves.
 forge_spec_security_analysis() {
     printf '%s\t%s\n' "secret_scanning" "enabled"
     printf '%s\t%s\n' "secret_scanning_push_protection" "enabled"

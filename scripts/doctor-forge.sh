@@ -22,11 +22,16 @@
 #       1 = a check that ran found drift.
 #
 # Usage: scripts/doctor-forge.sh
-#   FORGE_RELEASE_REQUIRED=1   treat a missing `release` environment as a failure
+#   FORGE_RELEASE_REQUIRED=1   treat a missing `release` environment, or drift in
+#                              its prevent_self_review rule, as a failure
 #                              (default: warn only — it may be intentionally
 #                              deferred until publishing goes live).
-#   FORGE_SECURITY_REQUIRED=1  treat disabled secret scanning / push protection as
-#                              a failure (default: warn only).
+#   FORGE_SECURITY_REQUIRED=0  downgrade a disabled secret scanning / push
+#                              protection / private vulnerability reporting
+#                              reading to a warning (default: failure). Opt-out
+#                              for clones pushed to private repos, which cannot
+#                              enable these settings without GitHub Advanced
+#                              Security.
 #   FORGE_WORKFLOWS_DIR=<dir>  override the workflows directory scanned by the
 #                              actions allowlist crosscheck (default: .github/workflows).
 #                              Also scans .github/actions/**/action.yml in the same
@@ -230,19 +235,22 @@ if repo_json="$(gh api "repos/$owner_repo" 2>/dev/null)"; then
     done
 
     # security_and_analysis.* (secret scanning + push protection). A mismatched
-    # reading is a WARN by default and a FAILURE only under the
-    # FORGE_SECURITY_REQUIRED opt-in. Read off the same repo_json; the nested
-    # status is .security_and_analysis.<key>.status ("enabled"/"disabled"/absent).
+    # reading is a FAILURE by default: these settings are enabled on the canonical
+    # repo, so "disabled" means server-side protection was turned off. The
+    # FORGE_SECURITY_REQUIRED=0 opt-out downgrades it to a warning for clones
+    # pushed to private repos, which cannot enable the settings without GitHub
+    # Advanced Security. Read off the same repo_json; the nested status is
+    # .security_and_analysis.<key>.status ("enabled"/"disabled"/absent).
     log_info "Security & analysis" 1
     forge_spec_security_analysis | while IFS="$FORGE_TAB" read -r key want; do
         got="$(printf '%s' "$repo_json" | jq -r ".security_and_analysis.${key}.status // \"absent\"")"
         if [ "$got" = "$want" ]; then
             log_ok "$key = $got" 2
-        elif [ "${FORGE_SECURITY_REQUIRED:-0}" = "1" ]; then
-            log_fail "$key = $got (want $want; FORGE_SECURITY_REQUIRED=1)" 2
-            echo "drift" >> "$drift_sink"
+        elif [ "${FORGE_SECURITY_REQUIRED:-1}" = "0" ]; then
+            log_warn "$key = $got (want $want; FORGE_SECURITY_REQUIRED=0)" 2
         else
-            log_warn "$key = $got (want $want; warning only — set FORGE_SECURITY_REQUIRED=1 to enforce)" 2
+            log_fail "$key = $got (want $want; set FORGE_SECURITY_REQUIRED=0 to downgrade to a warning)" 2
+            echo "drift" >> "$drift_sink"
         fi
     done
 else
@@ -427,16 +435,18 @@ forge_spec_security_toggles | while IFS="$FORGE_TAB" read -r key want endpoint p
     if [ "$got" = "$want" ]; then
         log_ok "$key = $got" 2
     else
-        # private-vulnerability-reporting is free only on public repos — a warning
-        # by default (consistent with secret scanning) and a failure only under
-        # the FORGE_SECURITY_REQUIRED opt-in.
+        # private-vulnerability-reporting mismatches are a failure by default
+        # (consistent with secret scanning). The FORGE_SECURITY_REQUIRED=0 opt-out
+        # downgrades it to a warning: the setting is free only on public repos, so
+        # a clone pushed to a private repo cannot enable it without GitHub
+        # Advanced Security.
         case "$key" in
             private-vulnerability-reporting)
-                if [ "${FORGE_SECURITY_REQUIRED:-0}" = "1" ]; then
-                    log_fail "$key = $got (want $want; FORGE_SECURITY_REQUIRED=1)" 2
-                    echo "drift" >> "$drift_sink"
+                if [ "${FORGE_SECURITY_REQUIRED:-1}" = "0" ]; then
+                    log_warn "$key = $got (want $want; FORGE_SECURITY_REQUIRED=0)" 2
                 else
-                    log_warn "$key = $got (want $want; warning only — set FORGE_SECURITY_REQUIRED=1 to enforce)" 2
+                    log_fail "$key = $got (want $want; set FORGE_SECURITY_REQUIRED=0 to downgrade to a warning)" 2
+                    echo "drift" >> "$drift_sink"
                 fi
                 ;;
             *)
@@ -560,9 +570,12 @@ if env_json="$(gh api "repos/$owner_repo/environments/$(forge_spec_release_env_n
         log_ok "release environment exists; prevent_self_review=$psr_got" 2
     else
         # The required_reviewers rule is missing, or its prevent_self_review has
-        # drifted from the spec value.
-        if [ "${FORGE_SECURITY_REQUIRED:-0}" = "1" ]; then
-            log_fail "release environment prevent_self_review=$psr_got (want $psr_want; required_reviewers rule absent or drifted; FORGE_SECURITY_REQUIRED=1)" 2
+        # drifted from the spec value. Gated on FORGE_RELEASE_REQUIRED, not the
+        # security opt-out: prevent_self_review is release-environment
+        # governance, not a security_and_analysis setting — its drift bites when
+        # a publish run needs approval, the domain FORGE_RELEASE_REQUIRED owns.
+        if [ "${FORGE_RELEASE_REQUIRED:-0}" = "1" ]; then
+            log_fail "release environment prevent_self_review=$psr_got (want $psr_want; required_reviewers rule absent or drifted; FORGE_RELEASE_REQUIRED=1)" 2
             echo "drift" >> "$drift_sink"
         else
             log_warn "release environment prevent_self_review=$psr_got (want $psr_want; required_reviewers rule absent or drifted)" 2
