@@ -159,10 +159,10 @@ run_doctor() {
 }
 
 # ==============================================================================
-# Enforcement: trustpub_only=false warns by default, fails under opt-in
+# Enforcement: trustpub_only=false fails by default, warns under the opt-out
 # ==============================================================================
 
-@test "doctor-registry: trustpub_only=false -> warn, exit 0 (default)" {
+@test "doctor-registry: trustpub_only=false -> exit 1 (default)" {
     mock_crates
     # Turn enforcement off for one crate.
     printf '{"crate":{"name":"sdmx-rs","trustpub_only":false}}\n' \
@@ -170,19 +170,29 @@ run_doctor() {
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE REGISTRY_ENFORCEMENT_REQUIRED
     CRATES_IO_TOKEN=tok run sh scripts/doctor-registry.sh
     echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
-    [ "$status" -eq 0 ]
-    [[ "$output" == *"enforcement deferred"* ]]
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"trustpub_only=false"* ]]
+    [[ "$output" == *"REGISTRY_ENFORCEMENT_REQUIRED=0"* ]]
 }
 
-@test "doctor-registry: trustpub_only=false + REGISTRY_ENFORCEMENT_REQUIRED=1 -> exit 1" {
+@test "doctor-registry: trustpub_only=false + REGISTRY_ENFORCEMENT_REQUIRED=0 -> warn, exit 0" {
     mock_crates
     printf '{"crate":{"name":"sdmx-rs","trustpub_only":false}}\n' \
         > "$FORGE_FIXTURES/crates/crate-sdmx-rs.json"
     unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
-    REGISTRY_ENFORCEMENT_REQUIRED=1 CRATES_IO_TOKEN=tok run sh scripts/doctor-registry.sh
+    REGISTRY_ENFORCEMENT_REQUIRED=0 CRATES_IO_TOKEN=tok run sh scripts/doctor-registry.sh
     echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
-    [ "$status" -eq 1 ]
+    [ "$status" -eq 0 ]
     [[ "$output" == *"trustpub_only=false"* ]]
+}
+
+@test "doctor-registry: trustpub_only=true + REGISTRY_ENFORCEMENT_REQUIRED=0 -> exit 0" {
+    mock_crates
+    unset GITHUB_ACTIONS CI SDMX_MAIN_REMOTE
+    REGISTRY_ENFORCEMENT_REQUIRED=0 CRATES_IO_TOKEN=tok run sh scripts/doctor-registry.sh
+    echo "STATUS: $status" >&2; echo "OUTPUT: $output" >&2
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"matches spec"* ]]
 }
 
 # ==============================================================================

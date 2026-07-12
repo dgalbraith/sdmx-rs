@@ -87,9 +87,11 @@ supply-chain risk).
 
 "Require Trusted Publishing" is enabled for all five crates and no API token
 exists, so token-based publishing is structurally impossible. Verify with
-`REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry`. The emergency path (the
-crate owner toggling the setting off in the web UI) is recorded in the
-[releasing.md bootstrap record](releasing.md#bootstrap-record).
+`just doctor-registry`, which fails if any crate's enforcement has been turned
+off; the check needs `CRATES_IO_TOKEN` exported (see
+[Authentication](#authentication)), and without it the online tier is skipped.
+The emergency path (the crate owner toggling the setting off in the web UI) is
+recorded in the [releasing.md bootstrap record](releasing.md#bootstrap-record).
 
 To enforce a future crate, run `scripts/registry-tp.sh --print-enforce` (it
 refuses to print for any crate that is not yet published + registered) and execute

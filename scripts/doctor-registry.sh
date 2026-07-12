@@ -33,10 +33,10 @@
 #                               NOT CARGO_REGISTRY_TOKEN (that holds the pipeline's
 #                               publish-only OIDC token, which the management API
 #                               rejects).
-#   REGISTRY_ENFORCEMENT_REQUIRED=1  treat a crate whose trustpub_only is still
-#                               false as a FAILURE (default: warn — enforcement is
-#                               intentionally the last bootstrap step, enabled only
-#                               after a TP publish is proven).
+#   REGISTRY_ENFORCEMENT_REQUIRED=0  downgrade a crate whose trustpub_only is still
+#                               false to a WARNING (default: FAIL — enforcement is
+#                               enabled for the family's crates, so a false reading
+#                               means the setting was turned off).
 # ==============================================================================
 set -eu
 
@@ -253,8 +253,10 @@ registry_spec_crates | while IFS= read -r crate; do
             echo "drift" >> "$drift_sink" ;;
     esac
 
-    # Enforcement state (trustpub_only). Not-yet-enforced is a warn by default
-    # (it is intentionally the LAST bootstrap step), a failure under the opt-in.
+    # Enforcement state (trustpub_only). A mismatched reading is a FAILURE by
+    # default: enforcement is enabled for the family's crates, so a false reading
+    # means the setting was turned off. The REGISTRY_ENFORCEMENT_REQUIRED=0 opt-out
+    # downgrades it to a warning for clones whose crates are not enforced.
     crate_json="$(crates_api "crates/${crate}" 2>/dev/null || true)"
     # Use an explicit null test, NOT `// empty`: in jq `false // empty` yields
     # empty, which would erase a legitimately-unenforced `false` into "".
@@ -262,12 +264,11 @@ registry_spec_crates | while IFS= read -r crate; do
         | jq -r 'if (.crate.trustpub_only == null) then "" else (.crate.trustpub_only | tostring) end' 2>/dev/null || echo "")"
     if [ "$got_enforce" = "$want_enforce" ]; then
         log_ok "$crate: trustpub_only=$got_enforce (enforced)" 2
-    elif [ "${REGISTRY_ENFORCEMENT_REQUIRED:-0}" = "1" ]; then
-        log_fail "$crate: trustpub_only=$got_enforce (want $want_enforce; REGISTRY_ENFORCEMENT_REQUIRED=1)" 2
-        echo "drift" >> "$drift_sink"
+    elif [ "${REGISTRY_ENFORCEMENT_REQUIRED:-1}" = "0" ]; then
+        log_warn "$crate: trustpub_only=$got_enforce (want $want_enforce; REGISTRY_ENFORCEMENT_REQUIRED=0)" 2
     else
-        log_warn "$crate: trustpub_only=$got_enforce — enforcement deferred until a TP publish is proven" 2
-        log_hint "Set REGISTRY_ENFORCEMENT_REQUIRED=1 to treat this as a failure" 2
+        log_fail "$crate: trustpub_only=$got_enforce (want $want_enforce; set REGISTRY_ENFORCEMENT_REQUIRED=0 to downgrade to a warning)" 2
+        echo "drift" >> "$drift_sink"
     fi
 done
 
