@@ -31,11 +31,13 @@
 #                     for crates without a matching config. Skips crates already
 #                     correctly registered (requires CRATES_IO_TOKEN to detect).
 #   --print-enforce   Print the enforcement (trustpub_only) curl per crate — only
-#                     after asserting the precondition that a TP publish has
-#                     plausibly succeeded (matching config + >=1 indexed version).
+#                     after asserting the preconditions: the crate is published
+#                     (>=1 indexed version) and a matching Trusted Publisher is
+#                     registered.
 #
 # Requires: jq; curl. CRATES_IO_TOKEN optional (improves --print-register skip
-# accuracy; mint a minimal-scope, short-lived token and revoke it after setup).
+# accuracy; mint a minimal-scope, short-lived token and revoke it as soon as the
+# task is done).
 # ==============================================================================
 set -eu
 
@@ -144,17 +146,18 @@ print_register() {
 print_enforce() {
     log_section "Trusted Publishing enforcement commands"
     echo ""
-    log_warn "Enforcement disables API-token publishing. Only enable it AFTER a real" 1
-    log_warn "Trusted-Publishing release has succeeded end-to-end (the token fallback" 1
-    log_warn "is your recovery path if the OIDC binding is misconfigured)." 1
+    log_warn "Enforcement is already enabled for the family's crates. Enforcing a" 1
+    log_warn "future crate disables its API-token publishing; the recovery path is the" 1
+    log_warn "owner toggling the setting off in the crates.io web UI (documented in" 1
+    log_warn "the releasing.md bootstrap record)." 1
     echo ""
 
     registry_spec_crates | while IFS= read -r crate; do
         log_item "$crate" 1
-        # Precondition: a TP publish has plausibly succeeded — matching config AND
-        # >=1 indexed version. Refuse to print otherwise.
+        # Preconditions: the crate is published (>=1 indexed version) AND a
+        # matching Trusted Publisher is registered. Refuse to print otherwise.
         if ! crate_indexed "$crate"; then
-            echo "      # SKIP — not yet published; enforce only after a proven TP release."
+            echo "      # SKIP — not yet published; publish the crate first."
             continue
         fi
         _have="$(has_matching_config "$crate")"

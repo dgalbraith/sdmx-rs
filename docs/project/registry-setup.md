@@ -17,7 +17,7 @@ document is the operator runbook.
 
 | Tool | What it does |
 |------|--------------|
-| `just doctor-registry` | **Read-only.** Verifies the live crates.io Trusted Publishing config + enforcement state against [`scripts/lib/registry-spec.sh`](../../scripts/lib/registry-spec.sh). Run it after each step below to confirm. |
+| `just doctor-registry` | **Read-only.** Verifies the live crates.io Trusted Publishing config + enforcement state against [`scripts/lib/registry-spec.sh`](../../scripts/lib/registry-spec.sh). Run it to confirm the live state. |
 | `scripts/registry-tp.sh` | **Print-only.** Emits the exact `cargo publish` / register / enforce commands and checks their preconditions. It never mutates crates.io and never holds a token — you run the printed commands yourself. Not a `just` recipe (a guarded one-shot bootstrap tool; see the policy in [tooling.md](../dev/tooling.md)). |
 
 Run `scripts/registry-tp.sh --print-register` to get the registration commands and
@@ -30,10 +30,13 @@ The management API has **no OAuth / headless flow** — it accepts only a person
 API token (`Authorization` header) or a web-UI session cookie. The pipeline's OIDC
 token is publish-scoped and is rejected by these endpoints by design.
 
+No API token exists (the bootstrap token is revoked). For any future management
+task that needs one:
+
 - Mint a **personal API token** at [crates.io → Account → API
   Tokens](https://crates.io/settings/tokens). Use a **minimal scope and short
-  expiry**, and **revoke it after setup** — the long-lived-credential window should
-  be tiny.
+  expiry**, and **revoke it as soon as the task is done**: the
+  long-lived-credential window should be tiny.
 - Export it as `CRATES_IO_TOKEN` for `doctor-registry` / `registry-tp` (read-only
   use). Do **not** reuse `CARGO_REGISTRY_TOKEN` (that name carries the pipeline's
   publish-only OIDC token, which the management API rejects).
@@ -41,18 +44,24 @@ token is publish-scoped and is rejected by these endpoints by design.
 ## Trusted Publisher registration
 
 Trusted Publishing replaces a long-lived crates.io token with an ephemeral OIDC
-token issued per-job by GitHub Actions. Each crate name must be registered
-separately.
+token issued per-job by GitHub Actions. Each crate name is registered separately.
+
+A Trusted Publisher is registered for all five crates, binding repository
+`dgalbraith/sdmx-rs`, workflow `publish.yml`, and environment `release`; `just
+doctor-registry` verifies the live state. The procedure below is the reference for
+registering a future crate.
 
 ### Prerequisites
 
-- All five crate names must already exist on crates.io (reserved via the bootstrap
-  publish — see the [releasing.md bootstrap record](releasing.md#bootstrap-record)).
-  crates.io has **no pending-publisher feature**: the name must exist before a
-  Trusted Publisher can attach to it.
-- `publish.yml` must be merged to the default branch — crates.io validates the
-  workflow filename and environment against the default branch.
-- The `release` environment must exist ([forge-setup.md — Release
+Registration requires, per crate:
+
+- The crate name exists on crates.io (names come into existence only by
+  publishing; the existing names are recorded in the [releasing.md bootstrap
+  record](releasing.md#bootstrap-record)). crates.io has **no pending-publisher
+  feature**: the name must exist before a Trusted Publisher can attach to it.
+- `publish.yml` is merged to the default branch; crates.io validates the workflow
+  filename and environment against the default branch.
+- The `release` environment exists ([forge-setup.md — Release
   Environment](forge-setup.md#release-environment)).
 
 ### Register each crate
@@ -68,28 +77,24 @@ each unregistered crate. Each registers this binding:
 | Environment name  | `release`     |
 
 Equivalently, in the web UI: **crates.io → Your crates → `<crate>` → Settings →
-Trusted Publishing → Add a publisher**. Register all five: `sdmx-types`,
-`sdmx-parsers`, `sdmx-writers`, `sdmx-client`, `sdmx-rs`.
+Trusted Publishing → Add a publisher**.
 
 Verify with `just doctor-registry` — it asserts **exactly one** matching publisher
 per crate (a stray or extra config pointing at the wrong repo/workflow is the real
 supply-chain risk).
 
-## Enforcement (after the first successful TP publish)
+## Enforcement
 
-Once Trusted Publishing is confirmed working end-to-end, disable API-token
-publishing per crate. Run `scripts/registry-tp.sh --print-enforce` (it refuses to
-print for any crate that is not yet published + registered) and execute the printed
-`PATCH … {"crate":{"trustpub_only":true}}`. Web-UI equivalent: **Settings →
-Trusted Publishing → Require Trusted Publishing**.
+"Require Trusted Publishing" is enabled for all five crates and no API token
+exists, so token-based publishing is structurally impossible. Verify with
+`REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry`. The emergency path (the
+crate owner toggling the setting off in the web UI) is recorded in the
+[releasing.md bootstrap record](releasing.md#bootstrap-record).
 
-> [!WARNING]
-> Do not enable enforcement until the first real release has completed
-> successfully through the Trusted Publishing path. Enabling it while the OIDC
-> binding is unproven removes the token fallback needed to diagnose and recover
-> from a misconfiguration.
-
-Verify with `REGISTRY_ENFORCEMENT_REQUIRED=1 just doctor-registry`.
+To enforce a future crate, run `scripts/registry-tp.sh --print-enforce` (it
+refuses to print for any crate that is not yet published + registered) and execute
+the printed `PATCH … {"crate":{"trustpub_only":true}}`. Web-UI equivalent:
+**Settings → Trusted Publishing → Require Trusted Publishing**.
 
 ## What stays manual (and why)
 

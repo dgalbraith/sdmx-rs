@@ -3,9 +3,8 @@
 Machine-readable realisations of the **registry** (crates.io) configuration that
 [docs/project/registry-setup.md](../docs/project/registry-setup.md) describes in
 prose. This directory is the registry-plane sibling of [`forge/`](../forge/): the
-docs hold the **why** (rationale, irreversible-ordering, the manual steps that stay
-manual), and `scripts/doctor-registry.sh` / `scripts/registry-tp.sh` are the
-**how**.
+docs hold the **why** (rationale, the manual steps that stay manual), and
+`scripts/doctor-registry.sh` / `scripts/registry-tp.sh` are the **how**.
 
 ## Registry vs. forge — two planes
 
@@ -58,7 +57,7 @@ preconditions, but it **never issues a mutating request and never holds a token*
 The maintainer runs the printed commands by hand. This is deliberate: on a public
 registry a published version cannot be unpublished and enforcement removes the
 token escape hatch, so the irreversible acts stay entirely in human hands. See the
-runbook for the full ordered sequence.
+runbook for the procedures.
 
 ## Why no `registry-apply.sh`
 
