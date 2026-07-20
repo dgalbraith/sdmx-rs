@@ -36,9 +36,9 @@ graph TD
 
 ## Features
 
-*   **`types`** (Always Compiled): Pure, `#![no_std]`, dependency-free domain models, metadata schemas, and validation invariants.
+*   **`types`** (Always Compiled): Pure, `#![no_std]` domain models, metadata schemas, and validation invariants.
 *   **`parsers`** (Default Feature): Streaming XML and JSON parser engine.
-*   **`writers`** (Default Feature): Serialisation adapter for SDMX output generation (XML, JSON, CSV) via the `TargetVersion` API contract.
+*   **`writers`** (Default Feature): Serialisation adapter for SDMX output generation (XML, JSON, CSV). Version-aware serialisation is planned.
 *   **`client`** (Default Feature): Tokio-based async HTTP orchestrator managing REST endpoints.
 
 ### TLS (when `client` is enabled)
@@ -70,7 +70,7 @@ sdmx-rs = { version = "0.1", default-features = false, features = ["parsers", "c
 
 ## Usage
 
-Add `sdmx-rs` to your `Cargo.toml` dependencies. By default, both the parser and HTTP client layers are enabled:
+Add `sdmx-rs` to your `Cargo.toml` dependencies. By default, the parser, writer, and HTTP client layers are enabled, with TLS support:
 
 ```toml
 [dependencies]

@@ -9,7 +9,7 @@
 
 A Rust implementation of the [SDMX](https://sdmx.org) (Statistical Data and Metadata Exchange) standard — a global framework for the exchange of statistical data and metadata used by central banks, statistical agencies, and international organisations.
 
-All data structures, parsing engines, and REST clients in this workspace are implemented in compliance with the authoritative [SDMX Technical Specifications](https://sdmx.org/resources/sdmx-technical-standards/).
+All data structures, parsing engines, and REST clients in this workspace are developed in compliance with the authoritative [SDMX Technical Specifications](https://sdmx.org/resources/sdmx-technical-standards/).
 
 ## Status & Roadmap
 

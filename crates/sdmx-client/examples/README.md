@@ -1,8 +1,10 @@
 # sdmx-client Examples
 
-Examples demonstrating `sdmx-client` usage.
+Examples demonstrating `sdmx-client` usage are planned; none exist yet.
 
 ## Running Examples
+
+Examples will live in this crate's `examples/` directory and will run with:
 
 ```bash
 cargo run --example <name>

@@ -36,7 +36,7 @@ graph TD
 
 ### 0. sdmx-rs (Facade Meta-Crate)
 * **Responsibility**: Workspace-level entry point. It carries no unique logic, serving solely to re-export the underlying sub-crates (`types`, `parsers`, `writers`, `client`) as optional features under a single meta-version.
-* **Constraints**: Optional feature-flag mapping (`parsers`, `client`). Ensures developer ergonomics by letting consumers pull in the entire coordinated framework with a single dependency. Uses exact version pinning for workspace components (see [ADR-0003](docs/adr/0003-workspace-crate-facade-and-version-pinning-strategy.md)); decoupled per-crate versioning takes effect from `1.0.0` onward (see [ADR-0004](docs/adr/0004-decoupled-crate-versioning-strategy.md)).
+* **Constraints**: Optional feature-flag mapping (`parsers`, `writers`, `client`, `tls`). Ensures developer ergonomics by letting consumers pull in the entire coordinated framework with a single dependency. Uses exact version pinning for workspace components (see [ADR-0003](docs/adr/0003-workspace-crate-facade-and-version-pinning-strategy.md)); decoupled per-crate versioning takes effect from `1.0.0` onward (see [ADR-0004](docs/adr/0004-decoupled-crate-versioning-strategy.md)).
 
 ### 1. sdmx-types (Domain Core)
 - **Responsibility**: Core SDMX data structures, metadata frameworks, structural keys, and validation invariants.
@@ -48,11 +48,11 @@ graph TD
 
 ### 3. sdmx-client (HTTP Orchestrator)
 - **Responsibility**: Async HTTP client managing connectivity to SDMX REST endpoints, coordinating payload deserialisation and state hydration.
-- **Constraints**: Depends on `sdmx-parsers` and `sdmx-types`. Built on Tokio and reqwest/rustls (see [ADR-0011](docs/adr/0011-use-tokio-as-the-primary-async-runtime.md), [ADR-0012](docs/adr/0012-use-reqwest-over-hyper-and-ureq-for-the-http-client.md), and [ADR-0013](docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md)). Exposes fallible construction ([ADR-0014](docs/adr/0014-fallible-client-construction-and-custom-error-mapping.md)) and optional blocking execution bridge under the `blocking` feature flag ([Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md)).
+- **Constraints**: Depends on `sdmx-parsers` and `sdmx-types`. Built on Tokio and reqwest/rustls (see [ADR-0011](docs/adr/0011-use-tokio-as-the-primary-async-runtime.md), [ADR-0012](docs/adr/0012-use-reqwest-over-hyper-and-ureq-for-the-http-client.md), and [ADR-0013](docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md)). Will expose fallible construction ([ADR-0014](docs/adr/0014-fallible-client-construction-and-custom-error-mapping.md)) and an optional blocking execution bridge under the `blocking` feature flag ([Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md)).
 
 ### 4. sdmx-writers (Serialisation Adapter)
 - **Responsibility**: Standardised serialisation of SDMX structural and data payloads into XML, JSON, and CSV formats.
-- **Constraints**: Depends on `sdmx-types` only. Implements the `TargetVersion` API contract for version-aware serialisation ([Design 0008](docs/design/0008-target-version-policy-for-serialisation.md)). `#![no_std]` with `alloc` required.
+- **Constraints**: Depends on `sdmx-types` only. Will introduce the `TargetVersion` API contract for version-aware serialisation; the scaffold is present but provides no functional output until the implementation lands ([Design 0008](docs/design/0008-target-version-policy-for-serialisation.md)). `#![no_std]` with `alloc` required.
 
 ### Rationale for Five-Crate Boundary
 
@@ -93,11 +93,11 @@ Five crates is more complex than one monolithic crate. The trade-off is delibera
 
 ### Async Runtime
 
-`sdmx-client` is built on **Tokio** as the primary async runtime target. To support consumers operating in synchronous-only contexts, a blocking API is provided via optional methods on the built `SdmxClient` when configured with a `BlockingStrategy`.
+`sdmx-client` is built on **Tokio** as the primary async runtime target. To support consumers operating in synchronous-only contexts, a blocking API will be provided via optional methods on the built `SdmxClient` when configured with a `BlockingStrategy`.
 
 #### Blocking Strategy
 
-The client's synchronous API is built on two independent layers:
+Design 0005 specifies the client's synchronous API as two independent layers:
 
 **Layer 1 — Runtime Acquisition.** At `build_sync()` time the builder calls `Handle::try_current()`. If a runtime is active its handle is wrapped as `RuntimeHandle::Active`. If no runtime is active a private `current_thread` Tokio runtime is created and wrapped as `RuntimeHandle::Owned(Arc<Runtime>)`. Construction is panic-free in both cases, enabling zero-setup synchronous scripting.
 
@@ -136,13 +136,13 @@ For the complete architectural comparisons and rationales behind these choices, 
 As a library designed for modern, high-performance web and data architectures, `sdmx-rs` establishes strict concurrency guarantees:
 
 - **Send + Sync Core Types**: All domain structures and types inside `sdmx-types` are fully `Send` and `Sync`, allowing multi-threaded parallel execution across worker thread pools (such as Rayon or Tokio executor grids) without synchronisation overhead.
-- **Stateless, Shared Client**: `SdmxClient` in `sdmx-client` maintains internal state strictly behind thread-safe abstractions (such as the connection pool handled by `reqwest`). The client is explicitly `Send` + `Sync`. Consumers are encouraged to share a single client instance using simple cloned references across multiple concurrent tasks (e.g., sharing the client directly), avoiding the need to serialise requests through a `Mutex` wrapper.
+- **Stateless, Shared Client**: `SdmxClient` in `sdmx-client` will maintain internal state strictly behind thread-safe abstractions (such as the connection pool handled by `reqwest`). The client is designed to be `Send` + `Sync`. Consumers are encouraged to share a single client instance using simple cloned references across multiple concurrent tasks (e.g., sharing the client directly), avoiding the need to serialise requests through a `Mutex` wrapper.
 
 ### Streaming Parser Memory Architecture
 
 Statistical Data and Metadata Exchange payloads can scale to gigabytes of tabular observation streams. Materialising a full Document Object Model (DOM) for such payloads is a common source of Out-of-Memory (OOM) crashes in enterprise systems.
 
-To mitigate this, `sdmx-parsers` employs a strict **streaming-only memory architecture**:
+To mitigate this, ADR-0009 commits `sdmx-parsers` to a strict **streaming-only memory architecture**:
 - **Token-Driven XML/JSON Deserialisation**: The parsing engine processes XML streams token-by-token via `quick-xml`'s reader and deserializes JSON streams sequentially via `serde_json`'s stream reader. Large structural metadata payloads are parsed iteratively.
 - **Zero-Copy Slicing**: Where safe, parsers extract text boundaries by slicing directly from input read buffers rather than allocating new strings. Note that XML payloads containing entity references (e.g., `&amp;` or `&lt;`) must be decoded and thus require allocation. To accommodate this, parser structures in `sdmx-parsers` utilise `Cow<'a, str>` to borrow decoded text slices directly when no entities are present, falling back to owned `String` allocation only when decoding modifies the source slice.
 - **No Global DOM Accumulation**: Instead of building a unified in-memory schema forest, data arrays are hydrated on-the-fly and streamed out to caller-defined channels or custom observers, maintaining a flat memory consumption profile regardless of payload scale. In async contexts (e.g., `sdmx-client`), this is paired with a non-blocking stream bridge using worker threads to read network packets dynamically without blocking the executor core.
@@ -150,9 +150,9 @@ To mitigate this, `sdmx-parsers` employs a strict **streaming-only memory archit
 ### Feature Flags
 
 The workspace facade crate (`sdmx-rs`) coordinates framework consumption using the following feature flags:
-- `parsers` (enabled by default): Compiles in the `sdmx-parsers` serialisation engine, including both streaming XML (`quick-xml`) and JSON (`serde_json`) support out of the box.
+- `parsers` (enabled by default): Compiles in the `sdmx-parsers` serialisation engine, targeting streaming XML (`quick-xml`) and JSON (`serde_json`) deserialisation.
 - `client` (enabled by default): Compiles in the `sdmx-client` network orchestrator, bringing in async HTTP client capabilities.
-- `writers` (enabled by default): Compiles in the `sdmx-writers` serialisation adapter for SDMX output generation across multiple formats. Introduces the `TargetVersion` API contract for version-aware payload serialisation. Phase 2 deliverable; the scaffold is present unconditionally but provides no functional output until Phase 2 implementation is complete (see [Design 0008](docs/design/0008-target-version-policy-for-serialisation.md)).
+- `writers` (enabled by default): Compiles in the `sdmx-writers` serialisation adapter for SDMX output generation across multiple formats. Will introduce the `TargetVersion` API contract for version-aware payload serialisation. The scaffold is present unconditionally but provides no functional output until the implementation lands (see [Design 0008](docs/design/0008-target-version-policy-for-serialisation.md)).
 
 > **Note**: `sdmx-types` is not a feature flag. It is always compiled as the unconditional domain foundation underlying `parsers`, `client`, and `writers`.
 
@@ -189,7 +189,7 @@ Every published `.crate` artifact carries cryptographically verifiable supply-ch
 - **Nix environment hermeticity**: Nix is a strict requirement for all development and verification workflows. Pinned compiler toolchains, linters, target linkers, formatting utilities, and target runtimes are provisioned exclusively via the Nix Flake configuration. This guarantees environmental determinism and ensures 1:1 parity between local developer environments and CI, preventing any class of compiler or tooling behaviour drift.
 - **Deterministic behaviour**: All parsing must produce identical results across platform runtimes. No global mutable state.
 - **Lossless infoset store (two-layer model)**: The `sdmx-types` domain store holds the **pre-validation infoset** within schema content — element order, repeated elements (including schema-valid duplicates), attribute statedness, and raw value lexemes are all preserved. Constructors reject only mechanically schema-invalid input; prose-only spec rules are non-destructive lints; every consumer convenience (applied defaults, canonical projections, lookups) is a derived view, never a collapse of the store. **XSD defaulting is a view over the data, not the data itself** — schema assessment (the PSVI) is Layer 2. See [ADR-0023](docs/adr/0023-two-layer-infoset-store-and-derived-views-architecture.md).
-- **Document integrity (byte-preserving edits)**: Editing a document through the library must never change bytes outside the edited region — byte in == byte out elsewhere. This invariant is satisfied by a dedicated lossless document pathway (the domain model acting as a typed view over a byte-preserving representation), while the canonical parse → model → serialize pathway guarantees equivalence up to the wire format's own non-information layer. See [ADR-0024](docs/adr/0024-byte-preserving-document-integrity-pathway.md).
+- **Document integrity (byte-preserving edits)**: Editing a document through the library must never change bytes outside the edited region — byte in == byte out elsewhere. This invariant will be satisfied by a dedicated lossless document pathway (the domain model acting as a typed view over a byte-preserving representation), the committed design captured in [ADR-0024](docs/adr/0024-byte-preserving-document-integrity-pathway.md), while the canonical parse → model → serialize pathway guarantees equivalence up to the wire format's own non-information layer.
 - **Single write path for invariants**: Every domain invariant is enforced in the type's `Result`-returning constructor, reached identically by hand construction and by (custom, where required) serde deserialisation — a hand-built invalid value is uncallable, and wire input meets the same enforcement as programmatic input. See [ADR-0021](docs/adr/0021-domain-invariant-validation-and-encapsulation-strategy.md).
 - **Lifetimeless domain types**: All domain types own their data (`'static`); lifetime complexity is confined to parser internals. See [ADR-0022](docs/adr/0022-owned-string-ownership-strategy.md).
 - **No unsafe code**: `unsafe` is forbidden across all crates via `[workspace.lints.rust] unsafe_code = "forbid"`.

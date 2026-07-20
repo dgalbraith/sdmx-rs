@@ -436,6 +436,15 @@ Full testing conventions, coverage expectations, and the testing checklist are d
 
 `sdmx-rs` emphasises documentation that explains **why** decisions are made, not just **that** they were made. See [docs/dev/documentation.md](docs/dev/documentation.md) for the thinking and guidance, and [docs/dev/rustdoc.md](docs/dev/rustdoc.md) for the rustdoc authoring conventions.
 
+### Adding Examples
+
+To add a new runnable example:
+
+1. Create `crates/<crate-name>/examples/<example-name>.rs`
+2. Ensure it compiles and runs with `cargo run --example <example-name> -p <crate-name>`
+3. Document the purpose in the crate README and update `crates/<crate-name>/examples/README.md`
+4. Update [docs/guides/](docs/guides/README.md) with a tutorial if the example demonstrates a complex pattern
+
 ## Deprecation & Breaking Changes
 
 ### Deprecation Strategy

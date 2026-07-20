@@ -7,7 +7,7 @@
 
 The HTTP orchestrator for the `sdmx-rs` workspace.
 
-This crate provides an asynchronous HTTP client for querying SDMX REST endpoints. It negotiates content types, delegates payload decoding to `sdmx-parsers`, and returns the pure domain models defined in `sdmx-types`.
+This crate is the scaffold for an asynchronous HTTP client for querying SDMX REST endpoints. As designed, it will negotiate content types, delegate payload decoding to `sdmx-parsers`, and return the pure domain models defined in `sdmx-types`.
 
 ## Design Constraints
 - Built on `tokio` and `reqwest`.
@@ -17,7 +17,7 @@ This crate provides an asynchronous HTTP client for querying SDMX REST endpoints
 ## TLS & Client Configuration
 > [!NOTE]
 > The `sdmx-client` crate is a Phase 3 scaffold. Full client implementation (builders, query builders, custom CA support) is planned for **Phase 3**.
-> See [ROADMAP.md](../../ROADMAP.md).
+> See [ROADMAP.md](https://github.com/dgalbraith/sdmx-rs/blob/main/ROADMAP.md).
 
 ### Current Version (0.1.x) Limitations
 * **Supported Roots**: The host OS / native trust store is used out-of-the-box via reqwest 0.13's default `rustls-platform-verifier` (suited for public endpoints like ECB, IMF, Eurostat).
@@ -26,7 +26,7 @@ This crate provides an asynchronous HTTP client for querying SDMX REST endpoints
 > **Note**: Compiling with `default-features = false` disables TLS entirely. You must either enable the `tls` feature or provide custom transport.
 
 ### Workaround for Internal/Corporate CAs
-If you need to connect to an SDMX registry with a custom or internal CA today, use `reqwest` directly for transport and parse the payload manually:
+If you need to connect to an SDMX registry with a custom or internal CA today, use `reqwest` directly for transport and fetch the payload body yourself:
 
 ```rust
 // 1. Load your CA certificate
@@ -39,22 +39,15 @@ let client = reqwest::Client::builder()
     .build()?;
 let response = client.get("https://internal-registry/sdmx/dataflow").send().await?;
 let body = response.text().await?;
-// 3. Parse the payload separately with sdmx-parsers
-let dataflow = sdmx_parsers::parse_dataflow(&body)?;
 ```
 
 ⚠️ **Note**: This bypasses sdmx-client's abstraction layer. You lose:
 - Content-type negotiation
+- Payload decoding into domain models
 - Connection pooling management via sdmx-client
 - Potential future middleware (retry, caching, etc.)
 
 ### Planned Client API (Phase 3)
-In Phase 3, the client will expose a unified builder supporting direct certificate injection:
+A unified client builder supporting direct certificate injection is planned.
 
-```rust
-let client = SdmxClientBuilder::new("https://internal-registry")
-    .add_ca_cert(my_ca_cert)?
-    .build()?;
-```
-
-For architectural context on why rustls + bundled roots, see [ADR-0013](../../docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md).
+For architectural context on why rustls + bundled roots, see [ADR-0013](https://github.com/dgalbraith/sdmx-rs/blob/main/docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md).

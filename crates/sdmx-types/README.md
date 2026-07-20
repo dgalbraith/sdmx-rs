@@ -7,7 +7,7 @@
 
 The core domain model for the `sdmx-rs` workspace.
 
-This crate provides the foundational, dependency-free domain representations for the [SDMX](https://sdmx.org) standard. It defines the structural keys, metadata frameworks, and validation invariants consumed by all other crates.
+This crate provides the foundational domain representations for the [SDMX](https://sdmx.org) standard. It defines the structural keys, metadata frameworks, and validation invariants consumed by all other crates.
 
 ## Design Constraints
 - Strict `#![no_std]` compatibility with minimal dependencies (`serde`, `thiserror`).

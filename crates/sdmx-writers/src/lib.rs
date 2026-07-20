@@ -1,9 +1,10 @@
-//! High-performance SDMX serialisation adapter for multiple output formats.
+//! Scaffold for the SDMX serialisation adapter targeting multiple output
+//! formats.
 //!
-//! This crate provides the serialisation engine for converting domain types
-//! from [`sdmx-types`](../sdmx_types/index.html) into wire formats (SDMX-ML and
-//! SDMX-JSON). Writing routines target efficient buffer management and support
-//! both streaming and buffered serialisation patterns.
+//! This crate will provide the serialisation engine for converting domain
+//! types from [`sdmx-types`](../sdmx_types/index.html) into wire formats
+//! (SDMX-ML and SDMX-JSON). Writing routines will target efficient buffer
+//! management and support both streaming and buffered serialisation patterns.
 //!
 //! # Design Constraints
 //!
@@ -14,6 +15,9 @@
 //! - All serialisation must behave deterministically across platform runtimes.
 //!
 //! # Design & Serialisation Mechanics
+//!
+//! Design 0008 specifies the version-aware serialisation design summarised
+//! below; implementation is planned.
 //!
 //! The serialisation engine is responsible for converting version-agnostic
 //! domain representations back to their wire-format equivalents, handling any

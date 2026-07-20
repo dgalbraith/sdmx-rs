@@ -1,8 +1,10 @@
 # sdmx-writers Examples
 
-Examples demonstrating `sdmx-writers` usage.
+Examples demonstrating `sdmx-writers` usage are planned; none exist yet.
 
 ## Running Examples
+
+Examples will live in this crate's `examples/` directory and will run with:
 
 ```bash
 cargo run --example <name>

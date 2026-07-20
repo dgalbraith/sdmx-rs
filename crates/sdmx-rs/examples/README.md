@@ -1,16 +1,16 @@
 # sdmx-rs Examples (facade)
 
-Complete, runnable examples demonstrating library usage.  See individual crates for examples:
+Runnable examples demonstrating library usage are planned; none exist yet. See the individual crate example indexes:
 
-- [sdmx-types examples](../../sdmx-types/examples/README.md): Type construction and validation
-- [sdmx-parsers examples](../../sdmx-parsers/examples/README.md): Parsing CSV/JSON/XML
-- [sdmx-writers examples](../../sdmx-writers/examples/README.md): Serialisation
-- [sdmx-client examples](../../sdmx-client/examples/README.md): HTTP queries and streaming
+- [sdmx-types examples](https://github.com/dgalbraith/sdmx-rs/blob/main/crates/sdmx-types/examples/README.md): Type construction and validation
+- [sdmx-parsers examples](https://github.com/dgalbraith/sdmx-rs/blob/main/crates/sdmx-parsers/examples/README.md): Parsing CSV/JSON/XML
+- [sdmx-writers examples](https://github.com/dgalbraith/sdmx-rs/blob/main/crates/sdmx-writers/examples/README.md): Serialisation
+- [sdmx-client examples](https://github.com/dgalbraith/sdmx-rs/blob/main/crates/sdmx-client/examples/README.md): HTTP queries and streaming
 
 
 ## Running Examples
 
-All examples are in the `examples/` directory of the respective crates and can be executed with:
+Examples will live in the `examples/` directory of the respective crates and will run with:
 
 ```bash
 cargo run --example <name> -p <crate-name>
@@ -26,12 +26,4 @@ cargo run --example <name> -p <crate-name>
 
 ---
 
-## Contributing Examples
-
-To add a new example:
-1. Create `crates/<crate-name>/examples/my-example.rs`
-2. Ensure it compiles and runs with `cargo run --example my-example -p <crate-name>`
-3. Document the purpose in the crate README and update the `crates/<crate-name>/examples/README.md`
-4. Update [docs/guides/](../../../docs/guides/README.md) with a tutorial if it demonstrates a complex pattern
-
-See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for development workflow.
+See [CONTRIBUTING.md](https://github.com/dgalbraith/sdmx-rs/blob/main/CONTRIBUTING.md) for the development workflow, including how to add examples.

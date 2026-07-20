@@ -1,9 +1,9 @@
-//! High-performance streaming XML and JSON deserializer for SDMX data and
+//! Scaffold for the streaming XML and JSON deserialiser for SDMX data and
 //! metadata.
 //!
-//! This crate provides the core serialisation and deserialisation engine for
-//! SDMX payloads. Parsing routines target minimal memory allocations and
-//! zero-copy slicing where safe, consuming types from
+//! This crate will provide the core serialisation and deserialisation engine
+//! for SDMX payloads. Parsing routines will target minimal memory allocations
+//! and zero-copy slicing where safe, consuming types from
 //! [`sdmx-types`](../sdmx_types/index.html).
 //!
 //! # Design Constraints
@@ -16,6 +16,9 @@
 //! - All parsing must behave deterministically across platform runtimes.
 //!
 //! # Design & Parsing Mechanics
+//!
+//! ADR-0008 and ADR-0019 specify the parsing design summarised below;
+//! implementation is planned.
 //!
 //! To shield downstream consumers and user-facing APIs from the intricate
 //! details of SDMX specification changes (such as version-specific structural
@@ -42,9 +45,9 @@
 //! - `http://www.sdmx.org/resources/sdmxml/schemas/v3_0/structure` → SDMX 3.0
 //! - `http://www.sdmx.org/resources/sdmxml/schemas/v3_1/structure` → SDMX 3.1
 //!
-//! Because this crate is `#![no_std]`, the public parser API accepts `&[u8]`
-//! and uses `NsReader::from_slice()` (not `from_reader()` which requires
-//! `std`).
+//! Because this crate is `#![no_std]`, the public parser API will accept
+//! `&[u8]` and use `NsReader::from_slice()` (not `from_reader()` which
+//! requires `std`).
 //!
 //! **For SDMX-JSON and SDMX-CSV:** The top-level `version` field conveys the
 //! SDMX specification version to the respective parser.
