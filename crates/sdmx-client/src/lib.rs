@@ -1,15 +1,16 @@
-//! Async HTTP client for SDMX REST endpoints with payload parsing and state
-//! hydration.
+//! Scaffold for an async HTTP client for SDMX REST endpoints with payload
+//! parsing and state hydration.
 //!
-//! This crate provides the high-level orchestrator managing connectivity to
-//! remote SDMX REST endpoints, coordinating with
+//! This crate will provide the high-level orchestrator managing connectivity
+//! to remote SDMX REST endpoints, coordinating with
 //! [`sdmx-parsers`](../sdmx_parsers/index.html) for payload deserialisation and
 //! [`sdmx-types`](../sdmx_types/index.html) for domain representation.
 //!
 //! # API Design & Builder Pattern
 //!
-//! Requests to SDMX endpoints are built using type-safe builder APIs employing
-//! the Typestate pattern to prevent invalid API queries at compile time:
+//! Requests to SDMX endpoints will be built using type-safe builder APIs
+//! employing the Typestate pattern to prevent invalid API queries at compile
+//! time. The planned API shape, specified in Design 0003 and Design 0007, is:
 //!
 //! ```rust,ignore
 //! let client = SdmxClient::new("https://registry.sdmx.org/apis/public");
@@ -24,8 +25,9 @@
 //!
 //! # Concurrency Guarantees
 //!
-//! The `SdmxClient` utilises thread-safe connection pooling via an underlying
-//! HTTP client design (`reqwest`). All public client endpoints are `Send` and
+//! ADR-0015 and Design 0006 specify the concurrency design summarised below.
+//! The `SdmxClient` will use thread-safe connection pooling via the underlying
+//! HTTP client (`reqwest`), and all public client endpoints will be `Send` and
 //! `Sync`, facilitating safe concurrent sharing across thread boundaries:
 //!
 //! - **Connection Reuse:** HTTP connections are kept alive and reused across
@@ -45,9 +47,9 @@
 //!
 //! # Content-Type Negotiation
 //!
-//! The client negotiates response formats dynamically according to target
-//! capabilities and user preferences. It automatically manages `Accept` headers
-//! to request high-performance representations:
+//! As specified in ADR-0018, the client will negotiate response formats
+//! dynamically according to target capabilities and user preferences, managing
+//! `Accept` headers to request high-performance representations:
 //!
 //! - **Metadata Queries:** Requests prefer SDMX-JSON or SDMX-ML XML
 //!   representation.
@@ -59,52 +61,11 @@
 //! - No unsafe code.
 //! - No uncontrolled global mutable state.
 
-/// Blocking synchronous API for SDMX client operations.
+/// Scaffold for the synchronous/blocking execution bridge.
 ///
-/// Provides zero-setup synchronous scripting via `blocking::SdmxClient`.
-/// Construction is panic-free regardless of whether a Tokio runtime is active
-/// on the calling thread.
-///
-/// # Construction
-///
-/// `SdmxClientBuilder::build_sync()` adapts to the caller's runtime context:
-///
-/// - **No Tokio runtime active:** A private `current_thread` Tokio runtime is
-///   created and owned by the client. This enables CLI tools and scripts to use
-///   the blocking API without manual runtime initialisation.
-/// - **Tokio runtime active:** The ambient runtime handle is captured. The
-///   client delegates blocking calls through the active runtime using
-///   `BlockingStrategy` (see below).
-///
-/// # Blocking Strategy
-///
-/// When the client uses an ambient runtime (not owned), the blocking strategy
-/// determines how to bridge sync→async without blocking the scheduler. See
-/// `BlockingStrategy` and [Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md) for
-/// details.
-///
-/// - **`SpawnBlocking`** (default if created within `spawn_blocking`): Safe
-///   everywhere but may yield to other tasks.
-/// - **`Auto`** (default): Tries `block_in_place` (multi-threaded runtimes
-///   only); falls back if single-threaded.
-/// - **`BlockInPlace`**: Forces `block_in_place`. Requires multi-threaded
-///   Tokio; returns error if single-threaded.
-///
-/// When the client owns its runtime, the strategy is ignored and
-/// `rt.block_on()` is always used.
-///
-/// # Example
-///
-/// ```rust,ignore
-/// // Works with or without an ambient Tokio runtime:
-/// let client = SdmxClientBuilder::new("https://registry.sdmx.org/apis/public")
-///     .build_sync()?;
-///
-/// let dataflow = client.structure()
-///     .agency("ECB")
-///     .resource_type("dataflow")
-///     .send()?;
-/// ```
+/// This module will wrap the asynchronous client in a synchronous interface for
+/// zero-setup scripting contexts. The design is documented in
+/// [Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md).
 pub mod blocking {
     // TODO: Implement blocking client wrapper in Phase 3.
     // This module wraps the async SdmxClient in a synchronous interface.

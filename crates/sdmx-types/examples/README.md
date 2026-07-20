@@ -1,8 +1,10 @@
 # sdmx-types Examples
 
-Examples demonstrating `sdmx-types` usage.
+Examples demonstrating `sdmx-types` usage are planned; none exist yet.
 
 ## Running Examples
+
+Examples will live in this crate's `examples/` directory and will run with:
 
 ```bash
 cargo run --example <name>

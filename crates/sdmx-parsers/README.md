@@ -7,7 +7,7 @@
 
 The streaming serialisation engine for the `sdmx-rs` workspace.
 
-This crate provides streaming serialisation and deserialisation of SDMX payloads in both XML (SDMX-ML) and JSON (SDMX-JSON) formats.
+This crate is the scaffold for streaming serialisation and deserialisation of SDMX payloads in both XML (SDMX-ML) and JSON (SDMX-JSON) formats.
 
 ## Design Constraints
 - Depends only on `sdmx-types`.

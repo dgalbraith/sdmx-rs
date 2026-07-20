@@ -15,13 +15,13 @@
 //!                           └───┬───┬───┬───┘
 //!                               │   │   │
 //!                   ┌───────────┤   │   ├───────────┐
-//!      [client]     │    [parsers]  │   [writers]  │ (Conditional
-//!      feature      │    feature    │   feature    │  Re-exports)
-//!                   ▼              ▼              ▼
+//!      [client]     │    [parsers]  │   [writers]   │ (Conditional
+//!      feature      │    feature    │   feature     │  Re-exports)
+//!                   ▼              ▼                ▼
 //!              sdmx-client  sdmx-parsers  sdmx-writers
-//!                   │              │              │
-//!                   └──────────┬───┼───┬──────────┘
-//!                              ▼   ▼   ▼
+//!                   │              │                │
+//!                   └──────────┬───┼───┬────────────┘
+//!                              ▼   ▼   ▼sugg
 //!                          ┌───────────────┐
 //!                          │  sdmx-types   │  (Core Types - Always Enabled)
 //!                          └───────────────┘
@@ -29,8 +29,8 @@
 //!
 //! # Usage
 //!
-//! Add `sdmx-rs` to your `Cargo.toml` dependencies. By default, both the
-//! parser and HTTP client layers are enabled:
+//! Add `sdmx-rs` to your `Cargo.toml` dependencies. By default, the parser,
+//! writer, and HTTP client layers are enabled, with TLS support:
 //!
 //! ```toml
 //! [dependencies]

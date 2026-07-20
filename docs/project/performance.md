@@ -85,14 +85,14 @@ let rules = input.rules().collect::<Vec<_>>();  // Where is capacity estimated?
 
 For detailed analysis, use:
 
-**Valgrind (Linux)**:
+**Valgrind (Linux)** (planned profiling invocation once the parser lands):
 ```bash
 # Run program under Valgrind's memcheck
 valgrind --leak-check=full --show-leak-kinds=all \
   cargo test --lib parse_constraint_model
 ```
 
-**Heaptrack (Linux)**:
+**Heaptrack (Linux)** (planned profiling invocation once the parser lands):
 ```bash
 # Track allocations
 heaptrack target/debug/sdmx-rs-test parse_constraint_model
@@ -125,7 +125,7 @@ pub fn parse(input: &str) -> Result<Document> {
 }
 ```
 
-We do:
+The design commits to:
 ```rust
 // ✅ Streams tokens, yields items on-the-fly
 pub fn parse(input: &str) -> Result<impl Iterator<Item = Item>> {
@@ -135,6 +135,8 @@ pub fn parse(input: &str) -> Result<impl Iterator<Item = Item>> {
 
 ### Key Techniques
 
+The parser design commits to the following techniques:
+
 1. **Token-Driven Parsing** — `quick-xml` yields tokens; we process them immediately
 2. **Zero-Copy Slicing** — Extract text boundaries from input buffers without allocation (when no entities present)
 3. **Cow<'_, str> for Decoded Text** — Borrow slices when safe; allocate only when XML entities require decoding
@@ -142,7 +144,7 @@ pub fn parse(input: &str) -> Result<impl Iterator<Item = Item>> {
 
 ### Verification
 
-Run memory-intensive tests to verify streaming behaviour:
+Once the parser lands, memory-intensive tests will verify streaming behaviour:
 
 ```bash
 # This should not OOM even with 100MB+ SDMX payloads
@@ -155,7 +157,7 @@ cargo test --lib parse_large_payloads -- --nocapture
 
 ### Design Goals
 
-- **Share, don't serialise**: `SdmxClient` is `Send` + `Sync`; clone and share directly without `Arc` or `Mutex`
+- **Share, don't serialise**: `SdmxClient` is designed to be `Send` + `Sync`; clone and share directly without `Arc` or `Mutex`
 - **Non-blocking I/O**: All HTTP operations are async; no `block_on()` in hot paths
 - **Task spawning safety**: Builders are unconditionally `'static`; can be spawned on background tasks
 
@@ -190,9 +192,9 @@ let handle = tokio::spawn(async { /* work */ });
 handle.await?;
 ```
 
-**When no runtime is active**:
+**When no runtime is active** (designed client behaviour, Design 0005):
 ```rust
-// Safe: SdmxClient creates a private runtime if needed
+// Safe: the designed SdmxClient creates a private runtime if needed
 let client = SdmxClient::new(url)?;
 let result = client.fetch().await?;
 ```
@@ -230,7 +232,7 @@ tokio::spawn(async {
 
 **Trade-off**: Compiling features increases binary size vs keeping dependencies optional
 
-**Decision**: Gate `client` and `parsers` as optional features. Users can pull `sdmx-types` (no_std, WASM) without HTTP/async overhead.
+**Decision**: Gate `parsers`, `writers`, `client`, and `tls` as optional features. Users can pull `sdmx-types` (no_std, WASM) without HTTP/async overhead.
 
 ---
 
