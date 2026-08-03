@@ -35,7 +35,6 @@
 extern crate alloc;
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use core::hint;
 
@@ -44,21 +43,8 @@ mod tests {
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn crate_compiles_in_no_std_mode() {
-        // Smoke test: verify the serialisation crate exports are accessible in no_std
-        // context.
+    fn crate_compiles() {
+        // Smoke test: the placeholder crate compiles and its test harness links.
         hint::black_box(());
-    }
-
-    #[test]
-    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
-    fn writer_interfaces_compile() {
-        // Structural smoke test ensuring writer module compilation.
-        // This test catches breaking changes to public writer interfaces early.
-        #[allow(unused)]
-        const _: () = {
-            // Placeholder: once writer traits/types are introduced, add:
-            // let _ = core::mem::size_of::<SomeWriterType>();
-        };
     }
 }

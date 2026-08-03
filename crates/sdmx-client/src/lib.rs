@@ -94,23 +94,10 @@ pub mod blocking {
 // ARCHITECTURE.md.
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     #[test]
-    fn client_crate_exports_are_accessible() {
-        // Smoke test: verify client module is importable and structurally sound.
-        // This test ensures basic compilation and re-export structure.
+    fn crate_compiles() {
+        // Smoke test: the placeholder crate compiles and its test harness links.
         std::hint::black_box(());
-    }
-
-    #[test]
-    fn client_builder_interfaces_compile() {
-        // Structural smoke test ensuring client API signatures compile.
-        // Once query builders are implemented, this will verify Send+Sync guarantees.
-        #[allow(unused)]
-        const _: () = {
-            // Placeholder: once builders are introduced, add:
-            // let _ = std::mem::size_of::<SomeBuilder>();
-        };
     }
 }
