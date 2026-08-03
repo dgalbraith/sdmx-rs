@@ -20,8 +20,8 @@
       # Surface area for cross-platform development and CI validation
       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
       # MAINTENANCE: rustfmt-date-bump
-      # Last updated: 2026-05-30
-      # Next review: 2026-07-29
+      # Last updated: 2026-08-03
+      # Next review: 2026-10-02
       # Explicit pin for nightly rustfmt to ensure deterministic formatting
       # This date must be periodically updated in sync with team toolchain reviews
       toolchainDate = "2026-05-01";
