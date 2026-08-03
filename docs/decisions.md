@@ -7,9 +7,9 @@
 
 ## What Is the Decision Register?
 
-The decision register captures **scoped observations and their direct consequences** — findings that emerged from reading the spec, working through Rust language constraints, or resolving a specific domain modelling choice. Each entry is small enough that a full ADR would be disproportionate, and specific enough that it belongs to one area rather than the whole architecture.
+The decision register captures **scoped observations and their direct consequences** — findings that emerged from reading the spec, working through Rust language constraints, resolving a specific domain modelling choice, or settling a workspace engineering convention. Each entry is small enough that a full ADR would be disproportionate, and specific enough that it belongs to one area rather than the whole architecture.
 
-Entries span SDMX specification observations, Rust language behaviour, and domain modelling choices.
+Entries span SDMX specification observations, Rust language behaviour, domain modelling choices, and workspace engineering conventions.
 
 ## When to Add an Entry
 
@@ -17,6 +17,7 @@ Add a register entry when:
 - A spec reading produces a concrete field-level or type-level consequence
 - A Rust language constraint forces a specific implementation choice
 - A domain modelling question is resolved and the resolution should be citable
+- A workspace engineering convention is settled and the resolution should be citable
 
 Adding an entry is a three-step operation:
 1. Add a row to the [Entry Index](#entry-index) — ID, Area, and one-line title
@@ -160,8 +161,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0077](#d-0077) | Identifiers                 | Local reference ids validate their lexical tier at construction (edition union where divergent); D-0020 narrows to referential integrity; DimensionRef/MetadataAttributeUsage/Code promoted                                       |
 | [D-0078](#d-0078) | Conventions                 | Constructor entry path + aggregate exhaustive-surface cost recorded; SchemeItem and the four artefact traits sealed (unsealing on demand is the non-breaking path)                                                                |
 | [D-0079](#d-0079) | DateTime typing             | Artefact validity windows store the stated xs:dateTime lexeme; SdmxDateTime joins the raw-backed lexical family with lexeme identity and derived value views                                                                      |
+| [D-0080](#d-0080) | Conventions                 | Dependencies are declared with the code that first uses them; intra-workspace family edges stay declared, backed by linkage tests                                                                                                 |
 
-<!-- Next ID: D-0080 -->
+<!-- Next ID: D-0081 -->
 
 ## Entries
 
@@ -1838,5 +1840,22 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: The two-class statedness rule stands; its dateTime clause was mis-classed by importing the 1.1 value model into a 1.0 schema corpus, and re-classing restores the rule's own criterion. Lexeme storage unifies the crate's treatment of the `xs:dateTime` grammar with the time family, which already holds its lexemes ([D-0027](#d-0027), [D-0076](#d-0076)), and it satisfies the store contract's round-trip guarantee for schema-valid wire the current type rejects or rewrites. Identity as fine as the datum can never merge distinguishable values — the coarser instant identity produced silent hashed-collection loss and forced the tuple workaround — and XSD 1.1's own identity/equality distinction ("equal but not identical") gives the derived comparisons a citable spec model. The alternatives fell in order: manual `Eq`/`Hash` over the chrono type left the primitive in the public API and closed neither the offsetless nor the spelling gap; a value-tuple type preserved the 1.1 value but collapsed spellings the wire distinguishes; recording the offsetless rejection as a deliberate cut contradicted both the store contract and the time grammar.
 
 **Consequences**: (1) [D-0008](#d-0008) is amended: superseded for the validity windows; its chrono choice stands as the value vocabulary. (2) [D-0074](#d-0074) is amended: the raw-backed family gains `SdmxDateTime`. (3) The 0010 statedness rule's dateTime clause moves to the lexeme class with the XSD 1.0 value-model correction; `VersionableMetadata`, the trait accessors, the class diagram, and the naming rule (`DateTime` collides with chrono's) follow. (4) The trait-level stated-offset contract prose and the property suite's tuple-assertion helper are retired: bare `Eq` asserts strictly more. (5) The internal serde spine changes shape for these fields (the stored lexeme in place of chrono's RFC 3339 emission) — an internal projection, not a wire format ([D-0063](#d-0063)). (6) Scope is the `VersionableType` windows alone: per [D-0064](#d-0064) consequence (6), other `xs:dateTime` constructs (registry registration, dataset header) take their own validity types when modelled, with `SdmxDateTime` available to them. (7) The date-time grammar's edge cases (hour-24 end-of-day, year zero, leading-zero years) stand as the classifier decided them; none are re-opened here.
+
+---
+
+### D-0080 — Dependencies are declared with the code that first uses them
+
+| **Area**     | Conventions |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | dependencies, manifests, scaffolding, cargo-machete, supply-chain |
+
+**Observation**: The scaffold crates declared their planned dependency stacks before any implementation existed: the serialisation stack (serde, serde_json, quick-xml, thiserror) in sdmx-parsers and sdmx-writers, the HTTP stack (tokio, reqwest, url, thiserror) in sdmx-client. Every entry required a cargo-machete ignore-list suppression to pass the unused-dependency gate. A declared-but-unused dependency makes the published manifest claim the crate is built on libraries no code touches, and it carries live supply-chain obligations: a security advisory arriving through the unused reqwest tree (quinn-proto) required a maintenance response for code that could never have executed the vulnerable path.
+
+**Decision**: A dependency is declared in a manifest only when code that uses it exists, and it is added, or re-added, with the change that first uses it. Planned dependency choices are roadmap and design-document content, not manifest content. One boundary: dependencies between the toolkit's own crates stay declared ahead of use, so the published metadata shows the family shape; each such edge is kept genuinely used by a linkage test rather than an ignore-list entry.
+
+**Rationale**: Manifests are consumer-facing metadata on the registry and must make only true claims. The carrying cost of a forward declaration is real and is paid on someone else's schedule, as the advisory response above shows. The intra-workspace boundary costs nothing on either axis: the family crates add no third-party audit surface and version in lockstep, and the linkage tests keep the unused-dependency gate honest without suppression.
+
+**Consequences**: (1) The scaffold crates shed their forward-declared external dependencies, and their cargo-machete ignore lists shrink to platform-specific permanent entries. (2) The serialisation stack returns with the parser and writer implementations; quick-xml re-enters without its serialize feature. (3) The HTTP stack returns with the client implementation. (4) The register's admission criteria gain a workspace engineering-convention trigger; this entry is the first of that genre.
 
 ---
