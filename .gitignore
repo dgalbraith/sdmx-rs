@@ -444,6 +444,7 @@
 !/tests/bats/secrets-scan.bats
 !/tests/bats/verify-signature.bats
 !/tests/bats/verify-tag-on-main.bats
+!/tests/bats/wait-for-deps.bats
 !/tests/bats/wait-for-index.bats
 
 # Verification gate tests
