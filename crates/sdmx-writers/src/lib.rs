@@ -2,22 +2,22 @@
 //! formats.
 //!
 //! This crate will provide the serialisation engine for converting domain
-//! types from [`sdmx-types`](../sdmx_types/index.html) into wire formats
+//! types from [`sdmx-types`](sdmx_types) into wire formats
 //! (SDMX-ML and SDMX-JSON). Writing routines will target efficient buffer
 //! management and support both streaming and buffered serialisation patterns.
 //!
 //! # Design Constraints
 //!
-//! - Minimal external dependencies (restricted strictly to `serde`,
-//!   `serde_json`, `quick-xml`, and `thiserror` for serialisation and error
-//!   modelling).
+//! - Minimal dependencies: the workspace-internal [`sdmx-types`](sdmx_types)
+//!   crate for the core domain model, with a small fixed set of serialisation
+//!   and error-modelling libraries arriving with the implementation.
 //! - No unsafe code.
 //! - All serialisation must behave deterministically across platform runtimes.
 //!
 //! # Design & Serialisation Mechanics
 //!
-//! Design 0008 specifies the version-aware serialisation design summarised
-//! below; implementation is planned.
+//! The version-aware serialisation design summarised below is settled;
+//! implementation is planned.
 //!
 //! The serialisation engine is responsible for converting version-agnostic
 //! domain representations back to their wire-format equivalents, handling any

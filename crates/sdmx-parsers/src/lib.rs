@@ -4,21 +4,20 @@
 //! This crate will provide the core serialisation and deserialisation engine
 //! for SDMX payloads. Parsing routines will target minimal memory allocations
 //! and zero-copy slicing where safe, consuming types from
-//! [`sdmx-types`](../sdmx_types/index.html).
+//! [`sdmx-types`](sdmx_types).
 //!
 //! # Design Constraints
 //!
-//! - Minimal dependencies: the workspace-internal
-//!   [`sdmx-types`](../sdmx_types/index.html) crate for the core domain model,
-//!   plus external dependencies restricted strictly to `serde`, `serde_json`,
-//!   `quick-xml`, and `thiserror` for serialisation and error modelling.
+//! - Minimal dependencies: the workspace-internal [`sdmx-types`](sdmx_types)
+//!   crate for the core domain model, with a small fixed set of serialisation
+//!   and error-modelling libraries arriving with the implementation.
 //! - No unsafe code.
 //! - All parsing must behave deterministically across platform runtimes.
 //!
 //! # Design & Parsing Mechanics
 //!
-//! ADR-0008 and ADR-0019 specify the parsing design summarised below;
-//! implementation is planned.
+//! The parsing design summarised below is settled; implementation is
+//! planned.
 //!
 //! To shield downstream consumers and user-facing APIs from the intricate
 //! details of SDMX specification changes (such as version-specific structural
@@ -55,8 +54,6 @@
 //! Version-specific structures are then parsed, normalised, and mapped to
 //! hydrate the unified, version-agnostic `ConstraintModel` enum, keeping
 //! wire-format versioning out of the downstream client API.
-//!
-//! See ADR-0019 for the XML namespace resolution design.
 
 #![no_std]
 

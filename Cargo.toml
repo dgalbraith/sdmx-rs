@@ -22,7 +22,7 @@ edition = "2024"
 # see docs/project/msrv.md ("MSRV Declaration Layout").
 rust-version = "1.92.0"
 authors = ["dgalbraith <dg@lbraith.io>"]
-description = "A high-performance, compliant SDMX parsing and client architecture engine in Rust."
+description = "A Rust implementation of the SDMX standard for statistical data and metadata exchange."
 readme = "README.md"
 categories = [
   "parser-implementations",

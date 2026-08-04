@@ -10,18 +10,18 @@
 //! feature boundaries to tailor the framework footprint:
 //!
 //! ```text
-//!                           ┌───────────────┐
-//!                           │    sdmx-rs    │  (Universal Facade API)
-//!                           └───┬───┬───┬───┘
-//!                               │   │   │
-//!                   ┌───────────┤   │   ├───────────┐
-//!      [client]     │    [parsers]  │   [writers]   │ (Conditional
-//!      feature      │    feature    │   feature     │  Re-exports)
-//!                   ▼              ▼                ▼
-//!              sdmx-client  sdmx-parsers  sdmx-writers
-//!                   │              │                │
-//!                   └──────────┬───┼───┬────────────┘
-//!                              ▼   ▼   ▼sugg
+//!                          ┌───────────────┐
+//!                          │    sdmx-rs    │  (Universal Facade API)
+//!                          └───┬───┬───┬───┘
+//!                              │   │   │
+//!                  ┌───────────┘   │   └───────────┐
+//!     [client]     │     [parsers] │     [writers] │  (Conditional
+//!     feature      │      feature  │      feature  │   Re-exports)
+//!                  ▼               ▼               ▼
+//!            sdmx-client     sdmx-parsers    sdmx-writers
+//!                  │               │               │
+//!                  └───────────┬───┬───┬───────────┘
+//!                              ▼   ▼   ▼
 //!                          ┌───────────────┐
 //!                          │  sdmx-types   │  (Core Types - Always Enabled)
 //!                          └───────────────┘

@@ -5,49 +5,12 @@
 [![MSRV: 1.92.0](https://img.shields.io/badge/MSRV-1.92.0-blue)](https://github.com/dgalbraith/sdmx-rs/blob/main/docs/project/msrv.md)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](https://github.com/dgalbraith/sdmx-rs#license)
 
-The HTTP orchestrator for the `sdmx-rs` workspace.
+The future HTTP orchestrator for the `sdmx-rs` workspace.
 
-This crate is the scaffold for an asynchronous HTTP client for querying SDMX REST endpoints. As designed, it will negotiate content types, delegate payload decoding to `sdmx-parsers`, and return the pure domain models defined in `sdmx-types`.
+This crate is the scaffold for an asynchronous HTTP client for querying SDMX REST endpoints. As designed, it will negotiate content types, delegate payload decoding to `sdmx-parsers`, and return the pure domain models defined in `sdmx-types`. No client functionality is implemented at this version; the implementation arrives with the client milestone on the [roadmap](https://github.com/dgalbraith/sdmx-rs/blob/main/ROADMAP.md).
 
-## Design Constraints
-- Built on `tokio` and `reqwest`.
-- Does not contain parsing logic directly.
-- Handles transport-level error propagation.
+## Planned Design
 
-## TLS & Client Configuration
-> [!NOTE]
-> The `sdmx-client` crate is a Phase 3 scaffold. Full client implementation (builders, query builders, custom CA support) is planned for **Phase 3**.
-> See [ROADMAP.md](https://github.com/dgalbraith/sdmx-rs/blob/main/ROADMAP.md).
-
-### Current Version (0.1.x) Limitations
-* **Supported Roots**: The host OS / native trust store is used out-of-the-box via reqwest 0.13's default `rustls-platform-verifier` (suited for public endpoints like ECB, IMF, Eurostat).
-* **Custom CA Support**: Programmatic certificate injection is not yet integrated into `sdmx-client`'s own builder (planned for Phase 3); until then, use `reqwest` directly as shown below.
-
-> **Note**: Compiling with `default-features = false` disables TLS entirely. You must either enable the `tls` feature or provide custom transport.
-
-### Workaround for Internal/Corporate CAs
-If you need to connect to an SDMX registry with a custom or internal CA today, use `reqwest` directly for transport and fetch the payload body yourself:
-
-```rust
-// 1. Load your CA certificate
-let my_ca_cert = reqwest::tls::Certificate::from_pem(
-    include_bytes!("path/to/ca.pem")
-)?;
-// 2. Fetch the payload using reqwest with your custom CA configuration
-let client = reqwest::Client::builder()
-    .tls_certs_merge([my_ca_cert])
-    .build()?;
-let response = client.get("https://internal-registry/sdmx/dataflow").send().await?;
-let body = response.text().await?;
-```
-
-⚠️ **Note**: This bypasses sdmx-client's abstraction layer. You lose:
-- Content-type negotiation
-- Payload decoding into domain models
-- Connection pooling management via sdmx-client
-- Potential future middleware (retry, caching, etc.)
-
-### Planned Client API (Phase 3)
-A unified client builder supporting direct certificate injection is planned.
-
-For architectural context on why rustls + bundled roots, see [ADR-0013](https://github.com/dgalbraith/sdmx-rs/blob/main/docs/adr/0013-use-rustls-over-native-tls-for-transport-layer-security.md).
+- Asynchronous transport with connection pooling and transport-level error propagation.
+- Content-type negotiation across the SDMX wire formats, with payload decoding delegated to `sdmx-parsers`; this crate will contain no parsing logic of its own.
+- TLS through `rustls` only, using the host OS trust store, with programmatic certificate injection through the client builder.
