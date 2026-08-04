@@ -3,14 +3,14 @@
 //!
 //! This crate will provide the high-level orchestrator managing connectivity
 //! to remote SDMX REST endpoints, coordinating with
-//! [`sdmx-parsers`](../sdmx_parsers/index.html) for payload deserialisation and
-//! [`sdmx-types`](../sdmx_types/index.html) for domain representation.
+//! [`sdmx-parsers`](sdmx_parsers) for payload deserialisation and
+//! [`sdmx-types`](sdmx_types) for domain representation.
 //!
 //! # API Design & Builder Pattern
 //!
 //! Requests to SDMX endpoints will be built using type-safe builder APIs
 //! employing the Typestate pattern to prevent invalid API queries at compile
-//! time. The planned API shape, specified in Design 0003 and Design 0007, is:
+//! time. The planned API shape is:
 //!
 //! ```rust,ignore
 //! let client = SdmxClient::new("https://registry.sdmx.org/apis/public");
@@ -25,7 +25,6 @@
 //!
 //! # Concurrency Guarantees
 //!
-//! ADR-0015 and Design 0006 specify the concurrency design summarised below.
 //! The `SdmxClient` will use thread-safe connection pooling via the underlying
 //! HTTP client (`reqwest`), and all public client endpoints will be `Send` and
 //! `Sync`, facilitating safe concurrent sharing across thread boundaries:
@@ -47,9 +46,9 @@
 //!
 //! # Content-Type Negotiation
 //!
-//! As specified in ADR-0018, the client will negotiate response formats
-//! dynamically according to target capabilities and user preferences, managing
-//! `Accept` headers to request high-performance representations:
+//! The client will negotiate response formats dynamically according to target
+//! capabilities and user preferences, managing `Accept` headers to request the
+//! preferred representations:
 //!
 //! - **Metadata Queries:** Requests prefer SDMX-JSON or SDMX-ML XML
 //!   representation.
@@ -64,8 +63,7 @@
 /// Scaffold for the synchronous/blocking execution bridge.
 ///
 /// This module will wrap the asynchronous client in a synchronous interface for
-/// zero-setup scripting contexts. The design is documented in
-/// [Design 0005](docs/design/0005-synchronous-and-blocking-api-execution-bridge.md).
+/// zero-setup scripting contexts.
 pub mod blocking {
     // TODO: Implement blocking client wrapper in Phase 3.
     // This module wraps the async SdmxClient in a synchronous interface.
@@ -94,23 +92,17 @@ pub mod blocking {
 // ARCHITECTURE.md.
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     #[test]
-    fn client_crate_exports_are_accessible() {
-        // Smoke test: verify client module is importable and structurally sound.
-        // This test ensures basic compilation and re-export structure.
+    fn crate_compiles() {
+        // Smoke test: the placeholder crate compiles and its test harness links.
         std::hint::black_box(());
     }
 
     #[test]
-    fn client_builder_interfaces_compile() {
-        // Structural smoke test ensuring client API signatures compile.
-        // Once query builders are implemented, this will verify Send+Sync guarantees.
-        #[allow(unused)]
-        const _: () = {
-            // Placeholder: once builders are introduced, add:
-            // let _ = std::mem::size_of::<SomeBuilder>();
-        };
+    fn dependencies_link() {
+        // Smoke test: the declared workspace dependencies link.
+        use sdmx_parsers as _;
+        use sdmx_types as _;
     }
 }

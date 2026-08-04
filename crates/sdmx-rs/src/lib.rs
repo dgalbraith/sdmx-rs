@@ -10,18 +10,18 @@
 //! feature boundaries to tailor the framework footprint:
 //!
 //! ```text
-//!                           ┌───────────────┐
-//!                           │    sdmx-rs    │  (Universal Facade API)
-//!                           └───┬───┬───┬───┘
-//!                               │   │   │
-//!                   ┌───────────┤   │   ├───────────┐
-//!      [client]     │    [parsers]  │   [writers]   │ (Conditional
-//!      feature      │    feature    │   feature     │  Re-exports)
-//!                   ▼              ▼                ▼
-//!              sdmx-client  sdmx-parsers  sdmx-writers
-//!                   │              │                │
-//!                   └──────────┬───┼───┬────────────┘
-//!                              ▼   ▼   ▼sugg
+//!                          ┌───────────────┐
+//!                          │    sdmx-rs    │  (Universal Facade API)
+//!                          └───┬───┬───┬───┘
+//!                              │   │   │
+//!                  ┌───────────┘   │   └───────────┐
+//!     [client]     │     [parsers] │     [writers] │  (Conditional
+//!     feature      │      feature  │      feature  │   Re-exports)
+//!                  ▼               ▼               ▼
+//!            sdmx-client     sdmx-parsers    sdmx-writers
+//!                  │               │               │
+//!                  └───────────┬───┬───┬───────────┘
+//!                              ▼   ▼   ▼
 //!                          ┌───────────────┐
 //!                          │  sdmx-types   │  (Core Types - Always Enabled)
 //!                          └───────────────┘
@@ -79,7 +79,6 @@ pub use sdmx_types as types;
 pub use sdmx_writers as writers;
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     #[test]
     fn facade_re_exports_core_types() {
@@ -110,14 +109,5 @@ mod tests {
             #[allow(unused_imports)]
             use crate::writers;
         }
-    }
-
-    #[test]
-    fn facade_compiles_with_feature_combinations() {
-        // Structural smoke test ensuring all feature combinations compile.
-        // Verifies that the no_std assertion holds for parsers-only builds.
-        // `core::hint` (not `std::hint`) so this test also compiles under the
-        // no_std configuration it is meant to exercise (parsers-only builds).
-        core::hint::black_box(());
     }
 }

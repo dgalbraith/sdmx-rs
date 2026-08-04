@@ -22,7 +22,7 @@ edition = "2024"
 # see docs/project/msrv.md ("MSRV Declaration Layout").
 rust-version = "1.92.0"
 authors = ["dgalbraith <dg@lbraith.io>"]
-description = "A high-performance, compliant SDMX parsing and client architecture engine in Rust."
+description = "A Rust implementation of the SDMX standard for statistical data and metadata exchange."
 readme = "README.md"
 categories = [
   "parser-implementations",
@@ -83,33 +83,6 @@ serde = { version = "1.0.228", default-features = false, features = [
   "derive",
   "alloc",
 ] }
-serde_json = { version = "1.0.149", default-features = false, features = [
-  "alloc",
-] }
-quick-xml = { version = "0.41.0", default-features = false, features = [
-  "serialize",
-] }
-
-# Async / HTTP (used in sdmx-client)
-tokio = { version = "1.52.3", default-features = false, features = [
-  "rt-multi-thread",
-  "macros",
-  "time",
-  "sync",
-] }
-reqwest = { version = "0.13.3", default-features = false, features = [
-  "json",
-  "stream",
-  # TLS backend is NOT declared here; it is activated per-crate through the
-  # `tls` feature flag
-] }
-url = { version = "2", default-features = false }
-
-# Benchmarking
-criterion = { version = "0.8.2", default-features = false }
-
-# Testing (HTTP mocking)
-wiremock = { version = "0.6", default-features = false }
 
 # Testing (non-wire round-trip): binary serde format for the sdmx-types
 # internal-projection round-trip tests (D-0068). It is never the SDMX wire, so no
@@ -124,13 +97,6 @@ proptest = { version = "1.11.0", default-features = false, features = [
   "std",
   "bit-set",
 ] }
-
-[profile.dev.package."aws-lc-sys"]
-opt-level = 3
-
-[profile.dev.package."aws-lc-rs"]
-opt-level = 3
-
 
 [profile.dev]
 opt-level = 0

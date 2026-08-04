@@ -11,62 +11,34 @@ This crate serves as the top-level facade and entry point for the `sdmx-rs` work
 
 ## Workspace Architecture
 
-```mermaid
-graph TD
-    Facade[sdmx-rs <br/> Facade Meta-Crate]:::facade
-    Client[sdmx-client <br/> HTTP Orchestrator]:::feature
-    Parsers[sdmx-parsers <br/> Serialisation Engine]:::feature
-    Writers[sdmx-writers <br/> Serialisation Adapter]:::feature
-    Types[sdmx-types <br/> Domain Core]:::core
-
-    Facade -.->|client feature| Client
-    Facade -.->|parsers feature| Parsers
-    Facade -.->|writers feature| Writers
-    Facade ===>|unconditional| Types
-
-    Client --> Parsers
-    Client --> Types
-    Parsers --> Types
-    Writers --> Types
-
-    classDef facade fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef core fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
-    classDef feature fill:#1e293b,stroke:#10b981,stroke-width:1px,color:#f8fafc;
+```text
+                          ┌───────────────┐
+                          │    sdmx-rs    │  (Universal Facade API)
+                          └───┬───┬───┬───┘
+                              │   │   │
+                  ┌───────────┘   │   └───────────┐
+     [client]     │     [parsers] │     [writers] │  (Conditional
+     feature      │      feature  │      feature  │   Re-exports)
+                  ▼               ▼               ▼
+            sdmx-client     sdmx-parsers    sdmx-writers
+                  │               │               │
+                  └───────────┬───┬───┬───────────┘
+                              ▼   ▼   ▼
+                          ┌───────────────┐
+                          │  sdmx-types   │  (Core Types - Always Enabled)
+                          └───────────────┘
 ```
 
 ## Features
 
 *   **`types`** (Always Compiled): Pure, `#![no_std]` domain models, metadata schemas, and validation invariants.
-*   **`parsers`** (Default Feature): Streaming XML and JSON parser engine.
-*   **`writers`** (Default Feature): Serialisation adapter for SDMX output generation (XML, JSON, CSV). Version-aware serialisation is planned.
-*   **`client`** (Default Feature): Tokio-based async HTTP orchestrator managing REST endpoints.
+*   **`parsers`** (Default Feature): Future home of the streaming format parsers; the re-export is wired, implementation is planned.
+*   **`writers`** (Default Feature): Future home of the format writers; the re-export is wired, implementation is planned.
+*   **`client`** (Default Feature): Future home of the async HTTP client; the re-export is wired, implementation is planned.
 
 ### TLS (when `client` is enabled)
 
-| Feature | Default | TLS engine | Certificate source                                      |
-|---------|:-------:|:----------:|---------------------------------------------------------|
-| `tls`   | ✓       | rustls     | Host OS / native trust store (rustls-platform-verifier) |
-
-By default this library uses the **host OS trust store** via reqwest 0.13's default
-`rustls-platform-verifier`. This works identically on Linux, macOS, and Windows — no host
-certificate configuration required. (`rustls` is the only TLS backend, so the flag is simply
-`tls` — on or off.)
-
-**Corporate / internal CA environments**: add your internal CA certificate at runtime — it is
-**merged** into the native roots:
-
-```rust
-use reqwest::tls::Certificate;
-let ca = Certificate::from_pem(include_bytes!("internal-ca.pem"))?;
-let client = reqwest::Client::builder().tls_certs_merge([ca]).build()?;
-```
-
-To compile without any TLS support (advanced / custom transport scenarios):
-
-```toml
-[dependencies]
-sdmx-rs = { version = "0.1", default-features = false, features = ["parsers", "client"] }
-```
+The `tls` feature flag (enabled by default) is forward-declared: it takes effect when the client implementation lands. TLS will be provided by `rustls` only, using the host OS trust store. Until then the flag gates nothing.
 
 ## Usage
 

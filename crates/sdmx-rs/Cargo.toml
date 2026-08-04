@@ -25,8 +25,7 @@ sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers", optional = true }
 sdmx-writers = { version = "=0.0.0", path = "../sdmx-writers", optional = true }
 # default-features = false: TLS is controlled by this facade's own `tls` feature
 # flag, not by sdmx-client's own default. This lets consumers of sdmx-rs toggle
-# TLS from the facade without reaching into the inner crate's feature namespace
-# (ADR-0013).
+# TLS from the facade without reaching into the inner crate's feature namespace.
 sdmx-client = { version = "=0.0.0", path = "../sdmx-client", optional = true, default-features = false }
 
 # Features
@@ -37,8 +36,8 @@ sdmx-client = { version = "=0.0.0", path = "../sdmx-client", optional = true, de
 # the `parsers` feature. This design is intentional to keep the exposed
 # API surface granular.
 #
-# TLS Control at Facade Level (ADR-0013)
-# ---------------------------------------
+# TLS Control at Facade Level
+# ----------------------------
 # The `tls` feature flag is controlled at the facade level rather than delegating
 # to `sdmx-client`'s own default. This design ensures:
 #
@@ -60,22 +59,8 @@ sdmx-client = { version = "=0.0.0", path = "../sdmx-client", optional = true, de
 #    feature is enabled. This keeps the dependency graph clean and prevents
 #    accidental activation of TLS configuration when only types/parsers are needed.
 #
-# Current TLS:
-#   tls (default) — Pure Rust rustls (the only permitted backend, ADR-0013).
-#                   reqwest 0.13 defaults to the rustls-platform-verifier, so the
-#                   host OS / native trust store is used; identical behaviour on
-#                   Linux, macOS, and Windows. Suitable for all public SDMX
-#                   endpoints (ECB, IMF, etc.).
-#
-# For consumers needing corporate/internal CA certificates, add them at runtime:
-#   use sdmx_rs::client::SdmxClientBuilder;
-#   let client = SdmxClientBuilder::new("https://...")
-#       .add_ca_cert(my_internal_ca_pem)
-#       .build()?;
-#
-# Note: the host OS / native roots are already trusted by default (reqwest 0.13's
-# rustls-platform-verifier). The builder above is for adding an *additional*
-# internal CA on top of the native roots.
+# The tls flag is forward-declared: it takes effect when the client
+# implementation lands; TLS will be rustls-only.
 #
 [features]
 default = ["parsers", "writers", "client", "tls"]
