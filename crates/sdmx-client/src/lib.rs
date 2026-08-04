@@ -98,4 +98,11 @@ mod tests {
         // Smoke test: the placeholder crate compiles and its test harness links.
         std::hint::black_box(());
     }
+
+    #[test]
+    fn dependencies_link() {
+        // Smoke test: the declared workspace dependencies link.
+        use sdmx_parsers as _;
+        use sdmx_types as _;
+    }
 }

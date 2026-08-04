@@ -47,4 +47,11 @@ mod tests {
         // Smoke test: the placeholder crate compiles and its test harness links.
         hint::black_box(());
     }
+
+    #[test]
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    fn dependencies_link() {
+        // Smoke test: the declared workspace dependencies link.
+        use sdmx_types as _;
+    }
 }

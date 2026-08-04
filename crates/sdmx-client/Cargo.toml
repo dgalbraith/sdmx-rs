@@ -22,10 +22,6 @@ workspace = true
 [dependencies]
 sdmx-types = { version = "=0.0.0", path = "../sdmx-types" }
 sdmx-parsers = { version = "=0.0.0", path = "../sdmx-parsers" }
-tokio = { workspace = true }
-reqwest = { workspace = true }
-thiserror = { workspace = true }
-url = { workspace = true }
 
 # TLS configuration.
 #
@@ -34,21 +30,5 @@ url = { workspace = true }
 # choice, so the single `tls` flag is on/off only.
 [features]
 default = ["tls"]
-tls = ["reqwest/rustls"]
+tls = []
 # blocking = []   # blocking API bridge (planned)
-
-[dev-dependencies]
-wiremock = { workspace = true }
-
-# Scaffold: all dependencies suppressed until implementation begins.
-# Remove each entry here as it is actively used — machete will then flag genuine dead deps.
-[package.metadata.cargo-machete]
-ignored = [
-  "sdmx-types",   # Phase 2: depends on core types; unignore when integrated
-  "sdmx-parsers", # Phase 2: depends on parsers; unignore when integrated
-  "tokio",        # Phase 3: async runtime for HTTP client
-  "reqwest",      # Phase 3: HTTP client library
-  "thiserror",    # Phase 1: error type definitions
-  "url",          # Phase 3: URL parsing and validation for endpoint builders
-  "wiremock",     # Phase 3: HTTP mocking for integration tests
-]
