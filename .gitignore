@@ -266,6 +266,10 @@
 !/crates/**/README.md
 !/crates/**/CHANGELOG.md
 
+# Crate-level licence texts (packaged in every tarball)
+!/crates/*/LICENSE-MIT
+!/crates/*/LICENSE-APACHE
+
 # sdmx-types: XSD contract fragment subsystem (design_docs layer).
 !/crates/sdmx-types/xsd-manifest.toml
 !/crates/sdmx-types/docs/xsd-fragments/.markdownlint.yaml
