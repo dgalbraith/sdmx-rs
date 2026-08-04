@@ -9,6 +9,11 @@ repository.workspace = true
 homepage.workspace = true
 description = "Universal statistical data and metadata exchange (SDMX) framework for Rust."
 readme = "README.md"
+exclude = [
+  "release-notes/README.md",
+  "release-notes/.markdownlint.yaml",
+  "release-notes/templates/",
+]
 categories = ["parser-implementations", "web-programming::http-client"]
 keywords = ["sdmx", "metadata", "statistics", "parser", "client"]
 
