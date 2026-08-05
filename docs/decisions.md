@@ -136,7 +136,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0052](#d-0052) | Architecture                | Attribute statedness stored: XSD defaults and fixed values are views, not data; Option + effective views; fixed mismatch rejected (amended by [D-0057](#d-0057))                                                                  |
 | [D-0053](#d-0053) | Dataflow                    | Dataflow.dsd is Option by design: Structure is minOccurs=0 (external-reference stubs); the prose conditional is lint territory                                                                                                    |
 | [D-0054](#d-0054) | Codelist                    | CodelistExtension modelled on Codelist (ref + prefix + inclusive/exclusive member selection); geo-codelist artefacts recorded out of scope                                                                                        |
-| [D-0055](#d-0055) | Organisation                | Contact modelled on Agency (names/departments/roles + one interleaved detail list); other organisation kinds remain out of scope                                                                                                  |
+| [D-0055](#d-0055) | Organisation                | Contact modelled on Agency (names/departments/roles + one interleaved detail list); other organisation kinds remain out of scope (amended by [D-0081](#d-0081))                                                                   |
 | [D-0056](#d-0056) | Data structure              | effective_position pinned 1-based: the derived fallback is list index + 1, matching official stated-position samples; lint now writable                                                                                           |
 | [D-0057](#d-0057) | Data structure              | Component id statedness stored (ComponentMetadata leaf); the trait id() is the effective view; TimeDimension fixed id enforced                                                                                                    |
 | [D-0058](#d-0058) | Data structure              | AttributeRelationship dimension refs carry the per-ref optional attribute (DimensionRef); statedness stored; closes the superset hole (amended by [D-0077](#d-0077))                                                              |
@@ -162,8 +162,9 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | [D-0078](#d-0078) | Conventions                 | Constructor entry path + aggregate exhaustive-surface cost recorded; SchemeItem and the four artefact traits sealed (unsealing on demand is the non-breaking path)                                                                |
 | [D-0079](#d-0079) | DateTime typing             | Artefact validity windows store the stated xs:dateTime lexeme; SdmxDateTime joins the raw-backed lexical family with lexeme identity and derived value views                                                                      |
 | [D-0080](#d-0080) | Conventions                 | Dependencies are declared with the code that first uses them; intra-workspace family edges stay declared, backed by linkage tests                                                                                                 |
+| [D-0081](#d-0081) | Encapsulation               | A lexically constrained member converts a pub-field carrier into an invariant-bearing type, optional or not; Contact converted                                                                                                    |
 
-<!-- Next ID: D-0081 -->
+<!-- Next ID: D-0082 -->
 
 ## Entries
 
@@ -1351,11 +1352,13 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 | **Area**     | Organisation |
 | **Phase**    | Phase-1 |
-| **Status**   | Active |
+| **Status**   | Active (consequence (2) clause amended by [D-0081](#d-0081)) |
 | **Keywords** | contact, agency, organisation, interleaving, spec-alignment |
 | **Spec ref** | [SDMXStructureOrganisation.xsd 3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureOrganisation.xsd#L327-L376) (`ContactType`; `OrganisationType.Contact` 0..unbounded, line 85); [3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureOrganisation.xsd#L320-L369) (identical) |
 | **Source**   | [Design 0010 — SDMX Core Domain Types](design/0010-sdmx-core-domain-types-design.md) §5.5 |
-| **Related**  | [D-0016](#d-0016), [D-0035](#d-0035), [D-0051](#d-0051) |
+| **Related**  | [D-0016](#d-0016), [D-0035](#d-0035), [D-0051](#d-0051), [D-0081](#d-0081) |
+
+> **Amended by [D-0081](#d-0081)** (2026-08-05): consequence (2)'s `Contact` clause is withdrawn. `ContactType` declares an optional `id` of `common:IDType`, which under D-0081 converts a pub-field carrier into an invariant-bearing type, so `Contact` now has private fields, a fallible `new()`, borrowing accessors, and a hand-written `Deserialize`. The clause stands for `ContactDetail`, which remains a pub-field carrier, and consequence (1) is untouched: the check lands in `Contact::new`, so `contacts` is still an invariant-free field from `Agency`'s side. The rest of the body, including the store shape and the out-of-scope boundary, stands.
 
 **Observation**: Every organisation carries `Contact` 0..unbounded (identical both versions); the modelled `Agency` silently dropped producer-supplied contact data — the defect class D-0035 fixed for `Link`. Verified `ContactType`: `Name*`, `Department*`, `Role*` (all localisable `TextType`, 0..unbounded), then **one repeated choice** (0..unbounded) of `Telephone`/`Fax`/`X400`/`URI`/`Email`.
 
@@ -1857,5 +1860,25 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 **Rationale**: Manifests are consumer-facing metadata on the registry and must make only true claims. The carrying cost of a forward declaration is real and is paid on someone else's schedule, as the advisory response above shows. The intra-workspace boundary costs nothing on either axis: the family crates add no third-party audit surface and version in lockstep, and the linkage tests keep the unused-dependency gate honest without suppression.
 
 **Consequences**: (1) The scaffold crates shed their forward-declared external dependencies, and their cargo-machete ignore lists shrink to platform-specific permanent entries. (2) The serialisation stack returns with the parser and writer implementations; quick-xml re-enters without its serialize feature. (3) The HTTP stack returns with the client implementation. (4) The register's admission criteria gain a workspace engineering-convention trigger; this entry is the first of that genre.
+
+---
+
+### D-0081 — A lexically constrained member converts a pub-field carrier into an invariant-bearing type
+
+| **Area**     | Encapsulation |
+| **Phase**    | Phase-1 |
+| **Status**   | Active |
+| **Keywords** | encapsulation, validation, identifiers, carrier, constructor, serde, spec-alignment |
+| **Spec ref** | [SDMXStructureOrganisation.xsd 3.0](https://github.com/sdmx-twg/sdmx-ml/blob/29f1a3d/schemas/SDMXStructureOrganisation.xsd#L364-L368) + [3.1](https://github.com/sdmx-twg/sdmx-ml/blob/182248b/schemas/SDMXStructureOrganisation.xsd#L371-L375) (`ContactType.id`, `common:IDType`, `use="optional"`, identical across editions) |
+| **Source**   | [ADR-0021](adr/0021-domain-invariant-validation-and-encapsulation-strategy.md) |
+| **Related**  | [D-0004](#d-0004), [D-0005](#d-0005), [D-0023](#d-0023), [D-0055](#d-0055), [D-0077](#d-0077), [D-0078](#d-0078) |
+
+**Observation**: The carrier-versus-invariant-bearing split has been applied as though a type qualified only when a *required* member was constrained, or when a cross-field rule existed. Nothing states that, and the omission has a shape: a type is classified once, from the members that dominated the reading, and an optional attribute added late in the type, or read past, leaves the classification standing. `ContactType.id` is the instance. It is an optional `common:IDType` in both editions, so a `Contact` holding a dotted or empty id was constructible and deserialisable, while the same lexeme was rejected at every other `IDType` site in the crate ([D-0023](#d-0023), [D-0077](#d-0077)): one lexical question answered two ways, from a classification that predates the member.
+
+**Decision**: A member whose XSD type is lexically constrained converts a public-field carrier into an invariant-bearing type, whether that member is required or optional. Optionality moves the check, not the classification: the constructor validates the value when it is stated and accepts absence unconditionally. Conversion is the full ADR-0021 shape and admits no partial form: private fields, a fallible `new()` running the check, borrowing accessors, a hand-written `Deserialize` routed through `new()`, and no `Default` (a defaulted value cannot be completed once the fields are private, [D-0078](#d-0078)). `Contact` is converted under this rule; `ContactDetail`, whose five arms are typed `xs:string` and `xs:anyURI`, is not, because neither type is lexically constrained.
+
+**Rationale**: The rule is already implied by [ADR-0021](adr/0021-domain-invariant-validation-and-encapsulation-strategy.md) and [D-0005](#d-0005), whose joint content is to validate at construction and to make the constructor the only write path, and stating it removes the reading under which optionality excuses the check. That reading is unsound on its own terms: an optional attribute is either absent or a value of its declared type, so the stated case is a full member of the constrained lexical space and nothing about `minOccurs` weakens the grammar. Placing the check on the value rather than the type also keeps validation where the constraint is: `Agency` gains no check for holding contacts, because the constraint is `Contact`'s. The alternatives fell in order: a lint over carrier fields would defer to a layer the crate has not built and would leave the type constructible in an off-grammar state; a bespoke validated newtype for the id would spend a public type on a single optional attribute and diverge from how every other id tier is checked.
+
+**Consequences**: (1) [D-0055](#d-0055)'s consequence (2) is amended: `Contact` is invariant-bearing, `ContactDetail` remains a pub-field carrier, and consequence (1) stands because the check lands in `Contact::new`, leaving `contacts` invariant-free from `Agency`'s side. (2) `Contact::default()` is withdrawn; the constructor is the entry path. (3) The rule is a standing admission test for every future type: a carrier that gains a lexically constrained member converts at that point, and a completeness pass over a carrier must read its attributes as well as its elements. (4) The check reuses `validate_id`; no new `Error` variant is introduced, since `Error::InvalidIdentifier` already names the failure.
 
 ---

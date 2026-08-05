@@ -121,11 +121,12 @@ pub use crate::{
     organisation::{Agency, AgencyScheme, Contact, ContactDetail},
     reference::{
         CodelistReference, ConceptReference, DataProviderReference, DataStructureReference,
-        DataflowReference, ProvisionAgreementReference, ValueListReference,
+        DataflowReference, MetadataStructureReference, ProvisionAgreementReference,
+        ValueListReference,
     },
     representation::{
         DataType, EnumerationFormat, EnumerationReference, MaxOccurs, Representation,
-        RepresentationChoice, TextFormat,
+        RepresentationChoice, SentinelValue, TextFormat,
     },
     scheme::{ItemScheme, SchemeItem},
     valuelist::{ValueItem, ValueList},
@@ -286,6 +287,7 @@ const _: () = {
     assert_send_sync::<DataProviderReference>();
     assert_send_sync::<DataStructureReference>();
     assert_send_sync::<DataflowReference>();
+    assert_send_sync::<MetadataStructureReference>();
     assert_send_sync::<ProvisionAgreementReference>();
     assert_send_sync::<ValueListReference>();
 
@@ -296,6 +298,7 @@ const _: () = {
     assert_send_sync::<MaxOccurs>();
     assert_send_sync::<Representation>();
     assert_send_sync::<RepresentationChoice>();
+    assert_send_sync::<SentinelValue>();
     assert_send_sync::<TextFormat>();
 
     // scheme: ItemScheme is generic over its item type; assert a representative

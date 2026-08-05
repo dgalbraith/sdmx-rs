@@ -11,16 +11,25 @@
 `Agency` follows the validated-item pattern (id is `NCNameIDType`): private fields, a fallible
 `new()` calling `validate_ncname`, and a custom `Deserialize`. It additionally carries
 `contacts: Vec<Contact>` (`0..unbounded`, empty ⟺ absent, D-0055), an invariant-free field threaded
-through `new()` with no extra check. The contact detail elements (Telephone/Fax/X400/URI/Email) are
-ONE repeated wire choice, so the store is ONE interleaved `Vec` in wire order (the D-0051
-precedent). The localisable Name/Department/Role triple reuses `LocalisedString`.
+through `new()` with no extra check: the id check lands in `Contact::new`, not here. The contact
+detail elements (Telephone/Fax/X400/URI/Email) are ONE repeated wire choice, so the store is ONE
+interleaved `Vec` in wire order (the D-0051 precedent). The localisable Name/Department/Role triple
+reuses `LocalisedString`.
+
+`Contact` is invariant-bearing, not the pub-field carrier D-0055 consequence (2) described: its
+optional `id` is `IDType`, and an optional lexically constrained member is enough to convert a
+carrier (D-0081). So it takes private fields, a fallible `new()` calling `validate_id` on a stated
+id, borrowing accessors, and a hand-written `Deserialize` routed through `new()`; `Default` is
+dropped with the pub fields, because a defaulted value cannot be completed and the constructor is
+the entry path (D-0078). `ContactDetail` stays a pub-field carrier: no member of it is lexically
+constrained.
 
 `AgencyScheme` is the asymmetric wrapper (D-0023, verified): its id is `IDType` with
 `use="required" fixed="AGENCIES"`, NOT `NCNameIDType`. So `new()` is fallible via `validate_fixed`
 (a stated value differing from the fixed one is a mechanical mismatch), but it does NOT re-validate
 NCName. This asymmetry is the spec's, not an oversight, so it is not "consistency-fixed".
 
-Decisions: D-0023, D-0052, D-0055.
+Decisions: D-0023, D-0052, D-0055, D-0078, D-0081.
 "#
 )]
 
@@ -34,7 +43,7 @@ use crate::{
     localised::LocalisedString,
     metadata::{MaintainableMetadata, NameableMetadata},
     scheme::{ItemScheme, SchemeItem},
-    validate::{validate_fixed, validate_ncname},
+    validate::{validate_fixed, validate_id, validate_ncname},
 };
 
 // ---------------------------------------------------------------------------
@@ -74,18 +83,105 @@ pub enum ContactDetail {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ContactType.md"))]
 ///
-/// Invariant-free pub-field carrier. The localisable Name/Department/Role triple are each optional
+/// The optional `id` is an SDMX `IDType`, so [`new`](Self::new) validates a stated one and the
+/// fields are private. The localisable Name/Department/Role triple are each optional
 /// (`minOccurs="0"`); the detail endpoints are one interleaved list in wire order.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{Contact, ContactDetail, LocalisedString, LocalisedText};
+///
+/// let names = LocalisedString::new(vec![LocalisedText {
+///     language: Some(String::from("en")),
+///     text: String::from("Helpdesk"),
+/// }])?;
+/// let contact = Contact::new(
+///     Some(String::from("HELPDESK")),
+///     Some(names),
+///     None,
+///     None,
+///     vec![ContactDetail::Email(String::from("info@example.com"))],
+/// )?;
+/// assert_eq!(contact.id(), Some("HELPDESK"));
+/// assert_eq!(contact.details().len(), 1);
+/// // A stated id outside IDType is rejected.
+/// assert!(Contact::new(Some(String::from("a.b")), None, None, None, Vec::new()).is_err());
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Contact {
+    id: Option<String>,
+    names: Option<LocalisedString>,
+    departments: Option<LocalisedString>,
+    roles: Option<LocalisedString>,
+    details: Vec<ContactDetail>,
+}
+
+impl Contact {
+    /// Builds a contact, validating a stated `id` against SDMX `IDType`. An absent id is always
+    /// accepted: the attribute is optional.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidIdentifier`] if `id` is stated and is not a valid `IDType`.
+    pub fn new(
+        id: Option<String>,
+        names: Option<LocalisedString>,
+        departments: Option<LocalisedString>,
+        roles: Option<LocalisedString>,
+        details: Vec<ContactDetail>,
+    ) -> Result<Self, Error> {
+        if let Some(id) = id.as_deref() {
+            validate_id(id)?;
+        }
+        Ok(Self { id, names, departments, roles, details })
+    }
+
+    /// The contact's user id; `None` ⟺ absent.
+    #[must_use]
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
     /// The contact's localised names; `None` ⟺ no names.
-    pub names: Option<LocalisedString>,
+    #[must_use]
+    pub const fn names(&self) -> Option<&LocalisedString> {
+        self.names.as_ref()
+    }
+
     /// The contact's localised departments; `None` ⟺ absent.
-    pub departments: Option<LocalisedString>,
+    #[must_use]
+    pub const fn departments(&self) -> Option<&LocalisedString> {
+        self.departments.as_ref()
+    }
+
     /// The contact's localised roles; `None` ⟺ absent.
-    pub roles: Option<LocalisedString>,
-    /// The contact endpoints, in wire order; empty ⟺ none.
-    pub details: Vec<ContactDetail>,
+    #[must_use]
+    pub const fn roles(&self) -> Option<&LocalisedString> {
+        self.roles.as_ref()
+    }
+
+    /// The contact endpoints, in wire order (an empty slice if none).
+    #[must_use]
+    pub fn details(&self) -> &[ContactDetail] {
+        &self.details
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Contact {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(serde::Deserialize)]
+        struct Raw {
+            id: Option<String>,
+            names: Option<LocalisedString>,
+            departments: Option<LocalisedString>,
+            roles: Option<LocalisedString>,
+            details: Vec<ContactDetail>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        Self::new(raw.id, raw.names, raw.departments, raw.roles, raw.details).map_err(to_de_error)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -390,28 +486,30 @@ mod tests {
     }
 
     fn contact() -> Contact {
-        Contact {
-            names: Some(
+        Contact::new(
+            Some(String::from("HELPDESK")),
+            Some(
                 LocalisedString::new(vec![LocalisedText {
                     language: Some(String::from("en")),
                     text: String::from("Helpdesk"),
                 }])
                 .unwrap(),
             ),
-            departments: None,
-            roles: None,
-            details: vec![
+            None,
+            None,
+            vec![
                 ContactDetail::Email(String::from("info@example.com")),
                 ContactDetail::Uri(String::from("https://example.com")),
             ],
-        }
+        )
+        .unwrap()
     }
 
     #[test]
     fn agency_carries_contacts() {
         let agency = Agency::new(nameable("ESTAT"), vec![contact()]).unwrap();
         assert_eq!(agency.contacts().len(), 1);
-        assert_eq!(agency.contacts()[0].details.len(), 2);
+        assert_eq!(agency.contacts()[0].details().len(), 2);
     }
 
     #[test]
@@ -578,20 +676,55 @@ mod tests {
     }
 
     #[test]
-    fn contact_default_is_all_absent() {
-        let contact = Contact::default();
-        assert!(contact.names.is_none());
-        assert!(contact.departments.is_none());
-        assert!(contact.roles.is_none());
-        assert!(contact.details.is_empty());
+    fn contact_new_holds_every_member_absent() {
+        // Every member is optional on the wire, so an all-absent contact is schema-valid and the
+        // constructor accepts it.
+        let empty = Contact::new(None, None, None, None, Vec::new()).unwrap();
+        assert!(empty.id().is_none());
+        assert!(empty.names().is_none());
+        assert!(empty.departments().is_none());
+        assert!(empty.roles().is_none());
+        assert!(empty.details().is_empty());
 
-        // Struct-update sets only the stated field; the rest fall back to the default.
-        let with_email = Contact {
-            details: vec![ContactDetail::Email(String::from("x@y"))],
-            ..Default::default()
-        };
-        assert_eq!(with_email.details.len(), 1);
-        assert!(with_email.names.is_none());
+        let with_email =
+            Contact::new(None, None, None, None, vec![ContactDetail::Email(String::from("x@y"))])
+                .unwrap();
+        assert_eq!(with_email.details().len(), 1);
+        assert!(with_email.names().is_none());
+    }
+
+    #[test]
+    fn contact_new_validates_a_stated_id() {
+        // IDType permits $ and a leading digit; a dot is outside the class.
+        assert!(Contact::new(Some(String::from("USER$1")), None, None, None, Vec::new()).is_ok());
+        assert_eq!(
+            Contact::new(Some(String::from("a.b")), None, None, None, Vec::new()).unwrap_err(),
+            Error::InvalidIdentifier(String::from("a.b"))
+        );
+    }
+
+    #[test]
+    fn contact_deserialize_rejects_a_non_id_type_id() {
+        // Contact's Deserialize declares `Raw { id, names, departments, roles, details }` and
+        // routes through new(). postcard is positional, so a tuple of those field types carrying a
+        // dotted id decodes at the field level but is rejected by new().
+        // A valid tuple of the same field types decodes — guards this proof's shape against Raw drift.
+        let ok = (
+            Some(String::from("HELPDESK")),
+            None::<LocalisedString>,
+            None::<LocalisedString>,
+            None::<LocalisedString>,
+            Vec::<ContactDetail>::new(),
+        );
+        assert!(postcard::from_bytes::<Contact>(&postcard::to_allocvec(&ok).unwrap()).is_ok());
+        let raw = (
+            Some(String::from("a.b")),
+            None::<LocalisedString>,
+            None::<LocalisedString>,
+            None::<LocalisedString>,
+            Vec::<ContactDetail>::new(),
+        );
+        assert!(postcard::from_bytes::<Contact>(&postcard::to_allocvec(&raw).unwrap()).is_err());
     }
 
     // Property tests: the internal serde round-trip over generated agency schemes, which

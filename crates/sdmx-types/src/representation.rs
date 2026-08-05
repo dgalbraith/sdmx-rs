@@ -19,22 +19,23 @@ exposed here only as the `DataType` subset predicates and `validate_basic_repres
 replaces the earlier ad-hoc coded-only `codelist` field on components: a representation models both
 the coded and uncoded cases exactly.
 
-`TextFormat`, `EnumerationFormat`, `Representation`, and the enums are invariant-free pub-field
-carriers (derived `Deserialize`); only the position validators carry logic, and they are free
-functions the component constructors call. `DataType`'s subset predicates (`is_basic`, `is_simple`,
-`is_code`, `is_time`) are the Layer-2 views the validators check against; the tiers form a
-restriction chain (Basic ⊃ Simple ⊃ Code), so `is_code` composes `is_simple`.
+`TextFormat`, `EnumerationFormat`, `SentinelValue`, `Representation`, and the enums are
+invariant-free pub-field carriers (derived `Deserialize`); only the position validators carry logic,
+and they are free functions the component constructors call. `DataType`'s subset predicates
+(`is_basic`, `is_simple`, `is_code`, `is_time`) are the Layer-2 views the validators check against;
+the tiers form a restriction chain (Basic ⊃ Simple ⊃ Code), so `is_code` composes `is_simple`.
 
 Decisions: D-0021, D-0027, D-0028, D-0046, D-0047, D-0048, D-0075, D-0076.
 "#
 )]
 
-use alloc::{format, string::String};
+use alloc::{format, string::String, vec::Vec};
 use core::num::NonZeroU32;
 
 use crate::{
     error::Error,
     lexical::{SdmxDecimal, SdmxDuration, SdmxInteger, SdmxTimePeriod},
+    localised::LocalisedString,
     reference::{CodelistReference, ValueListReference},
 };
 
@@ -265,6 +266,50 @@ pub enum MaxOccurs {
 }
 
 // ---------------------------------------------------------------------------
+// SentinelValue
+// ---------------------------------------------------------------------------
+
+/// A value carrying a special meaning within an uncoded representation.
+///
+/// ## Specification
+/// - **Type**: `SentinelValueType`
+/// - **Element**: `<SentinelValue>`
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/SentinelValueType.md"))]
+///
+/// A sentinel is a value that stands for something other than an ordinary observation: a "not
+/// applicable" or "confidential" marker, for example. The `value` is the marker itself, described
+/// by at least one localised name and optionally by localised descriptions.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::{LocalisedString, LocalisedText, SentinelValue};
+///
+/// // All fields are public, so you can construct one directly.
+/// let sentinel = SentinelValue {
+///     value: String::from("NA"),
+///     names: LocalisedString::new(vec![LocalisedText {
+///         language: Some(String::from("en")),
+///         text: String::from("Not applicable"),
+///     }])?,
+///     descriptions: None,
+/// };
+/// assert_eq!(sentinel.names.first(), "Not applicable");
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct SentinelValue {
+    /// The sentinel value being described (`value`, an `xs:anySimpleType`), held verbatim.
+    pub value: String,
+    /// The sentinel's localised names (`Name`, one or more; the non-empty invariant is
+    /// [`LocalisedString`]'s).
+    pub names: LocalisedString,
+    /// The sentinel's localised descriptions; `None` ⟺ absent.
+    pub descriptions: Option<LocalisedString>,
+}
+
+// ---------------------------------------------------------------------------
 // TextFormat
 // ---------------------------------------------------------------------------
 
@@ -280,7 +325,8 @@ pub enum MaxOccurs {
 ///
 /// The superset of the spec's `TextFormat` tier chain. Every facet is optional, so the type mirrors
 /// the wire one-to-one; which facets and `textType`s a given component position permits is the
-/// component constructor's check.
+/// component constructor's check. Beyond the facets, the `<SentinelValue>` children are stored
+/// here: the values given a special meaning in this representation.
 #[cfg_attr(
     design_docs,
     doc = r#"
@@ -294,6 +340,12 @@ Numeric facets are `xs:decimal` (lossless `SdmxDecimal`, D-0027); time facets ar
 `SdmxDuration`, D-0076). The `xs:positiveInteger` facets are `NonZeroU32` — a stated zero is
 mechanically schema-invalid, so the field type makes it unrepresentable — at the `u32` width the
 D-0075 policy records.
+
+`sentinel_values` is the type's only element child; it is declared after the attribute fields
+because those hold the schema attributes in schema order. `EnumerationFormat` deliberately has no
+counterpart: `CodedTextFormatType` restricts `SimpleComponentTextFormatType` without restating a
+particle, so the element is dropped and a coded representation has no sentinel values. The asymmetry
+is the schema's, not an omission here.
 
 Decisions: D-0027, D-0046, D-0048, D-0052, D-0075, D-0076.
 "#
@@ -332,6 +384,8 @@ pub struct TextFormat {
     /// `isMultiLingual`: whether the values are localised. `None` ⟺ absent; the default flips
     /// between editions, so the effective value is a version-aware view.
     pub is_multi_lingual: Option<bool>,
+    /// The `<SentinelValue>` children, in wire order; empty ⟺ absent.
+    pub sentinel_values: Vec<SentinelValue>,
 }
 
 // ---------------------------------------------------------------------------
@@ -733,6 +787,17 @@ mod tests {
             min_length: Some(NonZeroU32::new(1).unwrap()),
             max_length: Some(NonZeroU32::new(10).unwrap()),
             decimals: Some(NonZeroU32::new(2).unwrap()),
+            sentinel_values: alloc::vec![SentinelValue {
+                value: String::from("NA"),
+                names: crate::localised::LocalisedString::new(alloc::vec![
+                    crate::localised::LocalisedText {
+                        language: Some(String::from("en")),
+                        text: String::from("Not applicable"),
+                    }
+                ])
+                .unwrap(),
+                descriptions: None,
+            }],
             ..TextFormat::default()
         };
         crate::test_support::round_trip(&uncoded);
@@ -750,10 +815,10 @@ mod tests {
         // TextFormat's derived Deserialize is positional over its fields in declaration order
         // (text_type, is_sequence, interval, start_value, end_value, time_interval, start_time,
         // end_time, min_length, max_length, min_value, max_value, decimals, pattern,
-        // is_multi_lingual). The validity lives in the field types: serde's NonZeroU32 impl
-        // rejects a zero, and SdmxDuration's custom impl routes through new(). A tuple of the raw
-        // field types carrying the invalid value decodes into that field impl, which rejects it
-        // on the wire.
+        // is_multi_lingual, sentinel_values). The validity lives in the field types: serde's
+        // NonZeroU32 impl rejects a zero, and SdmxDuration's custom impl routes through new(). A
+        // tuple of the raw field types carrying the invalid value decodes into that field impl,
+        // which rejects it on the wire.
         type RawCoded = (
             Option<DataType>,
             Option<bool>,
@@ -785,6 +850,7 @@ mod tests {
             Option<u32>,
             Option<String>,
             Option<bool>,
+            Vec<SentinelValue>,
         );
         let raw = |time_interval: Option<&str>, min_length: Option<u32>, decimals: Option<u32>| {
             let raw: RawText = (
@@ -803,6 +869,7 @@ mod tests {
                 decimals,
                 None,
                 None,
+                Vec::new(),
             );
             postcard::to_allocvec(&raw).unwrap()
         };
@@ -882,6 +949,7 @@ mod tests {
                 decimals: None,
                 pattern: None,
                 is_multi_lingual: None,
+                sentinel_values: Vec::new(),
             }),
             min_occurs: None,
             max_occurs: None,
