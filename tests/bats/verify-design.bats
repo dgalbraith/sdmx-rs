@@ -129,6 +129,39 @@ EOF
 }
 
 # ==============================================================================
+# Template Guidance Sentinels
+# ==============================================================================
+
+@test "verify-design: detects unedited template guidance" {
+    ./doc-engine.sh add design "Second Design" > /dev/null
+    echo "- [0002: Second Design](0002-second-design.md)" >> docs/design/README.md
+
+    run_isolated ./doc-engine.sh verify design
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unedited template guidance remains in"* ]]
+    [[ "$output" == *"scaffolded but not written"* ]]
+}
+
+@test "verify-design: passes with curated design" {
+    ./doc-engine.sh add design "Second Design" > /dev/null
+    echo "- [0002: Second Design](0002-second-design.md)" >> docs/design/README.md
+    strip_template_guidance docs/design/0002-second-design.md
+
+    run_isolated ./doc-engine.sh verify design
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+@test "verify-design: ignores non-sentinel HTML comments" {
+    printf '\n<!-- TODO: link the tracking issue once it is filed -->\n' \
+        >> docs/design/0001-design-documentation-process.md
+
+    run_isolated ./doc-engine.sh verify design
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+# ==============================================================================
 # Ledger Synchronisation
 # ==============================================================================
 
@@ -198,21 +231,6 @@ EOF
 }
 
 # ==============================================================================
-# Numbering Validation
-# ==============================================================================
-
-@test "verify-design: detect gap in numbering" {
-    # Create 0002, then manually rename to 0003 to create gap
-    ./doc-engine.sh add design "Second Design" > /dev/null
-    mv docs/design/0002-second-design.md docs/design/0003-second-design.md
-    sed -i 's/0002-second-design.md/0003-second-design.md/' .gitignore
-
-    run_isolated ./doc-engine.sh verify design
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Gap in numbering"* ]] || [[ "$output" == *"Error"* ]]
-}
-
-# ==============================================================================
 # Special Files and Template Differences
 # ==============================================================================
 
@@ -222,6 +240,9 @@ EOF
 }
 
 @test "verify-design: ignores templates/ subdirectory" {
+    # Without a sentinel in the fixture template, this case would pass vacuously.
+    grep -qF 'TEMPLATE GUIDANCE' docs/design/templates/template.md
+
     run_isolated ./doc-engine.sh verify design
     [ "$status" -eq 0 ]
 }

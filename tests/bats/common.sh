@@ -196,11 +196,15 @@ add_guide_to_gitignore() {
     sed -i "/^# XII\\. Source Code/i\\!/docs/guides/${file}" .gitignore
 }
 
-# Helper to add guide entry to README.md index
-add_guide_to_readme() {
+# Strip the template guidance (every HTML comment) from a scaffolded document.
+strip_template_guidance() {
     local file="$1"
-    local title="${2:-$file}"
-    echo "- [$title]($file)" >> docs/guides/README.md
+    awk '
+        /<!--/ { in_comment = 1 }
+        !in_comment { print }
+        /-->/ { in_comment = 0 }
+    ' "$file" > "$file.curated"
+    mv "$file.curated" "$file"
 }
 
 # Assert that an ADR file exists with required sections
@@ -697,6 +701,7 @@ export -f create_guide_gitignore
 export -f add_adr_to_gitignore
 export -f add_design_to_gitignore
 export -f add_guide_to_gitignore
+export -f strip_template_guidance
 export -f assert_adr_file_exists
 export -f assert_design_file_exists
 export -f assert_guide_file_exists

@@ -385,19 +385,19 @@ docs-help:
     @echo "  just adr <title>                  # Create a new ADR"
     @echo "  just adr-rename <old> <new_title> # Rename an ADR and update ledger"
     @echo "  just adr-remove <target>          # Remove an ADR"
-    @echo "  just verify-adr                   # Verify ADR ledger formatting"
+    @echo "  just verify-adr                   # Verify ADR ledger; no template guidance remains"
     @echo ""
     @echo "Design Documents:"
     @echo "  just design <title>               # Create a new Design Doc"
     @echo "  just design-rename <old> <new>    # Rename a Design Doc and update ledger"
     @echo "  just design-remove <target>       # Remove a Design Doc"
-    @echo "  just verify-design                # Verify Design Doc ledger formatting"
+    @echo "  just verify-design                # Verify Design Doc ledger; no template guidance remains"
     @echo ""
     @echo "User Guides:"
     @echo "  just guide <title>                # Create a new User Guide"
     @echo "  just guide-rename <old> <new>     # Rename a User Guide and update ledger"
     @echo "  just guide-remove <target>        # Remove a User Guide"
-    @echo "  just verify-guide                 # Verify User Guide ledger formatting"
+    @echo "  just verify-guide                 # Verify User Guide ledger; no template guidance remains"
     @echo ""
     @echo "XSD Contract Fragments (design_docs layer):"
     @echo "  just fetch-specs                  # Materialise the pinned SDMX schemas (fetch + sha-verify)"
@@ -417,7 +417,7 @@ adr-remove target:
 adr-rename old_target new_title:
     @./scripts/doc-engine.sh rename adr "{{old_target}}" "{{new_title}}"
 
-# Verify the completeness and formatting of the Architecture Decision Record (ADR) ledger
+# Verify the completeness and formatting of the Architecture Decision Record (ADR) ledger; no template guidance remains
 verify-adr:
     @./scripts/doc-engine.sh verify adr
 
@@ -437,7 +437,7 @@ design-remove target:
 design-rename old_target new_title:
     @./scripts/doc-engine.sh rename design "{{old_target}}" "{{new_title}}"
 
-# Verify the completeness and formatting of the Design Document ledger
+# Verify the completeness and formatting of the Design Document ledger; no template guidance remains
 verify-design:
     @./scripts/doc-engine.sh verify design
 
@@ -457,7 +457,7 @@ guide-remove target:
 guide-rename old_target new_title:
     @./scripts/doc-engine.sh rename guide "{{old_target}}" "{{new_title}}"
 
-# Verify the completeness and formatting of the User Guides ledger
+# Verify the completeness and formatting of the User Guides ledger; no template guidance remains
 verify-guide:
     @./scripts/doc-engine.sh verify guide
 
