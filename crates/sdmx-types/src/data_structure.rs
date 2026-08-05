@@ -13,9 +13,11 @@ test it is a pub-field carrier with DERIVED `Deserialize` (the non-empty-dimensi
 in `DimensionList::new`). `None` for `attribute_list`/`measure_list` is the wire's *absent*
 descriptor (a measure-less DSD is an absent measure list, not an empty one, D-0025 as revised by
 D-0049). `groups` is a `Vec`, not a map: it preserves wire order and stays uniform with the
-descriptor model; `get_group` is a first-match lookup view. `evolving_structure` is a 3.1-only
-attribute whose statedness is stored (D-0045/D-0052). The artefact trait hierarchy delegates to the
-`metadata` leaf, as on every maintainable.
+descriptor model; `get_group` is a first-match lookup view. `msd` is the optional `<Metadata>`
+element, named for the referenced artefact rather than the schema element, as `Dataflow.dsd` is:
+`metadata` on this struct already names the `MaintainableMetadata` identity block.
+`evolving_structure` is a 3.1-only attribute whose statedness is stored (D-0045/D-0052). The
+artefact trait hierarchy delegates to the `metadata` leaf, as on every maintainable.
 
 Decisions: D-0025, D-0045, D-0049, D-0052.
 "#
@@ -30,6 +32,7 @@ use crate::{
     lexical::{SdmxDateTime, SdmxVersion},
     localised::LocalisedString,
     metadata::MaintainableMetadata,
+    reference::MetadataStructureReference,
 };
 
 /// A maintainable definition of a data structure: its dimensions, attributes, measures, and groups.
@@ -45,7 +48,8 @@ use crate::{
 /// A pub-field carrier: it composes already-validated descriptors and owns no cross-field invariant,
 /// so it derives `Deserialize`. The `dimension_list` is required; `attribute_list` and
 /// `measure_list` are `None` when the wire omits the descriptor (a measure-less DSD has no measure
-/// list).
+/// list). The optional `msd` names the metadata structure definition whose metadata attributes the
+/// structure draws on.
 ///
 /// # Examples
 ///
@@ -97,6 +101,7 @@ use crate::{
 ///     groups: Vec::new(),
 ///     attribute_list: None,
 ///     measure_list: None,
+///     msd: None,
 ///     evolving_structure: None,
 /// };
 /// assert_eq!(dsd.id(), "ECB_EXR");
@@ -115,6 +120,9 @@ pub struct DataStructureDefinition {
     pub attribute_list: Option<AttributeList>,
     /// The measure descriptor, or `None` for a measure-less structure.
     pub measure_list: Option<MeasureList>,
+    /// The `<Metadata>` reference to the metadata structure definition whose metadata attributes
+    /// this structure draws on; `None` ⟺ absent.
+    pub msd: Option<MetadataStructureReference>,
     /// `evolvingStructure` (3.1-only): statedness stored; `None` ⟺ absent.
     pub evolving_structure: Option<bool>,
 }
@@ -241,6 +249,7 @@ mod tests {
                 decimals: None,
                 pattern: None,
                 is_multi_lingual: None,
+                sentinel_values: Vec::new(),
             }),
             min_occurs: None,
             max_occurs: None,
@@ -340,6 +349,11 @@ mod tests {
             groups: vec![group],
             attribute_list: Some(attribute_list),
             measure_list: Some(measure_list),
+            msd: Some(MetadataStructureReference {
+                agency: String::from("ECB"),
+                id: String::from("MSD_EXR"),
+                version: "1.0.0".parse().unwrap(),
+            }),
             evolving_structure: None,
         }
     }
@@ -418,6 +432,7 @@ mod tests {
             groups: Vec::new(),
             attribute_list: None,
             measure_list: None,
+            msd: None,
             evolving_structure: None,
         };
         assert_eq!(dsd.id(), "ECB_EXR");
@@ -447,6 +462,7 @@ mod tests {
         assert!(dsd.dimension_list.time_dimension.is_some());
         assert_eq!(dsd.attribute_list.as_ref().unwrap().attributes().count(), 1);
         assert_eq!(dsd.measure_list.as_ref().unwrap().iter().count(), 1);
+        assert_eq!(dsd.msd.as_ref().map(|msd| msd.id.as_str()), Some("MSD_EXR"));
     }
 
     #[test]
@@ -477,7 +493,7 @@ mod tests {
         // Bubbling demonstration, not a composite-own proof: the non-empty-dimensions invariant is
         // DimensionList's (its source-level proof lives in descriptor.rs). The DSD derives
         // Deserialize over its fields in declaration order (metadata, dimension_list, groups,
-        // attribute_list, measure_list, evolving_structure), and DimensionList has a custom
+        // attribute_list, measure_list, msd, evolving_structure), and DimensionList has a custom
         // Deserialize routing an empty list through new(). Feeding the dimension_list position a
         // DimensionList Raw tuple (id, annotations, links, urn, uri, dimensions, time_dimension)
         // with an empty `dimensions` proves the DSD's derived Deserialize propagates that nested
@@ -498,6 +514,7 @@ mod tests {
             Vec::<Group>::new(),
             None::<AttributeList>,
             None::<MeasureList>,
+            None::<MetadataStructureReference>,
             None::<bool>,
         );
         assert!(
@@ -518,6 +535,7 @@ mod tests {
             Vec::<Group>::new(),
             None::<AttributeList>,
             None::<MeasureList>,
+            None::<MetadataStructureReference>,
             None::<bool>,
         );
         assert!(

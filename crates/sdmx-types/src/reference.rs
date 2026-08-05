@@ -6,9 +6,10 @@
 //! the crate, they derive [`Hash`].
 //!
 //! The references group by coordinate shape. [`CodelistReference`], [`ValueListReference`],
-//! [`DataStructureReference`], [`DataflowReference`], and [`ProvisionAgreementReference`] name a maintainable
-//! artefact (a codelist, value list, data structure definition, dataflow, or provision agreement) by
-//! its full triple of agency, id, and version. [`ConceptReference`] (a concept) and
+//! [`DataStructureReference`], [`MetadataStructureReference`], [`DataflowReference`], and
+//! [`ProvisionAgreementReference`] name a maintainable artefact (a codelist, value list, data
+//! structure definition, metadata structure definition, dataflow, or provision agreement) by its
+//! full triple of agency, id, and version. [`ConceptReference`] (a concept) and
 //! [`DataProviderReference`] (a data provider) name an item within its scheme, carrying the scheme
 //! id and the scheme's version.
 //!
@@ -35,7 +36,7 @@ wire-conformant URN from hand-built fields is the writer's obligation (lint terr
 other carrier field). The serde impls stay field-wise derived: the internal projection is not the
 wire (D-0068), so it does not collapse to the URN string.
 
-All seven reference classes descend from the URN *reference* chain (`UrnReferenceVersionPart`), so
+All eight reference classes descend from the URN *reference* chain (`UrnReferenceVersionPart`), so
 their version part admits the `+` wildcard forms and is typed `VersionRef` (D-0071); none admits the
 bare `*`, whose `WildcardUrnType` family is consumed only by unmodelled metadata targets, so a
 `VersionRef::Any` in a reference is grammar-unparseable and rejected by `FromStr`, while remaining
@@ -185,6 +186,52 @@ pub struct DataStructureReference {
     /// The referenced data structure definition's id.
     pub id: String,
     /// The referenced data structure definition's version reference.
+    pub version: VersionRef,
+}
+
+// ---------------------------------------------------------------------------
+// MetadataStructureReference
+// ---------------------------------------------------------------------------
+
+/// A reference to a metadata structure definition by its maintenance coordinates.
+///
+/// ## Specification
+/// - **Type**: `MetadataStructureReferenceType`
+/// - **Element**: N/A (Reference Type)
+/// - **Editions**: SDMX 3.0 and 3.1
+#[cfg_attr(
+    design_docs,
+    doc = include_str!("../docs/xsd-fragments/MetadataStructureReferenceType.md")
+)]
+///
+/// Identifies a metadata structure definition by the flat maintainable triple (agency, id,
+/// version). An MSD is a maintainable artefact, so its reference carries a version, like
+/// [`DataStructureReference`]. Used by a data structure definition to name the metadata structure
+/// whose metadata attributes it draws on.
+///
+/// # Examples
+///
+/// ```
+/// use sdmx_types::MetadataStructureReference;
+///
+/// // All fields are public, so you can construct one directly.
+/// let reference = MetadataStructureReference {
+///     agency: String::from("SDMX"),
+///     id: String::from("MSD_EXR"),
+///     version: "1.0.0".parse()?,
+/// };
+/// let urn = "urn:sdmx:org.sdmx.infomodel.metadatastructure.MetadataStructure=SDMX:MSD_EXR(1.0.0)";
+/// assert_eq!(reference.to_string(), urn);
+/// assert_eq!(urn.parse::<MetadataStructureReference>()?, reference);
+/// # Ok::<(), sdmx_types::Error>(())
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct MetadataStructureReference {
+    /// The maintenance agency id (`agencyID`).
+    pub agency: String,
+    /// The referenced metadata structure definition's id.
+    pub id: String,
+    /// The referenced metadata structure definition's version reference.
     pub version: VersionRef,
 }
 
@@ -485,6 +532,25 @@ impl core::str::FromStr for DataStructureReference {
     }
 }
 
+impl core::fmt::Display for MetadataStructureReference {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{URN_PREFIX}metadatastructure.MetadataStructure={}:{}({})",
+            self.agency, self.id, self.version
+        )
+    }
+}
+
+impl core::str::FromStr for MetadataStructureReference {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (agency, id, version) = parse_triple(s, "metadatastructure.MetadataStructure")?;
+        Ok(Self { agency, id, version })
+    }
+}
+
 impl core::fmt::Display for CodelistReference {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{URN_PREFIX}codelist.Codelist={}:{}({})", self.agency, self.id, self.version)
@@ -620,6 +686,16 @@ mod tests {
     }
 
     #[test]
+    fn metadata_structure_reference_round_trips_through_serde() {
+        let msd = MetadataStructureReference {
+            agency: String::from("ECB"),
+            id: String::from("MSD_EXR"),
+            version: "1.0.0".parse().unwrap(),
+        };
+        crate::test_support::round_trip(&msd);
+    }
+
+    #[test]
     fn urn_round_trips_every_reference_class() {
         use alloc::string::ToString;
         // Each class URN parses to its type and renders back verbatim, wildcard
@@ -630,6 +706,7 @@ mod tests {
             "urn:sdmx:org.sdmx.infomodel.codelist.ValueList=SDMX:VL_CURRENCY(1.0)",
             "urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:EXR(1.0.0-draft)",
             "urn:sdmx:org.sdmx.infomodel.registry.ProvisionAgreement=ECB:PA_EXR(1)",
+            "urn:sdmx:org.sdmx.infomodel.metadatastructure.MetadataStructure=SDMX:MSD_EXR(1.0.0)",
             "urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=SDMX:CS_FREQ(2.3.1+).FREQ",
             "urn:sdmx:org.sdmx.infomodel.base.DataProvider=SDMX:DATA_PROVIDERS(1.0.0).ECB",
         ];
@@ -638,8 +715,9 @@ mod tests {
         assert_eq!(urns[2].parse::<ValueListReference>().unwrap().to_string(), urns[2]);
         assert_eq!(urns[3].parse::<DataflowReference>().unwrap().to_string(), urns[3]);
         assert_eq!(urns[4].parse::<ProvisionAgreementReference>().unwrap().to_string(), urns[4]);
-        assert_eq!(urns[5].parse::<ConceptReference>().unwrap().to_string(), urns[5]);
-        assert_eq!(urns[6].parse::<DataProviderReference>().unwrap().to_string(), urns[6]);
+        assert_eq!(urns[5].parse::<MetadataStructureReference>().unwrap().to_string(), urns[5]);
+        assert_eq!(urns[6].parse::<ConceptReference>().unwrap().to_string(), urns[6]);
+        assert_eq!(urns[7].parse::<DataProviderReference>().unwrap().to_string(), urns[7]);
     }
 
     #[test]
@@ -772,6 +850,15 @@ mod tests {
                     version: version.clone(),
                 };
                 prop_assert_eq!(dataflow.to_string().parse::<DataflowReference>().unwrap(), dataflow);
+                let msd = MetadataStructureReference {
+                    agency: agency.clone(),
+                    id: id.clone(),
+                    version: version.clone(),
+                };
+                prop_assert_eq!(
+                    msd.to_string().parse::<MetadataStructureReference>().unwrap(),
+                    msd
+                );
                 let agreement = ProvisionAgreementReference { agency, id, version };
                 prop_assert_eq!(
                     agreement.to_string().parse::<ProvisionAgreementReference>().unwrap(),

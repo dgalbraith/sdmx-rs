@@ -38,12 +38,13 @@ use crate::{
     EnumerationReference, FixedInclude, Group, GroupDimensions, IdentifiableMetadata,
     IsoConceptReference, KeyValueSelection, Link, LocalisedString, LocalisedText,
     MaintainableMetadata, MaxOccurs, Measure, MeasureList, MeasureRelationship, MemberValue,
-    MemberValues, MetadataAttributeUsage, NameableMetadata, ObservationalTimePeriod,
-    ProvisionAgreementReference, ProvisionAgreementRefs, QueryableDataSource, ReleaseCalendar,
-    Representation, RepresentationChoice, SdmxDateTime, SdmxDecimal, SdmxDuration, SdmxInteger,
-    SdmxTimePeriod, SdmxVersion, SimpleComponentValue, SimpleComponentValues, SimpleDataSources,
-    SimpleKeyValues, TextFormat, TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage,
-    ValueItem, ValueList, ValueListReference, VersionRef, VersionableMetadata,
+    MemberValues, MetadataAttributeUsage, MetadataStructureReference, NameableMetadata,
+    ObservationalTimePeriod, ProvisionAgreementReference, ProvisionAgreementRefs,
+    QueryableDataSource, ReleaseCalendar, Representation, RepresentationChoice, SdmxDateTime,
+    SdmxDecimal, SdmxDuration, SdmxInteger, SdmxTimePeriod, SdmxVersion, SentinelValue,
+    SimpleComponentValue, SimpleComponentValues, SimpleDataSources, SimpleKeyValues, TextFormat,
+    TimeDimension, TimePeriodRange, TimeRange, TimeRangeKind, Usage, ValueItem, ValueList,
+    ValueListReference, VersionRef, VersionableMetadata,
 };
 
 // ---------------------------------------------------------------------------
@@ -680,6 +681,13 @@ fn max_occurs() -> impl Strategy<Value = MaxOccurs> {
     prop_oneof![facet_count().prop_map(MaxOccurs::Count), Just(MaxOccurs::Unbounded)]
 }
 
+/// A `SentinelValue`: a verbatim value, one to three localised names, and optional descriptions.
+fn sentinel_value() -> impl Strategy<Value = SentinelValue> {
+    (any::<String>(), localised_string(), proptest::option::of(localised_string()))
+        .prop_map(|(value, names, descriptions)| SentinelValue { value, names, descriptions })
+        .boxed()
+}
+
 /// An uncoded facet bundle whose `textType` draws from the given position subset;
 /// `is_multi_lingual` is supplied by the caller because some positions prohibit it.
 fn text_format(
@@ -708,12 +716,14 @@ fn text_format(
             proptest::option::of(any::<String>()),
             is_multi_lingual,
         ),
+        proptest::collection::vec(sentinel_value(), 0..=2),
     )
         .prop_map(
             |(
                 (text_type, is_sequence, interval, start_value, end_value),
                 (time_interval, start_time, end_time, min_length, max_length),
                 (min_value, max_value, decimals, pattern, is_multi_lingual),
+                sentinel_values,
             )| {
                 TextFormat {
                     text_type,
@@ -731,6 +741,7 @@ fn text_format(
                     decimals,
                     pattern,
                     is_multi_lingual,
+                    sentinel_values,
                 }
             },
         )
@@ -828,6 +839,12 @@ fn value_list_reference() -> impl Strategy<Value = ValueListReference> {
 pub(crate) fn dsd_reference() -> impl Strategy<Value = DataStructureReference> {
     (urn_agency(), urn_id(), reference_version())
         .prop_map(|(agency, id, version)| DataStructureReference { agency, id, version })
+}
+
+/// A typed `MetadataStructureReference`.
+fn msd_reference() -> impl Strategy<Value = MetadataStructureReference> {
+    (urn_agency(), urn_id(), reference_version())
+        .prop_map(|(agency, id, version)| MetadataStructureReference { agency, id, version })
 }
 
 /// A typed `DataflowReference`.
@@ -1164,18 +1181,22 @@ pub(crate) fn data_structure_definition() -> impl Strategy<Value = DataStructure
         proptest::collection::vec(group(), 0..=1),
         proptest::option::of(attribute_list()),
         proptest::option::of(measure_list()),
+        proptest::option::of(msd_reference()),
         proptest::option::of(any::<bool>()),
     )
-        .prop_map(|(metadata, dimension_list, groups, attribute_list, measure_list, evolving)| {
-            DataStructureDefinition {
-                metadata,
-                dimension_list,
-                groups,
-                attribute_list,
-                measure_list,
-                evolving_structure: evolving,
-            }
-        })
+        .prop_map(
+            |(metadata, dimension_list, groups, attribute_list, measure_list, msd, evolving)| {
+                DataStructureDefinition {
+                    metadata,
+                    dimension_list,
+                    groups,
+                    attribute_list,
+                    measure_list,
+                    msd,
+                    evolving_structure: evolving,
+                }
+            },
+        )
         .boxed()
 }
 
@@ -1257,19 +1278,19 @@ fn contact_detail() -> impl Strategy<Value = ContactDetail> {
     ]
 }
 
-/// A `Contact` with optional localised triple and interleaved details.
+/// A `Contact` over an optional `IDType` id, with optional localised triple and interleaved
+/// details.
 fn contact() -> impl Strategy<Value = Contact> {
     (
+        proptest::option::of(id_type_lexeme()),
         proptest::option::of(localised_string()),
         proptest::option::of(localised_string()),
         proptest::option::of(localised_string()),
         proptest::collection::vec(contact_detail(), 0..=2),
     )
-        .prop_map(|(names, departments, roles, details)| Contact {
-            names,
-            departments,
-            roles,
-            details,
+        .prop_map(|(id, names, departments, roles, details)| {
+            Contact::new(id, names, departments, roles, details)
+                .expect("strategy emits IDType contact ids")
         })
         .boxed()
 }

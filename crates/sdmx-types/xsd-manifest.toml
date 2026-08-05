@@ -144,6 +144,12 @@ editions = ["3.0", "3.1"]
 rust = ["DataStructureReference"]
 
 [[fragment]]
+symbol = "MetadataStructureReferenceType"
+file = "schemas/SDMXCommonReferences.xsd"
+editions = ["3.0", "3.1"]
+rust = ["MetadataStructureReference"]
+
+[[fragment]]
 symbol = "ConceptReferenceType"
 file = "schemas/SDMXCommonReferences.xsd"
 editions = ["3.0", "3.1"]
@@ -348,6 +354,12 @@ symbol = "OccurenceType"
 file = "schemas/SDMXCommon.xsd"
 editions = ["3.0", "3.1"]
 rust = ["MaxOccurs"]
+
+[[fragment]]
+symbol = "SentinelValueType"
+file = "schemas/SDMXStructureBase.xsd"
+editions = ["3.0", "3.1"]
+rust = ["SentinelValue"]
 
 [[fragment]]
 symbol = "TextFormatType"
