@@ -31,6 +31,7 @@ teardown() {
     ./doc-engine.sh add guide "First Guide" > /dev/null
     # Add guide to README.md index
     echo "- [First Guide](first-guide.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/first-guide.md
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 0 ]
     [[ "$output" == *"first-guide.md"* ]]
@@ -47,6 +48,9 @@ teardown() {
 - [Second](second.md)
 - [Third](third.md)
 EOF
+    strip_template_guidance docs/guides/first.md
+    strip_template_guidance docs/guides/second.md
+    strip_template_guidance docs/guides/third.md
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 0 ]
     [[ "$output" == *"first.md"* ]]
@@ -149,6 +153,42 @@ EOF
 }
 
 # ==============================================================================
+# Template Guidance Sentinels
+# ==============================================================================
+
+@test "verify-guide: detects unedited template guidance" {
+    ./doc-engine.sh add guide "Scaffolded Guide" > /dev/null
+    echo "- [Scaffolded Guide](scaffolded-guide.md)" >> docs/guides/README.md
+
+    run_isolated ./doc-engine.sh verify guide
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unedited template guidance remains in"* ]]
+    [[ "$output" == *"scaffolded but not written"* ]]
+}
+
+@test "verify-guide: passes with curated guide" {
+    ./doc-engine.sh add guide "Written Guide" > /dev/null
+    echo "- [Written Guide](written-guide.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/written-guide.md
+
+    run_isolated ./doc-engine.sh verify guide
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+@test "verify-guide: ignores non-sentinel HTML comments" {
+    ./doc-engine.sh add guide "Written Guide" > /dev/null
+    echo "- [Written Guide](written-guide.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/written-guide.md
+    printf '\n<!-- TODO: add a streaming example once the parser lands -->\n' \
+        >> docs/guides/written-guide.md
+
+    run_isolated ./doc-engine.sh verify guide
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+# ==============================================================================
 # Guide Slug Validation
 # ==============================================================================
 
@@ -160,6 +200,9 @@ EOF
     echo "- [First](first.md)" >> docs/guides/README.md
     echo "- [Second Guide](second-guide.md)" >> docs/guides/README.md
     echo "- [Third](third.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/first.md
+    strip_template_guidance docs/guides/second-guide.md
+    strip_template_guidance docs/guides/third.md
 
     run_isolated ./doc-engine.sh verify guide
     [ "$status" -eq 0 ]
@@ -231,6 +274,9 @@ EOF
 }
 
 @test "verify-guide: ignores templates/ subdirectory" {
+    # Without a sentinel in the fixture template, this case would pass vacuously.
+    grep -qF 'TEMPLATE GUIDANCE' docs/guides/templates/template.md
+
     # Create a file in templates/ directory (not a numbered guide)
     mkdir -p docs/guides/templates
     cat > docs/guides/templates/custom-template.md << 'EOF'
@@ -252,6 +298,8 @@ EOF
     ./doc-engine.sh add guide "Second" > /dev/null
     echo "- [First](first.md)" >> docs/guides/README.md
     echo "- [Second](second.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/first.md
+    strip_template_guidance docs/guides/second.md
     run_isolated ./doc-engine.sh verify guide
     [[ "$output" == *"registered"* ]] || [[ "$output" == *"✅"* ]]
 }
@@ -261,6 +309,9 @@ EOF
     ./doc-engine.sh add guide "Second" > /dev/null
     echo "- [First](first.md)" >> docs/guides/README.md
     echo "- [Second](second.md)" >> docs/guides/README.md
+    strip_template_guidance docs/guides/first.md
+    strip_template_guidance docs/guides/second.md
     run_isolated ./doc-engine.sh verify guide
+    [ "$status" -eq 0 ]
     [[ "$output" == *"2"* ]] && [[ "$output" == *"guide"* ]]
 }

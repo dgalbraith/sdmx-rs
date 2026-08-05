@@ -2,18 +2,28 @@
 
 Date: DATE
 
+<!-- TEMPLATE GUIDANCE.
+  Delete this whole comment block once the design is written.
+  Every "GUIDANCE:" comment below marks a section that still has to be written.
+  `just verify-design` fails while either marker remains.
+  Replace each "GUIDANCE:" comment with real content, then delete this block.
+-->
+
 ## Status
 
 STATUS
 
-<!-- Valid values: Proposed, Accepted, Implemented, Superseded. The creator script
-     fills the default; update by hand as the design progresses or is replaced. -->
+<!-- GUIDANCE:
+  Valid values are Proposed, Accepted, Implemented, Superseded. The creator
+  script fills the default; update by hand as the design progresses or is
+  replaced.
+-->
 
 ---
 
 ## Summary
 
-<!--
+<!-- GUIDANCE:
   One paragraph: what is being designed and why it matters. A reader should grasp
   the shape of the design from this alone, before any detail. Write it last — it is
   the abstract, not the introduction.
@@ -23,7 +33,7 @@ STATUS
 
 ## Problem / Motivation
 
-<!--
+<!-- GUIDANCE:
   Why this design is needed: the gap or opportunity it addresses, and the
   constraints/requirements driving it. Cover:
     - the current state (if any) and its pain points or limits;
@@ -35,7 +45,7 @@ STATUS
 
 ## Proposed Design
 
-<!--
+<!-- GUIDANCE:
   The core approach and its rationale. Scale the detail to the design's size:
     - lightweight: one or two paragraphs naming the key decisions;
     - full component: detailed subsections with sketches and examples.
@@ -43,7 +53,7 @@ STATUS
 
 ### Architecture / Key Decisions
 
-<!--
+<!-- GUIDANCE:
   Break out the major design elements, each as "what and why" (not just what):
     - Decision 1: what it is and the reason it beats the alternative.
     - Decision 2: ...
@@ -51,7 +61,7 @@ STATUS
 
 ### Examples / Pseudo-code
 
-<!--
+<!-- GUIDANCE:
   (Optional) Show the design in use — type signatures, code sketches, or a usage
   snippet. Delete this subsection if it adds nothing.
 -->
@@ -60,7 +70,7 @@ STATUS
 
 ## Alternatives Considered
 
-<!--
+<!-- GUIDANCE:
   One entry per approach evaluated: what it was, why it was considered, and why it
   was rejected or deferred — with the trade-off that decided it. Rejected paths on
   record are what make a design trustworthy. If none were viable, say so and why.
@@ -70,7 +80,7 @@ STATUS
 
 ## Drawbacks / Trade-offs
 
-<!--
+<!-- GUIDANCE:
   The costs and downsides of the chosen design — state them plainly. Consider:
   performance, complexity, maintenance burden, and API ergonomics vs. power.
 -->
@@ -79,7 +89,7 @@ STATUS
 
 ## Questions & Resolutions
 
-<!--
+<!-- GUIDANCE:
   Open questions to settle during implementation: unknowns, edge cases, perf
   questions, integration points, gaps. Record the resolution inline once answered.
   If none remain, write "None".
@@ -94,7 +104,7 @@ STATUS
 
 ## References
 
-<!--
+<!-- GUIDANCE:
   Link related ADRs, design docs, downstream decisions this may spawn, and
   spec/issue references. If none, write "None".
 -->
@@ -105,7 +115,7 @@ STATUS
 
 ## Notes for Implementation
 
-<!--
+<!-- GUIDANCE:
   (Optional, for accepted designs) Hand-off detail for whoever implements this:
     - breaking changes or migration path;
     - dependencies or prerequisites;

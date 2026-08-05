@@ -338,7 +338,7 @@ case "$ACTION" in
         unset _arg
 
         # Check if dir exists and has files
-        if [ ! -d "$DIR" ] || [ -z "$(find "$DIR" -maxdepth 1 -name '*.md' ! -name 'README.md' ! -name 'templates' 2>/dev/null)" ]; then
+        if [ ! -d "$DIR" ] || [ -z "$(find "$DIR" -maxdepth 1 -name '*.md' ! -name 'README.md' 2>/dev/null)" ]; then
             if [ "$DOC_TYPE" = "guide" ]; then
                 echo "No guides found in docs/guides/"
                 exit 0
@@ -428,6 +428,31 @@ EOF
                 log_err "$TEMPLATE_ERRORS template conformance issues found."
                 log_err_detail "Guides must include: ## Overview, ## Prerequisites, and at least one custom content header."
             fi
+            exit 1
+        fi
+
+        # 6. Template guidance sentinels
+        # Keys on phrases always in the templates, not any HTML comment, so
+        # a maintainer's own `<!-- note -->` stays legal. Keep them in step.
+        # Templates are out of range: find -maxdepth 1, they sit deeper.
+        GUIDANCE_ERRORS=0
+        while IFS= read -r doc_file; do
+            if grep -qF 'TEMPLATE GUIDANCE' "$doc_file" || grep -qF 'GUIDANCE:' "$doc_file"; then
+                log_err "unedited template guidance remains in $doc_file"
+                GUIDANCE_ERRORS=$((GUIDANCE_ERRORS + 1))
+            fi
+        done < "$TEMP_PHYSICAL"
+
+        if [ $GUIDANCE_ERRORS -gt 0 ]; then
+            if [ "$DOC_TYPE" = "adr" ]; then
+                log_err "$GUIDANCE_ERRORS ADR(s) scaffolded but not written."
+            elif [ "$DOC_TYPE" = "design" ]; then
+                log_err "$GUIDANCE_ERRORS Design Document(s) scaffolded but not written."
+            else
+                log_err "$GUIDANCE_ERRORS guide(s) scaffolded but not written."
+            fi
+            log_err_detail "Replace every 'GUIDANCE:' comment with real content, then delete the"
+            log_err_detail "'TEMPLATE GUIDANCE' header block at the top of the document."
             exit 1
         fi
 

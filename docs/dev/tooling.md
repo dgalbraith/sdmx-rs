@@ -129,7 +129,7 @@ just check-commits
 # Create a new ADR
 just adr "Your Decision Title"
 
-# Validate all ADR formatting
+# Validate the ADR ledger; no template guidance remains
 just verify-adr
 
 # Create a new Design Document
@@ -252,15 +252,15 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | `just adr <title>`                            | Local      | Creates a new Architecture Decision Record using our custom template.       | `scripts/doc-engine.sh` |
 | `just adr-rename <old_target> <new_title>`    | Local      | Safely renames an ADR and updates index references.                         | `scripts/doc-engine.sh` |
 | `just adr-remove <target>`                    | Local      | Safely removes an ADR interactively.                                        | `scripts/doc-engine.sh` |
-| `just verify-adr`                             | Local & CI | Validates formatting and integrity of the ADR ledger.                       | `scripts/doc-engine.sh` |
+| `just verify-adr`                             | Local & CI | Validates the ADR ledger; no template guidance remains.                     | `scripts/doc-engine.sh` |
 | `just design <title>`                         | Local      | Creates a new Design Document.                                              | `scripts/doc-engine.sh` |
 | `just design-rename <old_target> <new_title>` | Local      | Safely renames a Design Document and updates references.                    | `scripts/doc-engine.sh` |
 | `just design-remove <target>`                 | Local      | Safely removes a Design Document interactively.                             | `scripts/doc-engine.sh` |
-| `just verify-design`                          | Local & CI | Validates formatting and integrity of the Design Document ledger.           | `scripts/doc-engine.sh` |
+| `just verify-design`                          | Local & CI | Validates the Design Document ledger; no template guidance remains.         | `scripts/doc-engine.sh` |
 | `just guide <title>`                          | Local      | Creates a new User Guide.                                                   | `scripts/doc-engine.sh` |
 | `just guide-rename <old_target> <new_title>`  | Local      | Safely renames a User Guide and updates references.                         | `scripts/doc-engine.sh` |
 | `just guide-remove <target>`                  | Local      | Safely removes a User Guide interactively.                                  | `scripts/doc-engine.sh` |
-| `just verify-guide`                           | Local & CI | Validates formatting and integrity of the User Guides ledger.               | `scripts/doc-engine.sh` |
+| `just verify-guide`                           | Local & CI | Validates the User Guides ledger; no template guidance remains.             | `scripts/doc-engine.sh` |
 
 #### XSD Contract Fragments (`design_docs`)
 

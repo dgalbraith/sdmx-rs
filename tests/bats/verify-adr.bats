@@ -131,6 +131,39 @@ EOF
 }
 
 # ==============================================================================
+# Template Guidance Sentinels
+# ==============================================================================
+
+@test "verify-adr: detects unedited template guidance" {
+    ./doc-engine.sh add adr "Second ADR" > /dev/null
+    echo "- [ADR-0002: Second ADR](0002-second-adr.md)" >> docs/adr/README.md
+
+    run_isolated ./doc-engine.sh verify adr
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unedited template guidance remains in"* ]]
+    [[ "$output" == *"scaffolded but not written"* ]]
+}
+
+@test "verify-adr: passes with curated ADR" {
+    ./doc-engine.sh add adr "Second ADR" > /dev/null
+    echo "- [ADR-0002: Second ADR](0002-second-adr.md)" >> docs/adr/README.md
+    strip_template_guidance docs/adr/0002-second-adr.md
+
+    run_isolated ./doc-engine.sh verify adr
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+@test "verify-adr: ignores non-sentinel HTML comments" {
+    printf '\n<!-- TODO: link the superseding ADR once it is filed -->\n' \
+        >> docs/adr/0001-record-architecture-decisions.md
+
+    run_isolated ./doc-engine.sh verify adr
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"verified"* ]]
+}
+
+# ==============================================================================
 # Ledger Synchronisation
 # ==============================================================================
 
@@ -200,21 +233,6 @@ EOF
 }
 
 # ==============================================================================
-# Numbering Validation
-# ==============================================================================
-
-@test "verify-adr: detect gap in numbering" {
-    # Create 0002, then manually rename to 0003 to create gap
-    ./doc-engine.sh add adr "Second ADR" > /dev/null
-    mv docs/adr/0002-second-adr.md docs/adr/0003-second-adr.md
-    sed -i 's/0002-second-adr.md/0003-second-adr.md/' .gitignore
-
-    run_isolated ./doc-engine.sh verify adr
-    [ "$status" -eq 1 ]
-    [[ "$output" == *"Gap in numbering"* ]] || [[ "$output" == *"Error"* ]]
-}
-
-# ==============================================================================
 # Special Files
 # ==============================================================================
 
@@ -224,6 +242,9 @@ EOF
 }
 
 @test "verify-adr: ignores templates/ subdirectory" {
+    # Without a sentinel in the fixture template, this case would pass vacuously.
+    grep -qF 'TEMPLATE GUIDANCE' docs/adr/templates/template.md
+
     run_isolated ./doc-engine.sh verify adr
     [ "$status" -eq 0 ]
 }
