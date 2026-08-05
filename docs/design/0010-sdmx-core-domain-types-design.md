@@ -195,6 +195,7 @@ Types with no invariants (reference structs, `Annotation`, `SimpleComponentValue
 - **Within-field invariant → custom on that field, derive on its containers.** `IdentifiableMetadata` (id must be a valid `IDType`), `LocalisedString` (non-empty entry list — keys and values are otherwise unconstrained and stored verbatim, per D-0016 as revised by D-0059), and `FixedInclude` (a stated `false` on a `fixed="true"` attribute is a mechanical mismatch — D-0052) carry custom impls. `AgencyScheme` (a newtype over `ItemScheme` whose scheme id is `IDType`) derives: no extra rule exists at its composing level, so a hand-written impl would add nothing.
 - **Tightened-within-field invariant → custom on the wrapper.** Several types carry a *stricter* id rule than their inner metadata enforces (NCNameIDType, not just IDType — D-0023), so the tighter check lives on the wrapper's own validated `new()` and a **custom `Deserialize`** that routes through it: the scheme *items* `Concept`/`Agency` (vs. their inner `NameableMetadata`); and the scheme *wrappers* `Codelist`/`ConceptScheme` (whose scheme id is NCName, vs. the IDType the inner `ItemScheme`/`MaintainableMetadata` enforces). The *components* `Dimension`/`TimeDimension`/`Attribute`/`Measure` (D-0025/D-0029) carry their NCName rule on their **own** `ComponentMetadata` leaf instead (the component id is `use="optional"`, so the check is conditional-on-stated and lives where the field lives — D-0057); their custom impls remain for the per-position representation rules (D-0048). All are NOT in the derive list above even though they look structurally like their derived cousins (`AgencyScheme`). The inner type cannot know it sits inside a stricter wrapper — hence the check climbs one level.
 - **Local-reference lexical tier → custom on the referencing type (D-0077).** A local reference is bare `NCNameIDType`/`IDType` wire content no inner metadata sees, so the referencing type validates it in `new()` and routes `Deserialize` through it: `Code` (a stated `parent_id` at the editions' union tier, `IDType`), `Concept` (parent, NCName — alongside its own tightened id above), `DimensionRef`, `MetadataAttributeUsage`, `GroupId`, and the per-item checks of `MeasureRelationship`/`GroupDimensions`/`DimensionConstraint`. `Code` is therefore not in the derive list above: its own id needs nothing stricter than the base `IDType`, but its parent reference is an invariant its fields do not enforce.
+- **Own lexically constrained attribute, no metadata leaf below it → custom on that type (D-0081).** A type with no metadata leaf may still declare an attribute whose XSD type is lexically constrained, and nothing beneath it can run the check: `Contact`'s `@id` is `IDType`. The type validates it in its own `new()` and routes `Deserialize` through it, the same mechanism as the local-reference case. Optionality is not an exemption. `Contact`'s `@id` is `use="optional"`, which moves the check (run only when the value is stated) but not the classification, so `Contact` converted out of the derive list above. `ContactDetail` stays derived: neither `xs:string` nor `xs:anyURI` is constrained. The rule is a standing admission test, so a carrier that later gains such a member converts at that point.
 - **Cross-field invariant → custom on the composite.** The DSD descriptor lists — `DimensionList` (`Dimension+`), `AttributeList` (choice ≥1, fixed id), `MeasureList` (`Measure+`), all D-0049 — own relationships *between* their fields that the XSD enforces mechanically (`minOccurs`, fixed-value mismatch), so they require custom impls. `DataStructureDefinition` itself, post-D-0049, composes *self-enforcing* descriptors and carries **no** cross-field invariant — so by this section's own sharper test it is a pub-field carrier with derived `Deserialize` (the A1 contradiction was resolved by changing both sides: the invariant moved into `DimensionList::new()`, and this section's earlier listing of the DSD in the custom category was the outdated section). `ItemScheme<I>` left this category under D-0051: with items in an ordered `Vec` there is no derived map key and no key/id invariant, so it derives too. (The dimension `position`-vs-order rule is *not* such an invariant: the spec states it only in prose, so under D-0031 it is a lint, not a construction rejection — see §5.6/D-0022.)
 
 Caveat for future maintainers: a derived `Deserialize` is sound **only while the type carries no invariant stricter than its fields enforce, and no cross-field invariant.** (`Code` illustrates the boundary from both sides: it derived until D-0077 gave its `parent_id` a lexical tier its fields could not see, and it converted.) A genuinely *cross-object* rule — e.g. `parent_id` must reference an existing sibling code — belongs in the enclosing `ItemScheme`'s custom impl, which can see siblings, not in a derive on the item; today that rule is referential integrity, deferred wholesale (D-0020). Do not add such an invariant to a derived type without converting it (or its container) to a custom impl.
@@ -1097,12 +1098,14 @@ impl Concept {
 // derive cannot see). Trait delegation (IdentifiableArtefact / NameableArtefact / SchemeItem)
 // is written out exactly as for Code, forwarding to self.metadata.
 //
-// ===== Organisation contacts (D-0055) =====
+// ===== Organisation contacts (D-0055, D-0081) =====
 // Every organisation carries Contact 0..unbounded (both versions). The detail elements
 // (Telephone/Fax/X400/URI/Email) are ONE repeated wire choice, so the store is ONE
 // interleaved Vec in wire order (the D-0051 AttributeListMember precedent). The localisable
-// triple reuses LocalisedString exactly as artefact names do. Both types are invariant-free
-// pub-field carriers (derived Deserialize).
+// triple reuses LocalisedString exactly as artefact names do. The two types part company on
+// §7's test: ContactDetail is an invariant-free pub-field carrier (derived Deserialize) —
+// neither xs:string nor xs:anyURI is lexically constrained — while Contact is
+// invariant-bearing, because its optional @id is IDType (D-0081).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ContactDetail {
     Telephone(String),
@@ -1112,18 +1115,45 @@ pub enum ContactDetail {
     Email(String),
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+// An OPTIONAL constrained member converts the carrier exactly as a required one does (D-0081):
+// optionality moves the check (run WHEN STATED), not the classification. No Default — with
+// private fields a defaulted value cannot be completed, and the constructor is the entry
+// path (D-0078).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct Contact {
-    pub names: Option<LocalisedString>,        // Name* is minOccurs=0 — None ⟺ no names
-    pub departments: Option<LocalisedString>,
-    pub roles: Option<LocalisedString>,
-    pub details: Vec<ContactDetail>,           // one interleaved wire choice, order preserved
+    id: Option<String>,                    // @id is IDType, use="optional" (D-0081)
+    names: Option<LocalisedString>,        // Name* is minOccurs=0 — None ⟺ no names
+    departments: Option<LocalisedString>,
+    roles: Option<LocalisedString>,
+    details: Vec<ContactDetail>,           // one interleaved wire choice, order preserved
 }
+
+impl Contact {
+    pub fn new(
+        id: Option<String>,
+        names: Option<LocalisedString>,
+        departments: Option<LocalisedString>,
+        roles: Option<LocalisedString>,
+        details: Vec<ContactDetail>,
+    ) -> Result<Self, Error> {
+        // Absent is unconditionally legal; a STATED id must be valid IDType (D-0023's
+        // loosest tier — the same check every other IDType site runs).
+        if let Some(id) = id.as_deref() { validate_id(id)?; }
+        Ok(Self { id, names, departments, roles, details })
+    }
+    pub fn id(&self) -> Option<&str> { self.id.as_deref() }
+    pub fn names(&self) -> Option<&LocalisedString> { self.names.as_ref() }
+    pub fn departments(&self) -> Option<&LocalisedString> { self.departments.as_ref() }
+    pub fn roles(&self) -> Option<&LocalisedString> { self.roles.as_ref() }
+    pub fn details(&self) -> &[ContactDetail] { &self.details }
+}
+// Custom Deserialize calls Contact::new() through a Raw shadow struct (§7).
 
 // Agency follows the SAME validated-item pattern (id is NCNameIDType): private fields, a
 // validated new() calling validate_ncname(metadata.id()), and custom Deserialize. It
 // additionally carries `contacts: Vec<Contact>` (0..unbounded; empty ⟺ absent — D-0055), an
-// invariant-free field threaded through new() with no extra check. Contacts on the OTHER
+// invariant-free field threaded through new() with no extra check — the contact id check
+// lands in Contact::new(), not here (D-0081). Contacts on the OTHER
 // organisation kinds (data/metadata providers, organisation units) ride those unmodelled
 // schemes — out of 0010 scope (D-0055).
 //
@@ -1213,6 +1243,17 @@ pub enum DataType {
     GeospatialInformation, XHTML, KeyValues, IdentifiableReference, DataSetReference,
 }
 
+// SentinelValue — a value standing for something other than an ordinary observation (a "not
+// applicable" or "confidential" marker). Invariant-free pub-field carrier (derived): `value` is
+// xs:anySimpleType, held verbatim; Name+ is a plain LocalisedString (the non-empty floor is
+// LocalisedString's own); Description* is Option<LocalisedString>, the optional-unbounded shape.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SentinelValue {
+    pub value: String,
+    pub names: LocalisedString,
+    pub descriptions: Option<LocalisedString>,
+}
+
 // TextFormat — the uncoded facet bundle: the SUPERSET of the spec's TextFormat tier chain
 // (TextFormatType, 15 attributes — the earlier "14 facets" undercounted). Numeric facets are
 // xs:decimal → SdmxDecimal (lossless, D-0027). Time facets are StandardTimePeriodType →
@@ -1245,6 +1286,14 @@ pub struct TextFormat {
     // versions (3.0 true, 3.1 false — D-0046), so absent has version-dependent meaning and is
     // stored as None; the effective value is a version-aware view, the adapters' concern.
     pub is_multi_lingual: Option<bool>,
+    // The type's ONLY element child (SentinelValue*, 0..unbounded — empty ⟺ absent), declared
+    // AFTER the attribute fields, which hold the schema attributes in schema order.
+    // EnumerationFormat has NO counterpart: CodedTextFormatType restricts
+    // SimpleComponentTextFormatType without restating a particle, so the element is dropped and
+    // a coded representation has no sentinel values. The asymmetry is the schema's, not an
+    // omission here. The Simple and Time tiers DO restate it, so it survives at a
+    // Dimension/TimeDimension position and is not in either prohibited-facet list.
+    pub sentinel_values: Vec<SentinelValue>,
 }
 
 // EnumerationFormat — facets on a CODED representation (spec CodedTextFormatType). A near-subset
@@ -1346,6 +1395,16 @@ pub struct DataStructureReference {
     pub version: VersionRef,
 }
 // Display: urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=<agency>:<id>(<version>)
+
+// An MSD is MAINTAINABLE, so its reference is the flat triple, like DataStructureReference.
+// Consumed by DataStructureDefinition.msd (§5.6) — the DSD's <Metadata> element.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub struct MetadataStructureReference {
+    pub agency: String,
+    pub id: String,
+    pub version: VersionRef,
+}
+// Display: urn:sdmx:org.sdmx.infomodel.metadatastructure.MetadataStructure=<agency>:<id>(<version>)
 
 // ITEM-IN-SCHEME shape: the URN mandates the ENCLOSING SCHEME's version
 // (`<agency>:<scheme_id>(<version>).<item>` — D-0073), so the reference carries it.
@@ -1919,6 +1978,12 @@ pub struct DataStructureDefinition {
     pub groups: Vec<Group>,
     pub attribute_list: Option<AttributeList>,
     pub measure_list: Option<MeasureList>,
+    // The optional <Metadata> element (minOccurs=0, both versions): the MSD whose metadata
+    // attributes this structure draws on. Named for the REFERENCED ARTEFACT, not the schema
+    // element, exactly as Dataflow.dsd is — `metadata` on this struct already names the
+    // MaintainableMetadata identity block, so the element name is unavailable. Declared with
+    // the other elements, ahead of the attribute field below.
+    pub msd: Option<MetadataStructureReference>,
     // 3.1-only attribute, schema default false (D-0045): the DSD may gain NEW dimensions under
     // a MINOR version update; dataflows using such a DSD pin their subset via
     // DimensionConstraint (§5.7 — the coupling is prose, hence a lint). STATEDNESS stored
@@ -2863,7 +2928,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 - **Delegation Boilerplate:** Exposing getters like `id()` or `version()` requires writing delegating trait implementations for each concrete domain struct (e.g., implementing `IdentifiableArtefact` on `Code` by forwarding to `self.metadata.id()`). This is a small, one-time writing cost that can be mitigated by macros if the number of types grows. We accept this trade-off to keep the public API clean.
 - **Linear Lookup over Ordered Stores:** Wire collections are ordered `Vec`s (D-0051/ADR-0023), so identity lookup (`get(id)`, `get(lang)`) is a first-match O(n) scan rather than a keyed O(log n)/O(1) access. This is the price of preserving element order and schema-valid duplicates — wire information a keyed store destroys. At SDMX metadata cardinalities (10 to 5,000 items) the scan is bounded and cache-friendly; per-observation hot paths live in the parser/client crates, which build their own indexes; and cached index *views* over the `Vec` store are the sanctioned, additive evolution if profiling ever demands (the reverse migration — map store to `Vec` — would have been a breaking change, which is why the store side was fixed first).
 - **Owned Types & Allocations:** Having the domain model own all strings (`String` instead of references or `Cow`) increases allocation counts during parsing. This is a deliberate choice: keeping the domain structures lifetimeless (`'static`) simplifies consumer code, client caching, and storage. Lifetimes are confined strictly to the parsers during raw tokenise loops.
-- **Reference Type Structural Repetition:** The seven reference structs (`DataStructureReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Five (`DataStructureReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (Each struct owns its class URN contract — `Display` renders it, `FromStr` parses exactly that class — with versions typed `VersionRef`; D-0073.)
+- **Reference Type Structural Repetition:** The eight reference structs (`DataStructureReference`, `MetadataStructureReference`, `CodelistReference`, `DataflowReference`, `ConceptReference`, `ProvisionAgreementReference`, `DataProviderReference`, `ValueListReference`) share overlapping field sets and could be collapsed into a unified `MaintainableReference`. This is a deliberate choice: each reference type maps 1-to-1 to a distinct concept in the SDMX information model. Maintaining that correspondence keeps the codebase readable alongside the specification, absorbs per-type field divergence naturally (as already seen with `ConceptReference` and `DataProviderReference` taking the item-in-scheme shape with `scheme_id`), and preserves type-level safety at call sites. Six (`DataStructureReference`, `MetadataStructureReference`, `CodelistReference`, `DataflowReference`, `ProvisionAgreementReference`, `ValueListReference`) are *currently* field-identical maintainable triples (`{agency, id, version}`); this is a deliberate bet that they will diverge as more of the spec is modelled — the item-in-scheme pair already has — not an oversight to be deduplicated. The structural repetition is accepted as the overhead of spec alignment. (Each struct owns its class URN contract — `Display` renders it, `FromStr` parses exactly that class — with versions typed `VersionRef`; D-0073.)
 - **`DataConstraint` Naming (earlier divergence reversed — D-0037):** An earlier draft named this type `ReportingConstraint` for "semantic clarity" (reporting limits on a dataflow). That reading did not survive the 3.0 `role` attribute: a 3.0 data constraint with `role="Actual"` states what data actually *exists* — not a reporting limit — so the invented name described only one of the type's two roles, while the type's own attachment enum (`DataConstraintAttachment`) already carried the spec name. The type is now named `DataConstraint`, matching `DataConstraintType` in both 3.0 and 3.1, per D-0002's rule that types map 1-to-1 to named spec concepts.
 - **`Link` Elements Modelled (earlier omission reversed — D-0035):** An earlier draft (D-0014) omitted `Link`, calling it a transport-layer HATEOAS affordance belonging in the HTTP envelope. That was a misreading of the schema: `LinkType` sits on `IdentifiableType` itself (`minOccurs="0" maxOccurs="unbounded"`, 3.0 and 3.1), persisted in the structure message, and carries a typed relationship (`rel`), a target `url`/`urn`, and a media-type hint — strictly more than the `uri` field can express. Reconstructing it from `uri`/`urn` is not possible (those are single identity fields, not a typed multi-valued association). So omitting it lost real, producer-supplied domain content — a lossless-superset defect (ADR-0008 #1). `Link` is now modelled as `links: Vec<Link>` on `IdentifiableMetadata` (the single `IdentifiableType` chokepoint), surfaced via `IdentifiableArtefact::links()`. See D-0035.
 - **`AvailabilityConstraint` Asymmetry in `ConstraintModel`:** The two variants of `ConstraintModel` are structurally asymmetric: `DataConstraint` is a maintainable, registerable artefact with `MaintainableMetadata`; `AvailabilityConstraint` is an ephemeral, non-maintainable response type with no registry identity. This asymmetry is intentional — it reflects the spec's own distinction. The asymmetry is precisely *maintainability*, not annotability: both extend `AnnotableType`, so both carry `annotations` (D-0033) — `DataConstraint` via its `MaintainableMetadata`, `AvailabilityConstraint` via a bare field. Both share the `ConstraintModel` enum because both express constraint semantics on a dataflow and are consumed by the same client code paths.
