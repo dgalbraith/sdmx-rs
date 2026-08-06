@@ -427,7 +427,7 @@ fuzz_target!(|data: &[u8]| {
 Run fuzzing locally:
 
 ```bash
-cargo fuzz run parse_constraint_xml -- -max_len=1000 -timeout=10
+cargo fuzz run -s none parse_constraint_xml -- -max_len=1000 -timeout=10
 ```
 
 CI runs fuzzing as part of pre-release checks (ADR-0010).
