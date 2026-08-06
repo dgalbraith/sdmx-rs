@@ -239,7 +239,7 @@ All recipes must be executed from within the active Nix devShell (automatic unde
 | Target                   | Scope      | Description                                                             | Tool(s)       |
 |--------------------------|:----------:|-------------------------------------------------------------------------|---------------|
 | `just fuzz TARGET`       | Local      | Runs a specific libFuzzer fuzzing harness interactively.                | `cargo-fuzz`  |
-| `just fuzz-check TARGET` | Local & CI | Runs a short (10-second) smoke-test compilation check on a fuzz target. | `cargo-fuzz`  |
+| `just fuzz-check TARGET` | Local      | Runs a short (10-second) smoke-test compilation check on a fuzz target. | `cargo-fuzz`  |
 | `just bench`             | Local      | Runs performance benchmarks for the workspace.                          | `cargo bench` |
 
 ### 7. Document Management

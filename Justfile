@@ -361,9 +361,10 @@ bloat target="wasm32-unknown-unknown":
 # 6. Fuzzing & Performance Benchmarking
 # ============================================================================
 
+# Sanitizer off: the cargo-fuzz default needs nightly and the toolchain is pinned stable.
 # Run a specific cargo-fuzz target (e.g. just fuzz parse_xml)
 fuzz target:
-    cargo fuzz run {{target}}
+    cargo fuzz run -s none {{target}}
 
 # Run a fuzz target for a short smoke test (10 seconds) to verify compilation
 fuzz-check target:

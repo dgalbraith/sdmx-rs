@@ -52,8 +52,10 @@ log_section "Fuzz smoke check (10s): $TARGET"
 TMP_LOG=$(mktemp)
 trap 'rm -f "$TMP_LOG"' EXIT INT TERM
 
+# Sanitizer off: the cargo-fuzz default is the nightly-only -Zsanitizer=address
+# and the toolchain is pinned stable. Revisit when a target links quick-xml.
 status=0
-"$CARGO" fuzz run "$TARGET" -- -max_total_time=10 >"$TMP_LOG" 2>&1 || status=$?
+"$CARGO" fuzz run -s none "$TARGET" -- -max_total_time=10 >"$TMP_LOG" 2>&1 || status=$?
 
 if [ "$status" -ne 0 ]; then
     cat "$TMP_LOG"

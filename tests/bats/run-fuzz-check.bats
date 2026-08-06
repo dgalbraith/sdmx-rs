@@ -64,7 +64,7 @@ EOF
     echo "STATUS: $status" >&2
     echo "OUTPUT: $output" >&2
     [ "$status" -eq 0 ]
-    grep -q -- "fuzz run parse_xml -- -max_total_time=10" "$LOG"
+    grep -q -- "fuzz run -s none parse_xml -- -max_total_time=10" "$LOG"
     [[ "$output" == *"compiled and survived"* ]]
     # The buffered cargo-fuzz output must NOT appear on a pass.
     [[ "$output" != *"CARGO_FUZZ_MARKER"* ]]
