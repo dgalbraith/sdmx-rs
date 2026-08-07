@@ -1046,7 +1046,7 @@ impl SdmxDateTime {
     /// precision is truncated. Returns `None` for a grammar-admitted lexeme `chrono` cannot
     /// represent (a calendar-invalid day such as `2024-02-30`, or an out-of-range year), which
     /// schema-valid wire never carries. A `None` here is the lint signal for such a stored
-    /// lexeme — a catalogued Layer-2 lint, not a construction error (D-0031).
+    /// lexeme: a catalogued Layer-2 lint, not a construction error (D-0031).
     #[must_use]
     pub const fn date_time(&self) -> Option<NaiveDateTime> {
         self.date_time

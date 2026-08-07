@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Because our core crates (`sdmx-types` and `sdmx-parsers`) adopt a `#![no_std]` architecture to support lightweight WebAssembly (WASM) targets, we must ensure these crates compile and execute correctly inside web browsers and WASM runtimes.
+Because the core crates (`sdmx-types`, `sdmx-parsers` and `sdmx-writers`) adopt a `#![no_std]` architecture to support lightweight WebAssembly (WASM) targets, we must ensure these crates compile and execute correctly inside web browsers and WASM runtimes.
 
 While `cargo check --target wasm32-unknown-unknown` validates that the code compiles for WebAssembly, it does not execute any tests. Code that compiles successfully can still panic at runtime—for example, if a transitively included crate attempts to access threads, the system clock, or local filesystem APIs that do not exist in headless WASM environments. To guarantee reliability, we need to run our test suite within a true WebAssembly execution environment.
 
@@ -35,7 +35,7 @@ Limit WASM verification to syntax checks via `cargo check --target wasm32-unknow
 Use `wasm-pack test --headless --firefox` to compile and execute the test suite inside a headless browser instance.
 
 * **Pros**: Runs unit tests within a real JavaScript/WASM engine. Guarantees that no native-only assumptions (like thread access or file I/O) exist in the code path.
-* **Cons**: Requires a web browser (e.g. Firefox) and a WebDriver intermediary (e.g. Geckodriver) in the developer environment — a large toolchain addition (~200 MB browser binary). Browser/driver version mismatches are a known source of CI flakiness. Browser API surface provides no additional safety guarantee for `sdmx-types` and `sdmx-parsers`, which contain no JS interop and no browser-specific code paths.
+* **Cons**: Requires a web browser (e.g. Firefox) and a WebDriver intermediary (e.g. Geckodriver) in the developer environment — a large toolchain addition (~200 MB browser binary). Browser/driver version mismatches are a known source of CI flakiness. Browser API surface provides no additional safety guarantee for `sdmx-types`, `sdmx-parsers` and `sdmx-writers`, which contain no JS interop and no browser-specific code paths.
 * **Verdict**: Rejected — appropriate if/when a dedicated `sdmx-js` JS-bindings crate is introduced; that crate would warrant its own ADR and browser-mode test strategy.
 
 ### Option C — Node.js Execution via wasm-pack
@@ -51,7 +51,7 @@ Use `wasm-pack test --node` to compile and execute the test suite inside the Nod
 
 Enforce Node.js WASM test execution for all `no_std` crates using `wasm-pack test --node`. This will be integrated into our `just verify` workflow as a `test-wasm` recipe.
 
-Any test designed to run on WASM must be annotated with `#[wasm_bindgen_test]` and run using the Node.js target runner in `crates/sdmx-types` and `crates/sdmx-parsers`.
+Any test designed to run on WASM must be annotated with `#[wasm_bindgen_test]` and run using the Node.js target runner in `crates/sdmx-types`, `crates/sdmx-parsers` and `crates/sdmx-writers`.
 
 If a future `sdmx-js` crate introduces `wasm-bindgen` JS bindings, browser-mode testing for that crate should be addressed under a separate ADR at that time.
 
@@ -67,5 +67,5 @@ If a future `sdmx-js` crate introduces `wasm-bindgen` JS bindings, browser-mode 
 
 ## References
 
-* [ADR-0005 — Adopt No-Std with Alloc for Sdmx Types and Sdmx Parsers](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+* [ADR-0005: Adopt No-Std with Alloc for Inner Crates](0005-adopt-no-std-with-alloc-for-inner-crates.md)
 * [Justfile](../../Justfile) (verify rule will call `wasm-pack test`)

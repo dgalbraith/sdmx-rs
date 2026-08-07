@@ -31,7 +31,7 @@
 //!
 //! - **Connection Reuse:** HTTP connections are kept alive and reused across
 //!   requests.
-//! - **Cheap Clone:** `SdmxClient::clone()` is shallow — it copies the
+//! - **Cheap Clone:** `SdmxClient::clone()` is shallow: it copies the
 //!   `reqwest::Client` handle, which internally wraps an `Arc` over the
 //!   connection pool. No pool state is duplicated; all clones share the same
 //!   underlying pool. `SdmxClient` itself is not wrapped in an `Arc`.
@@ -42,7 +42,7 @@
 //!   builder type.
 //! - **`Send` + `Sync`:** Both `SdmxClient` and its builders are `Send + Sync`
 //!   because `reqwest::Client` is `Send + Sync`. The `Arc` is internal to
-//!   `reqwest` — not part of the public `SdmxClient` interface.
+//!   `reqwest`, not part of the public `SdmxClient` interface.
 //!
 //! # Content-Type Negotiation
 //!

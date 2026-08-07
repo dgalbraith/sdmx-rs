@@ -40,7 +40,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    ```bash
    scripts/check-scaffolding.sh
    ```
-   At phase boundaries (e.g., releasing 0.2.0 to mark Phase 1 complete), all ignored entries should either be actively used in the implementation (and removed from the ignored list), or `PERMANENT` with a clear reason. If this check warns about unused Phase N entries, either implement them now or move their phase annotation to Phase N+1.
+   At phase boundaries (e.g., releasing 0.2.0 to mark Phase 2 complete), all ignored entries should either be actively used in the implementation (and removed from the ignored list), or `PERMANENT` with a clear reason. If this check warns about unused Phase N entries, either implement them now or move their phase annotation to Phase N+1.
 
 3. **Decide which crates to release**:
 

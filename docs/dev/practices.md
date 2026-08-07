@@ -80,8 +80,8 @@ pub enum CT { }
 
 Use British by default; use American for anything owned by an external ecosystem.
 
-- **British** — SDMX information-model terms (`Artefact`, `Organisation`, `Localised`) and all project prose (serialisation, modelling, behaviour, optimisation).
-- **American** — externally-owned vocabulary: Rust/serde API identifiers (`Serialize`, the `serialize` method, `#[serde(...)]`), tool names (`rust-analyzer`), protocol tokens (the HTTP `Authorization` header), and the crates.io `serialization` keyword.
+- **British**: SDMX information-model terms (`Artefact`, `Organisation`, `Localised`) and all project prose (serialisation, modelling, behaviour, optimisation).
+- **American**: Rust/serde API identifiers (`Serialize`, the `serialize` method, `#[serde(...)]`), tool names (`rust-analyzer`), protocol tokens (the HTTP `Authorization` header), and CLI flags (`--color` on `gh label create`).
 
 Tie-breaker: in a comment about a specific external trait's action, use the trait's spelling; for the concept broadly, British.
 

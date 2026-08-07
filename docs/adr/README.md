@@ -39,7 +39,7 @@ For design exploration *before* decisions are made, detailed component planning,
 - [ADR-0004: Decoupled crate versioning](0004-decoupled-crate-versioning-strategy.md): Independent semantic versioning per crate
 
 ## Platform Support
-- [ADR-0005: no_std + alloc architecture](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md): Support embedded and resource-constrained environments
+- [ADR-0005: no_std + alloc architecture](0005-adopt-no-std-with-alloc-for-inner-crates.md): Support embedded and resource-constrained environments
 - [ADR-0007: Headless WebAssembly verification](0007-headless-webassembly-execution-verification.md): WASM support and testing strategy
 
 ## Domain Modelling

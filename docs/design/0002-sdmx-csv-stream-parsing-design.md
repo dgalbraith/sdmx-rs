@@ -118,7 +118,7 @@ Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` derive fo
 
 ## References
 
-* [ADR-0005: no_std + alloc Architecture](../adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+* [ADR-0005: no_std + alloc Architecture](../adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)
 * [ADR-0008: Unified Constraint Model](../adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md)
 * [ADR-0009: quick-xml & serde_json Streaming](../adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md)
 * [ADR-0018: Content-Type Negotiation and Parser Routing](../adr/0018-content-type-negotiation-and-parser-routing.md)

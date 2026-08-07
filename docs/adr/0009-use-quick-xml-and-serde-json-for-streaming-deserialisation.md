@@ -54,7 +54,7 @@ Reading elements sequentially using low-level event tokenisers (`quick-xml::Read
 
 ## Decision
 
-**We will use `quick-xml` (with the `serialize` feature) and `serde_json` as our serialisation engines, implementing manual token-driven streaming loops to parse massive datasets in O(1) memory.**
+**We will use `quick-xml` and `serde_json` as our serialisation engines, implementing manual token-driven streaming loops to parse massive datasets in O(1) memory.**
 
 To achieve optimal performance with character entities, our parser models will leverage `Cow<'a, str>`. This allows the parser to slice borrowed strings directly from the buffer when no entity references are present, only allocating owned `String` instances when character decoding must modify the string.
 

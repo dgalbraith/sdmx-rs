@@ -847,6 +847,6 @@ Testing capabilities expand as the project matures — property-based roundtrip 
 
 - [RFC 430 — Testing](https://rust-lang.github.io/api-guidelines/documentation.html#tests-are-informative)
 - [ADR-0010: Parser Fuzzing Suite](../adr/0010-parser-fuzzing-suite-and-panic-profile-configuration.md)
-- [ADR-0005: no_std + alloc Strategy](../adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+- [ADR-0005: no_std + alloc Strategy](../adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)
 - [codecov.yaml Configuration](../../codecov.yaml)
 - [Justfile Testing Recipes](../../Justfile)

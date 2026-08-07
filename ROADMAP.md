@@ -122,7 +122,7 @@ Each cell completes its family's model in `sdmx-types` and delivers the parser a
 Async REST client consuming the parser and type layers. Content negotiation follows [ADR-0018](docs/adr/0018-content-type-negotiation-and-parser-routing.md), where `structure+json` is the preferred media type for structure queries; until the Phase 2 SDMX-JSON retrofit lands, those queries fall back to XML.
 
 > [!NOTE]
-> `sdmx-types`, `sdmx-parsers`, and `sdmx-writers` compile to `wasm32-unknown-unknown`, so the model and both serialisation directions run in browser and edge runtimes. `sdmx-client` is native-only: per [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md), the `#![no_std]` boundary is drawn short of the transport layer, which is built on Tokio and `reqwest`. Phase 3 therefore builds no Rust-native client for the browser, where a consumer fetches over the host platform and parses in WASM.
+> `sdmx-types`, `sdmx-parsers`, and `sdmx-writers` compile to `wasm32-unknown-unknown`, so the model and both serialisation directions run in browser and edge runtimes. `sdmx-client` is native-only: per [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-inner-crates.md), the `#![no_std]` boundary is drawn short of the transport layer, which is built on Tokio and `reqwest`. Phase 3 therefore builds no Rust-native client for the browser, where a consumer fetches over the host platform and parses in WASM.
 
 ### SDMX REST Endpoint Coverage
 

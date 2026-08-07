@@ -40,11 +40,11 @@ graph TD
 
 ### 1. sdmx-types (Domain Core)
 - **Responsibility**: Core SDMX data structures, metadata frameworks, structural keys, and validation invariants.
-- **Constraints**: Minimal, highly stable, and unconditional external dependencies: `thiserror` (for error derivation) and `serde` (for structural serialisation). Since SDMX's entire purpose is payload data exchange, making `serde` optional would add significant downstream feature-flag complexity throughout the workspace without providing any realistic utility. `#![no_std]` with `alloc` required (bare-metal targets without a global allocator are out of scope — see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)). No binary output — this crate is a pure domain model library. No downstream protocol or transport types may leak into this crate.
+- **Constraints**: Minimal, highly stable, and unconditional external dependencies: `thiserror` (for error derivation) and `serde` (for structural serialisation). Since SDMX's entire purpose is payload data exchange, making `serde` optional would add significant downstream feature-flag complexity throughout the workspace without providing any realistic utility. `#![no_std]` with `alloc` required (bare-metal targets without a global allocator are out of scope — see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)). No binary output — this crate is a pure domain model library. No downstream protocol or transport types may leak into this crate.
 
 ### 2. sdmx-parsers (Serialisation Engine)
 - **Responsibility**: Streaming deserialisation of SDMX payloads in XML, JSON, and CSV formats.
-- **Constraints**: Depends on `sdmx-types` only. Parsing routines target minimal memory allocations and zero-copy slicing where safe. `#![no_std]` with `alloc` required (see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)).
+- **Constraints**: Depends on `sdmx-types` only. Parsing routines target minimal memory allocations and zero-copy slicing where safe. `#![no_std]` with `alloc` required (see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)).
 
 ### 3. sdmx-client (HTTP Orchestrator)
 - **Responsibility**: Async HTTP client managing connectivity to SDMX REST endpoints, coordinating payload deserialisation and state hydration.
@@ -119,7 +119,7 @@ For the full architectural rationale and design constraints, see [ADR-0006](docs
 
 ### Serialisation Libraries
 - **JSON**: `serde_json`
-- **XML**: `quick-xml` (with `serde` integration via the `serialize` feature)
+- **XML**: `quick-xml`
 
 `quick-xml` and `serde_json` are chosen to handle parsing sequentially without loading full DOM trees into memory. For the streaming parser rationale and zero-copy slicing memory architecture, see [ADR-0009](docs/adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md).
 

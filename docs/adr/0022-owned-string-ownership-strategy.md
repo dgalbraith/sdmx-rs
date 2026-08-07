@@ -77,7 +77,7 @@ Every text field owns its data; lifetimes are confined to parser tokenise loops.
 
 ## References
 
-* [ADR-0005: Adopt No-Std with Alloc for Sdmx Types and Sdmx Parsers](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+* [ADR-0005: Adopt No-Std with Alloc for Inner Crates](0005-adopt-no-std-with-alloc-for-inner-crates.md)
 * [ADR-0023: Two Layer Infoset Store and Derived Views Architecture](0023-two-layer-infoset-store-and-derived-views-architecture.md)
 * [Decision register](../decisions.md): D-0007 (promoted here)
 * [Design 0010 — SDMX Core Domain Types](../design/0010-sdmx-core-domain-types-design.md)
