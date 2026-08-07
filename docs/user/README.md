@@ -14,7 +14,7 @@ Quick-start documentation for library users.
 
 3. **Check the [Examples](../../examples/README.md)** directory.
 
-4. **Explore the [API Documentation](https://docs.rs/sdmx-rs)** (once published) or locally:
+4. **Explore the [API Documentation](https://docs.rs/sdmx-rs)** or build it locally:
    ```bash
    cargo doc --open
    ```
@@ -45,6 +45,6 @@ A: See [docs/project/msrv.md](../../docs/project/msrv.md) for version informatio
 
 ## Current Phase
 
-Phase 0 (infrastructure) is complete; the library is in **Phase 1** (core domain types), under active development. User-facing client APIs will be available in Phase 3+.
+Phase 0 (infrastructure) is complete; the library is in **Phase 1** (information model foundations), under active development. User-facing client APIs will be available in Phase 3+.
 
 See [ROADMAP.md](../../ROADMAP.md) for detailed timeline.

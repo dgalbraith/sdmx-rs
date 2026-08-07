@@ -1,9 +1,9 @@
-//! Scaffold for the streaming XML and JSON deserialiser for SDMX data and
-//! metadata.
+//! Scaffold for the streaming XML, JSON, and CSV deserialiser for SDMX
+//! data and metadata.
 //!
-//! This crate will provide the core serialisation and deserialisation engine
-//! for SDMX payloads. Parsing routines will target minimal memory allocations
-//! and zero-copy slicing where safe, consuming types from
+//! This crate will provide the core deserialisation engine for SDMX
+//! payloads. Parsing routines will target minimal memory allocations and
+//! zero-copy slicing where safe, consuming types from
 //! [`sdmx-types`](sdmx_types).
 //!
 //! # Design Constraints

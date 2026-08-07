@@ -13,8 +13,7 @@ All data structures, parsing engines, and REST clients in this workspace are dev
 
 ## Status & Roadmap
 
-**Phase 1: Core Domain Types** — modelling the SDMX structural metadata in pure Rust with `#![no_std]` compatibility.
-Core domain types and validation invariants are under active development.
+The project is in early development, at **Phase 1: Information Model Foundations**, modelling the base layer of the SDMX information model and the message envelope in pure Rust with `#![no_std]` compatibility. The domain types and their validation invariants are under active development.
 
 See [ROADMAP.md](ROADMAP.md) for detailed phase schedules, milestone versions, and expected capability maturity.
 
@@ -26,16 +25,15 @@ See [ROADMAP.md](ROADMAP.md) for detailed phase schedules, milestone versions, a
 |----------------|---------------------------------------------------------------|
 | `sdmx-rs`      | Facade meta-crate re-exporting all layers under feature flags |
 | `sdmx-types`   | Core domain types, data structures, and validation invariants |
-| `sdmx-parsers` | Streaming XML and JSON serialisation/deserialisation engine   |
+| `sdmx-parsers` | Streaming XML, JSON, and CSV deserialisation engine           |
 | `sdmx-writers` | Structured serialisation to SDMX formats (CSV, JSON, XML)     |
 | `sdmx-client`  | Async HTTP client for SDMX REST endpoints                     |
 
 > **Specification Scope**: This workspace targets **SDMX 3.0 and 3.1 specifications only**. SDMX 2.1 is explicitly out of scope. The library handles structural metadata divergence between 3.0 and 3.1 transparently via unified abstractions (see [ADR-0008](docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md) for details).
 >
-> **Note**: The `sdmx-types` and `sdmx-parsers` crates are `#![no_std]` (requiring `alloc`). Use `sdmx-rs` with `default-features = false` for an embedded/WASM types-only build, or add `features = ["parsers"]` to include serialisation support on `no_std` targets.
+> **Note**: The `sdmx-types`, `sdmx-parsers`, and `sdmx-writers` crates are `#![no_std]` (requiring `alloc`). Use `sdmx-rs` with `default-features = false` for an embedded/WASM types-only build, or add `features = ["parsers", "writers"]` to include the parsing and writing layers on `no_std` targets.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions, dependency boundaries, and invariants.
-See [ROADMAP.md](ROADMAP.md) for the planned development phases.
 
 ## Documentation
 
@@ -49,12 +47,6 @@ See [ROADMAP.md](ROADMAP.md) for the planned development phases.
 | **Maintain this project** | [ROADMAP.md](ROADMAP.md) — Phases, milestones, releases                               |
 
 For comprehensive documentation organised by audience, see the [**Documentation Index**](docs/README.md).
-
-## What's Coming
-
-The framework is in active early development. **Phase 1** (core domain types) is in progress.
-
-See [ROADMAP.md](ROADMAP.md) for development phases, timelines, and planned APIs.
 
 ## Contributing
 

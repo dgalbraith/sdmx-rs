@@ -42,7 +42,7 @@ cargo bench -- --save-baseline baseline_v0.1.0
 ```
 
 Benchmark targets:
-- **sdmx-parsers**: Parsing throughput (MB/s) for XML and JSON payloads
+- **sdmx-parsers**: Parsing throughput (MB/s) for XML, JSON, and CSV payloads
 - **sdmx-writers**: Serialisation throughput for large collections
 - **sdmx-client**: End-to-end query latency (network I/O is dominant)
 

@@ -18,7 +18,7 @@ This design document outlines the domain modelling strategy for the `sdmx-types`
 
 ## Problem / Motivation
 
-SDMX (Statistical Data and Metadata Exchange) is an ISO standard representing complex, highly nested, and multi-versioned statistical structures. Transitioning the library to Phase 1 (Core Domain Types) requires addressing several key engineering and domain modelling challenges:
+SDMX (Statistical Data and Metadata Exchange) is an ISO standard representing complex, highly nested, and multi-versioned statistical structures. Transitioning the library to Phase 1 (Information Model Foundations) requires addressing several key engineering and domain modelling challenges:
 
 1. **Simulating Object-Oriented Inheritance in Rust:** The SDMX Information Model relies extensively on structural inheritance:
 
@@ -2962,7 +2962,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 - [ADR-0022: Owned String Ownership Strategy](../../docs/adr/0022-owned-string-ownership-strategy.md)
 - [ADR-0023: Two Layer Infoset Store and Derived Views Architecture](../../docs/adr/0023-two-layer-infoset-store-and-derived-views-architecture.md)
 - [ADR-0024: Byte Preserving Document Integrity Pathway](../../docs/adr/0024-byte-preserving-document-integrity-pathway.md)
-- [ROADMAP.md § Phase 1: Core Domain Types](../../ROADMAP.md#phase-1-core-domain-types)
+- [ROADMAP.md § Phase 1: Information Model Foundations](../../ROADMAP.md#phase-1-information-model-foundations-sdmx-types)
 
 ---
 
@@ -2970,9 +2970,11 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 
 ### Phase & Effort
 
-This design corresponds directly to **Phase 1: Core Domain Types**.
+This design corresponds to the domain-type half of **Phase 1: Information Model Foundations**. The message envelope that phase also delivers is outside this document's scope.
 
 ### Future Layers (out of Phase-1 scope)
+
+The layers below are the resolved-artefact container above `sdmx-types`, not the message envelope Phase 1 delivers.
 
 **Cross-artefact referential integrity lives above this crate, not in the type constructors.** Per D-0020 as narrowed by D-0077, `sdmx-types` validates identifiers lexically wherever they occur — at declaration and at local reference sites alike (each against its own site's tier) — but *never resolves* a reference against sibling objects, because the version-agnostic, `no_std` types crate has no message-level context to resolve against. The architectural home for referential checks (e.g., "does this attribute's `Dimensions([...])` name real dimensions in the DSD?") and catalogued lints (§5.11) is a **separate pass over a message-level container** of resolved artefacts. This is a later-phase concern that composes the Phase-1 types rather than altering them.
 

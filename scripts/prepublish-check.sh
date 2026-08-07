@@ -60,7 +60,7 @@ done
 
 for crate in $CRATES_TO_CHECK; do
     # --allow-dirty is REQUIRED here, not a convenience. Per releasing.md §0, this
-    # check runs at step 8 — AFTER `changelog-generate` (step 5, which writes
+    # check runs at step 9 — AFTER `changelog-generate` (step 6, which writes
     # crates/*/CHANGELOG.md but deliberately leaves them uncommitted) and BEFORE
     # `release-commit-changelogs` (§2). So the tree is ALWAYS dirty at this point,
     # and a plain `cargo publish --dry-run` aborts on cargo's dirty-tree guard

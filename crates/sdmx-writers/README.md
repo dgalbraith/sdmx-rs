@@ -7,7 +7,7 @@
 
 The serialisation adapter for the `sdmx-rs` workspace.
 
-This crate is the scaffold for serialising SDMX domain types to multiple output formats, including XML (SDMX-ML) and JSON (SDMX-JSON).
+This crate is the scaffold for serialising SDMX domain types to the XML (SDMX-ML), JSON (SDMX-JSON), and CSV (SDMX-CSV) formats.
 
 ## Design Constraints
 - Depends only on `sdmx-types`.

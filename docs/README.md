@@ -9,7 +9,7 @@
 - [User Guide](user/README.md): Quick start, API overview, common questions
 - [Guides](guides/README.md): In-depth tutorials by use case (Phase 3+)
 - [Runnable Examples](../examples/README.md): Workspace-wide index of runnable crate examples
-- [API Reference](https://docs.rs/sdmx-rs): Full API documentation (rustdoc, once published locally via `cargo doc --open`)
+- [API Reference](https://docs.rs/sdmx-rs): Full API documentation (rustdoc), or build it locally with `cargo doc --open`
 
 Start here: [User Guide](user/README.md)
 
@@ -58,7 +58,7 @@ Start here: [Project Governance](project/README.md)
 
 ## Future: Documentation Site
 
-A unified **mdBook** documentation site is candidate future work (see [Future Work in ROADMAP.md](../ROADMAP.md#future-work-beyond-phase-5)), not committed to a numbered phase. If pursued, it would compile the existing documentation into:
+A unified **mdBook** documentation site is candidate future work (see [Future Work in ROADMAP.md](../ROADMAP.md#future-work)), not committed to a numbered phase. If pursued, it would compile the existing documentation into:
 - Markdown guides rendered as chapters
 - Rustdoc integrated alongside prose
 - Cross-linked architecture decisions
