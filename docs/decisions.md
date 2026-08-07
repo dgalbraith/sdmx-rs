@@ -259,7 +259,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 | **Phase**    | M0 |
 | **Status**   | Superseded(D-0051) |
 | **Keywords** | collections, no_std, determinism, serialisation |
-| **Source**   | [ADR-0005](adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md) |
+| **Source**   | [ADR-0005](adr/0005-adopt-no-std-with-alloc-for-inner-crates.md) |
 
 **Observation**: `HashMap` is unavailable in `no_std` + `alloc` environments; `BTreeMap` provides deterministic sorted iteration critical for reproducible serialized output.
 
@@ -407,7 +407,7 @@ See [ADRs](adr/README.md) and [Design Documentation](design/README.md).
 
 ### D-0015 — MeasureList is optional
 
-> **Corrected by [D-0025](#d-0025)** — the *optionality* observation stands, but the cardinality decision was wrong: SDMX 3.x has *multiple* measures (`maxOccurs="unbounded"`), not a single `PrimaryMeasure`. The model is now `measures: BTreeMap<String, Measure>` (empty = measure-less), and `MissingPrimaryMeasure` was already removed. Body retained as audit trail.
+> **Corrected 2026-06-12 by [D-0025](#d-0025)** — the *optionality* observation stands, but the cardinality decision was wrong: SDMX 3.x has *multiple* measures (`maxOccurs="unbounded"`), not a single `PrimaryMeasure`. The model is now `measures: BTreeMap<String, Measure>` (empty = measure-less), and `MissingPrimaryMeasure` was already removed. Body retained as audit trail.
 
 | **Area**     | Data structure |
 | **Phase**    | M0 |
@@ -641,7 +641,7 @@ A blanket `validate_ncname()` on every id therefore **rejects valid SDMX** — a
 >
 > **Component-id deferral (consequence 2) superseded 2026-06-11 by [D-0057](#d-0057)**: the inheritance is now built — components store `id: Option<String>` (`ComponentMetadata`), the trait `id()` is the effective view, and `stated_id()` is the raw accessor.
 >
-> **Amended by [D-0049](#d-0049).** The multi-measure model, the keyed map, and the shared `Usage` all **stand**, but the "measure-less DSD = the empty map, **no `Option` wrapper**" clause is withdrawn: with the component descriptors modelled as identifiable structs (D-0049), an *absent* `MeasureList` and a *present* one are distinguishable wire states (a present descriptor carries its own annotations/links/urn and mechanically requires ≥1 `Measure`), so the DSD now holds `measure_list: Option<MeasureList>` with the keyed map inside the descriptor — and likewise `attribute_list: Option<AttributeList>`. `None` ⟺ the wire's absent list.
+> **Amended 2026-06-12 by [D-0049](#d-0049).** The multi-measure model, the keyed map, and the shared `Usage` all **stand**, but the "measure-less DSD = the empty map, **no `Option` wrapper**" clause is withdrawn: with the component descriptors modelled as identifiable structs (D-0049), an *absent* `MeasureList` and a *present* one are distinguishable wire states (a present descriptor carries its own annotations/links/urn and mechanically requires ≥1 `Measure`), so the DSD now holds `measure_list: Option<MeasureList>` with the keyed map inside the descriptor — and likewise `attribute_list: Option<AttributeList>`. `None` ⟺ the wire's absent list.
 
 | **Area**     | Data structure |
 | **Phase**    | Phase-1 |
@@ -990,7 +990,7 @@ The three 1..* data arms wrap **bespoke non-empty-vec newtypes** (`DataStructure
 
 ### D-0039 — DataKeySet subtree modelled on DataConstraint; 3.1 multi-value keys carried as superset
 
-> **Amended by [D-0051](#d-0051)/[D-0052](#d-0052)**: the key/component selection collections are ordered `Vec`s with ids on the structs (not keyed maps), and the `fixed="true"` `include`s are stored as `Option<bool>` with `Some(false)` rejected — the "not stored" reasoning below collapsed statedness, which the document-integrity contract preserves.
+> **Amended 2026-06-11 by [D-0051](#d-0051)/[D-0052](#d-0052)**: the key/component selection collections are ordered `Vec`s with ids on the structs (not keyed maps), and the `fixed="true"` `include`s are stored as `Option<bool>` with `Some(false)` rejected — the "not stored" reasoning below collapsed statedness, which the document-integrity contract preserves.
 >
 > **Mechanism drawn**: the fixed-include rejection's producer now exists — the `FixedInclude` within-field wrapper (custom Deserialize; `new()` rejects a stated `false` with `FixedAttributeMismatch`) carried by `DataKey.include`/`DataKeyValue.include`; the containers stay derived pub-field carriers. The earlier blueprint claimed the check without drawing it.
 

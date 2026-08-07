@@ -82,7 +82,7 @@ Define a fixed Rust struct mapping to SDMX-CSV columns and use `serde` deseriali
 
 ## References
 
-* [ADR-0005](0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md) — `no_std + alloc` constraint
+* [ADR-0005](0005-adopt-no-std-with-alloc-for-inner-crates.md) — `no_std + alloc` constraint
 * [ADR-0009](0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md) — Streaming parser pattern (parallel precedent)
 * [ADR-0018](0018-content-type-negotiation-and-parser-routing.md) — CSV as preferred data format
 * [docs/design/0002-sdmx-csv-stream-parsing-design.md](../design/0002-sdmx-csv-stream-parsing-design.md) — Detailed design and implementation strategy

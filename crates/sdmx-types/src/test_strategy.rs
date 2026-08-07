@@ -3,7 +3,7 @@
 //!
 //! Every strategy here emits a *grammar-valid lexeme* (or the components one is formatted
 //! from), and the property owning it constructs the value through the type's validated
-//! `new()`/`from_str()` — the same single write path production code uses, so the generated
+//! `new()`/`from_str()`, the same single write path production code uses, so the generated
 //! set is exactly the legal set. A generator that bypassed the constructor would have the
 //! same defect as a `Deserialize` that did (design 0010 §7). Strategies for deliberately off-grammar
 //! input are the clearly named `invalid_*` family at the end of the module.
@@ -485,7 +485,7 @@ pub(crate) fn maintainable_metadata() -> impl Strategy<Value = MaintainableMetad
 
 /// A `Code`: nameable metadata plus an optional parent reference. The parent draws from the full
 /// `IDType` class (leading digits, `@`, `$` included), so generation covers the lexemes valid at
-/// the editions' union tier but invalid as 3.0 `SingleNCNameIDType` — locking the union boundary.
+/// the editions' union tier but invalid as 3.0 `SingleNCNameIDType`, locking the union boundary.
 pub(crate) fn code() -> impl Strategy<Value = Code> {
     (nameable_metadata(), proptest::option::of(id_type_lexeme()))
         .prop_map(|(metadata, parent_id)| {

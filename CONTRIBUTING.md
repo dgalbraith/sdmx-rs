@@ -44,8 +44,8 @@ This activates the toolchain defined in `flake.nix`, pinned by `flake.lock`. No 
 
 If you hit problems at any point during setup, see [Common Setup Issues](#common-setup-issues) at the end of this quickstart.
 
-### 1. Clone and Authorize Environment
-Clone the repository and enter the directory. `direnv` will automatically detect the configuration and prompt you to authorize the Nix Flake:
+### 1. Clone and Authorise Environment
+Clone the repository and enter the directory. `direnv` will automatically detect the configuration and prompt you to authorise the Nix Flake:
 ```bash
 git clone git@github.com:dgalbraith/sdmx-rs.git
 cd sdmx-rs
@@ -458,7 +458,7 @@ When an API becomes superseded but must remain available for compatibility, mark
 
 **Example**:
 
-In version 0.5.0, deprecate `parse_constraint()` in favor of `ConstraintModel::parse()`:
+In version 0.5.0, deprecate `parse_constraint()` in favour of `ConstraintModel::parse()`:
 
 ```rust
 #[deprecated(since = "0.5.0", note = "use `ConstraintModel::parse()` instead")]
@@ -494,7 +494,7 @@ A breaking change is any modification that requires consumer code to update. Bre
 
 ### Breaking Changes
 
-- **BREAKING**: Removed `parse_constraint()` in favor of `ConstraintModel::parse()`.
+- **BREAKING**: Removed `parse_constraint()` in favour of `ConstraintModel::parse()`.
   Migration: Call `ConstraintModel::parse(input)` directly instead of `parse_constraint(input)`.
 
 - **BREAKING**: `ParseError::InvalidXml` now takes `&str` instead of `String`.

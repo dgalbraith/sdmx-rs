@@ -257,7 +257,7 @@ pub struct CodelistExtension {
 ///
 /// A code's own id is `IDType` (the loosest tier, already validated by the inner
 /// [`NameableMetadata`]). `parent_id` references another code in the same list for a simple
-/// hierarchy and validates against `IDType` when stated — the union of the two editions'
+/// hierarchy and validates against `IDType` when stated, the union of the two editions'
 /// divergent `Parent` tiers; whether it names a code in the list stays a higher-layer concern
 /// (D-0020).
 ///

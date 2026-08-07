@@ -90,10 +90,10 @@ check-commits:
 # Validate documentation links: reachability plus absolute-file:// ban
 link-check: md-link-check local-link-check
 
-# Validate that all Markdown documentation contains active, working links.
 # The generated xsd-fragments are excluded: gen-xsd-fragments rewrites them in
 # place (racing this scan under `[parallel] verify`) and check-xsd-fragments
 # already verifies them byte-exact against the pinned schemas.
+# Validate that all Markdown documentation contains active, working links.
 md-link-check:
     @find . -name '*.md' -not -path '*/templates/*' -not -path '*/target/*' -not -path '*/.direnv/*' -not -path '*/docs/xsd-fragments/*' -print0 | xargs -0 lychee --offline --no-progress
 

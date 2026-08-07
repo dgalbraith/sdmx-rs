@@ -2955,7 +2955,7 @@ Copy and paste metadata fields into every concrete struct definition instead of 
 ## References
 
 - [Decision register (docs/decisions.md)](../decisions.md) — the D-numbers cited throughout this document
-- [ADR-0005: Adopt No-Std with Alloc for Sdmx Types and Sdmx Parsers](../../docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+- [ADR-0005: Adopt No-Std with Alloc for Inner Crates](../../docs/adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)
 - [ADR-0006: Standardise Error Handling with Thiserror per Crate](../../docs/adr/0006-standardise-error-handling-with-thiserror-per-crate.md)
 - [ADR-0008: Model SDMX 3.0 and 3.1 Divergence with a Unified ConstraintModel](../../docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md)
 - [ADR-0021: Domain Invariant Validation and Encapsulation Strategy](../../docs/adr/0021-domain-invariant-validation-and-encapsulation-strategy.md)

@@ -58,7 +58,7 @@ fi
 log_section "Waiting for ${CRATE}'s workspace dependencies to be indexed:"
 echo "$DEPS" | sed 's/^/   - /'
 
-# Read pairs without a subshell so a failure propagates the script's exit code.
+# A failing probe aborts the whole run: `set -e` propagates it out of the loop.
 while IFS=' ' read -r dep_name dep_version; do
     [ -n "$dep_name" ] || continue
     "${SCRIPT_DIR}/wait-for-index.sh" "$dep_name" "$dep_version"

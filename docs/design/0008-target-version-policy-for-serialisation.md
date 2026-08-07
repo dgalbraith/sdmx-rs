@@ -138,7 +138,7 @@ None.
 ## References
 
 * [ADR-0003 — workspace membership and release order](../adr/0003-workspace-crate-facade-and-version-pinning-strategy.md)
-* [ADR-0005 — no_std + alloc constraint that bounds sdmx-types and influences the SdmxSerialize trait design](../adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)
+* [ADR-0005 — no_std + alloc constraint that bounds sdmx-types and influences the SdmxSerialize trait design](../adr/0005-adopt-no-std-with-alloc-for-inner-crates.md)
 * [ADR-0008 — canonical superset model, adapter-pattern guardrail, and TargetVersion policy](../adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md)
 * [ADR-0009 — quick-xml and serde_json usage in sdmx-parsers; the outbound path in sdmx-writers will reuse the same libraries](../adr/0009-use-quick-xml-and-serde-json-for-streaming-deserialisation.md)
 * [ADR-0017 — SDMX-CSV stream parsing strategy; serialisation is the symmetric outbound path](../adr/0017-sdmx-csv-stream-parsing-strategy.md)

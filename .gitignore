@@ -196,7 +196,7 @@
 !/docs/adr/0002-workspace-wide-safety-policy-banning-unsafe-code.md
 !/docs/adr/0003-workspace-crate-facade-and-version-pinning-strategy.md
 !/docs/adr/0004-decoupled-crate-versioning-strategy.md
-!/docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md
+!/docs/adr/0005-adopt-no-std-with-alloc-for-inner-crates.md
 !/docs/adr/0006-standardise-error-handling-with-thiserror-per-crate.md
 !/docs/adr/0007-headless-webassembly-execution-verification.md
 !/docs/adr/0008-model-sdmx-3-0-and-3-1-divergence-with-a-unified-constraintmodel.md
