@@ -17,7 +17,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
 
 **Complete these steps in order before executing the release**:
 
-- [ ] **[Section 0](#0-pre-release-setup)**: Pre-release setup (sync, scaffolding, create branch, dry-run, pre-publish)
+- [ ] **[Section 0](#0-pre-release-setup)**: Pre-release setup (sync, scaffolding, create branch, align version claims, dry-run, pre-publish)
 - [ ] **[Section 1](#1-review-changelogs--curate-facade-release-notes)**: Review changelogs & curate facade release notes
 - [ ] **[Section 2](#2-commit-changelogs)**: Commit changelogs as a signed checkpoint
 - [ ] **[Section 3](#3-execute-the-release)**: Execute cargo release for each crate
@@ -31,7 +31,7 @@ The instructions below cover both phases. Phase-specific guidance is called out 
 
 [↑](#0-pre-release-checklist)
 
-**Sync with origin, verify scaffolding, create release branch, run dry-run, and pre-publish validation**:
+**Sync with origin, verify scaffolding, create release branch, align the documented version, run dry-run, and pre-publish validation**:
 
 1. **All commits are GPG-signed and pushed to `main`**:
    The release workflow starts from `main`; verify your development work is committed, tested, and in sync with `origin`.
@@ -61,13 +61,21 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    >
    > **Post-1.0**: skip this step — decoupled versioning means only crates with real changes release, and no-op release sections don't occur.
 
-5. **Generate changelogs**:
+5. **Align the documented facade version**:
+   The facade's own dependency requirement is documented in prose as well as declared in the manifests. Update every occurrence to the version being released:
+   - [crates/sdmx-rs/src/lib.rs](../../crates/sdmx-rs/src/lib.rs): the `# Usage` snippets
+   - [crates/sdmx-rs/README.md](../../crates/sdmx-rs/README.md): the `## Usage` snippets
+   - [docs/user/README.md](../user/README.md): the Quick Start snippet
+
+   > This follows step 4 rather than preceding it: `prep-release` bumps every manifest but leaves prose untouched, so the documented requirement has to be reconciled against the bumped version. Having `prep-release` rewrite these strings itself is the eventual fix and a Justfile change.
+
+6. **Generate changelogs**:
    ```bash
    just changelog-generate
    ```
    This generates all `CHANGELOG.md` files in `crates/*/CHANGELOG.md` and `crates/sdmx-rs/CHANGELOG.md` (do not commit yet). A no-op crate's section renders as "No user-facing changes in this release." — this is correct (see [cliff.toml](../../cliff.toml)).
 
-6. **Dry-run the release sequence**:
+7. **Dry-run the release sequence**:
 
    > [!NOTE]
    > **Version increment rules**: Version bumps are derived automatically from conventional commit types since the last tag:
@@ -81,9 +89,9 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    ```bash
    just release-dry-run sdmx-types sdmx-parsers sdmx-writers sdmx-client sdmx-rs
    ```
-   Review the output for version increments, the derived publish order, and any release-config or hook errors. The dry-run simulates the release sequence only (plan, hooks, tag names); it does not compile or package anything, and packaging is validated separately at step 8. If issues appear, fix them on a feature branch, merge to main, create a fresh release branch, and restart from section 0.
+   Review the output for version increments, the derived publish order, and any release-config or hook errors. The dry-run simulates the release sequence only (plan, hooks, tag names); it does not compile or package anything, and packaging is validated separately at step 9. If issues appear, fix them on a feature branch, merge to main, create a fresh release branch, and restart from section 0.
 
-7. **Curate the facade release notes** (see [§1](#1-review-changelogs--curate-facade-release-notes) for the full guidance):
+8. **Curate the facade release notes** (see [§1](#1-review-changelogs--curate-facade-release-notes) for the full guidance):
    The facade's user-facing prose lives in a curated file that drives its GitHub Release body. Scaffold it from the template, curate every section, then verify — before pre-publish validation, because the gate enforces it:
    ```bash
    just new-release-notes <version>
@@ -91,12 +99,12 @@ The instructions below cover both phases. Phase-specific guidance is called out 
    just check-release-notes <version>
    ```
 
-8. **Pre-publish validation**:
+9. **Pre-publish validation**:
    Validate that all crates will publish successfully to crates.io without actually publishing:
    ```bash
    just prepublish-check
    ```
-   This runs `cargo publish --dry-run` for each crate in topological order (catching missing license, oversized package, invalid metadata) **and** re-runs `check-release-notes` for the facade, so the curated notes from step 7 must already exist.
+   This runs `cargo publish --dry-run` for each crate in topological order (catching missing license, oversized package, invalid metadata) **and** re-runs `check-release-notes` for the facade, so the curated notes from step 8 must already exist.
 
    > [!NOTE]
    > This check proves packaging, metadata, licences, and compilation, not registry lookup. To package a crate for the dry-run, cargo strips the workspace `path` from each intra-workspace dependency and would resolve the bare `version = "=X"` pin against crates.io. That pinned version is never on the index at check time: the in-tree pins are `=0.0.0`, and at release time `prep-release` rewrites them to the not-yet-published batch version. So `prepublish-check` injects a `[patch.crates-io]` overlay (via cargo `--config`, mutating no file) that points each `sdmx-*` dependency at its workspace path, and the verify step compiles and validates against the local sources. Resolving the real pins against the registry is left to publish time: `publish.yml` blocks each crate on `wait-for-deps` until its dependencies are indexed, then the real publish resolves them per crate. Because the overlay drops the "dependency must already be published" precondition, this check runs from section 0 as written on every release, including the first.
@@ -124,7 +132,7 @@ There are **two distinct artefacts**, and conflating them is a trap the gates wi
    just check-release-notes <version>
    ```
 
-   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 8) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
+   This file is a **mandatory precondition** of cutting a facade release. `just check-release-notes` (also folded into `prepublish-check`, §0 step 9) fails unless it exists, carries **every required section** (state the negative — e.g. "No bug fixes in this release." — never delete a section), and retains **no unedited template guidance**. It **must** pass before `cargo release --execute` (§3), because the release tag push is irreversible and the GitHub Release that consumes this file is only created afterward in CI.
 
 > [!NOTE]
 > **Why two files.** `CHANGELOG.md` is the machine record (gated, never curated); `release-notes/<version>.md` is the curated facade record (mandatory, drives the Release body). Leaf crates (`sdmx-types`, `sdmx-parsers`, `sdmx-writers`, `sdmx-client`) are **not** curated — their GitHub Release body is the auto changelog section, or a provenance placeholder when a lockstep batch leaves a crate with no user-facing changes. See [docs/design/0004 §9](../design/0004-release-publish-pipeline-and-supply-chain-provenance.md) and [`crates/sdmx-rs/release-notes/README.md`](../../crates/sdmx-rs/release-notes/README.md).
@@ -298,7 +306,7 @@ These mistakes are easy to make but have costly consequences. Avoid them:
 - **❌ Don't skip `just prepublish-check` before executing**
   - Saves a few seconds locally but costs CI time later
   - Catches metadata errors that would fail the publish job
-  - Instead: always run prepublish-check as part of section 0, step 8
+  - Instead: always run prepublish-check as part of section 0, step 9
 
 - **❌ Don't edit crate versions in Cargo.toml manually**
   - cargo-release has logic for managing versions and dependencies

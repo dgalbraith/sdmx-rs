@@ -2,8 +2,8 @@
 //! formats.
 //!
 //! This crate will provide the serialisation engine for converting domain
-//! types from [`sdmx-types`](sdmx_types) into wire formats
-//! (SDMX-ML and SDMX-JSON). Writing routines will target efficient buffer
+//! types from [`sdmx-types`](sdmx_types) into wire formats (SDMX-ML,
+//! SDMX-JSON, and SDMX-CSV). Writing routines will target efficient buffer
 //! management and support both streaming and buffered serialisation patterns.
 //!
 //! # Design Constraints

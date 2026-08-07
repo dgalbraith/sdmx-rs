@@ -43,7 +43,7 @@ graph TD
 - **Constraints**: Minimal, highly stable, and unconditional external dependencies: `thiserror` (for error derivation) and `serde` (for structural serialisation). Since SDMX's entire purpose is payload data exchange, making `serde` optional would add significant downstream feature-flag complexity throughout the workspace without providing any realistic utility. `#![no_std]` with `alloc` required (bare-metal targets without a global allocator are out of scope — see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)). No binary output — this crate is a pure domain model library. No downstream protocol or transport types may leak into this crate.
 
 ### 2. sdmx-parsers (Serialisation Engine)
-- **Responsibility**: Streaming serialisation and deserialisation of SDMX payloads in XML and JSON formats.
+- **Responsibility**: Streaming deserialisation of SDMX payloads in XML, JSON, and CSV formats.
 - **Constraints**: Depends on `sdmx-types` only. Parsing routines target minimal memory allocations and zero-copy slicing where safe. `#![no_std]` with `alloc` required (see [ADR-0005](docs/adr/0005-adopt-no-std-with-alloc-for-sdmx-types-and-sdmx-parsers.md)).
 
 ### 3. sdmx-client (HTTP Orchestrator)

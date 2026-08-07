@@ -44,7 +44,7 @@ Design documents can be lightweight (a few paragraphs exploring an idea) or comp
 - [0007: Compile-Time Query Validation via the Typestate Pattern](0007-typestate-query-validation.md): Compile-time validation via typestate pattern
 
 ## Domain Modelling
-- [0010: SDMX Core Domain Types Design](0010-sdmx-core-domain-types-design.md): Phase 1 canonical superset model for SDMX 3.0/3.1 — two-layer infoset store, ordered wire collections, per-artefact identifier tiers, and lossless round-trip serialisation
+- [0010: SDMX Core Domain Types Design](0010-sdmx-core-domain-types-design.md): Canonical superset model for the SDMX 3.0/3.1 domain types, covering the two-layer infoset store, ordered wire collections, per-artefact identifier tiers, and lossless round-trip serialisation
 
 ---
 
