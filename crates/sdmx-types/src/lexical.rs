@@ -292,8 +292,7 @@ impl SdmxVersion {
     ///
     /// Returns [`Error::InvalidVersion`] if `raw` matches neither the semantic nor the
     /// legacy form (this includes leading zeros, empty components, an extension on a legacy
-    /// version, and numeric components that exceed `u32`, the deliberate width bound recorded
-    /// by D-0075).
+    /// version, and numeric components that exceed `u32`, the deliberate width bound).
     pub fn new(raw: String) -> Result<Self, Error> {
         parse_sdmx_version(raw)
     }
@@ -877,7 +876,7 @@ time-range lexemes, so the union is its own type and `SdmxTimePeriod` stays exac
 grammar. Exhaustive: the union is grammar-closed. Both members store their lexeme, so the union
 exposes `as_str()`/`AsRef<str>` like the other lexeme-storing newtypes.
 
-Decisions: D-0064, D-0072.
+Decisions: D-0027, D-0064, D-0072.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -998,7 +997,7 @@ collides with `chrono` (D-0027 naming rule). Construction reuses the shared date
 than re-implementing it, so its edge decisions (hour-24, year zero, leading-zero years, offset bounds)
 are shared with `SdmxTimePeriod` (D-0076).
 
-Decisions: D-0027, D-0074, D-0076, D-0079.
+Decisions: D-0027, D-0031, D-0074, D-0076, D-0079.
 "#
 )]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -1040,13 +1039,13 @@ impl SdmxDateTime {
 
     /// The written date-time, offset-independent (the local wall-clock reading).
     ///
-    /// Two value-view adjustments apply here while the raw lexeme stays verbatim (D-0079): an
+    /// Two value-view adjustments apply here while the raw lexeme stays verbatim: an
     /// end-of-day `24:00:00` is normalised to `00:00:00` on the following day (XSD's own
     /// mapping; `chrono` rejects hour 24), and a fractional-seconds part beyond nanosecond
     /// precision is truncated. Returns `None` for a grammar-admitted lexeme `chrono` cannot
     /// represent (a calendar-invalid day such as `2024-02-30`, or an out-of-range year), which
     /// schema-valid wire never carries. A `None` here is the lint signal for such a stored
-    /// lexeme: a catalogued Layer-2 lint, not a construction error (D-0031).
+    /// lexeme: a catalogued lint, not a construction error.
     #[must_use]
     pub const fn date_time(&self) -> Option<NaiveDateTime> {
         self.date_time
@@ -1203,7 +1202,7 @@ impl AsRef<str> for SdmxDecimal {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a numeric
-/// view, so `"1.0"` and `"1.00"` compare unequal (D-0027 lossless-distinct).
+/// view, so `"1.0"` and `"1.00"` compare unequal.
 impl PartialEq<str> for SdmxDecimal {
     fn eq(&self, other: &str) -> bool {
         self.0 == other
@@ -1252,7 +1251,7 @@ impl AsRef<str> for SdmxInteger {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a numeric
-/// view, so `"7"` and `"+7"` compare unequal (D-0027 lossless-distinct).
+/// view, so `"7"` and `"+7"` compare unequal.
 impl PartialEq<str> for SdmxInteger {
     fn eq(&self, other: &str) -> bool {
         self.0 == other
@@ -1320,7 +1319,7 @@ impl AsRef<str> for SdmxTimePeriod {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a
-/// normalised view, so timezone spellings and equivalent periods stay distinct (D-0027).
+/// normalised view, so timezone spellings and equivalent periods stay distinct.
 impl PartialEq<str> for SdmxTimePeriod {
     fn eq(&self, other: &str) -> bool {
         self.raw == other
@@ -1369,7 +1368,7 @@ impl AsRef<str> for SdmxTimeRange {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a
-/// normalised view, so equivalent date and duration spellings stay distinct (D-0027).
+/// normalised view, so equivalent date and duration spellings stay distinct.
 impl PartialEq<str> for SdmxTimeRange {
     fn eq(&self, other: &str) -> bool {
         self.raw == other
@@ -1419,7 +1418,7 @@ impl AsRef<str> for ObservationalTimePeriod {
 
 /// String identity with the stored member lexeme: both union members store their text
 /// verbatim, and the member grammars are disjoint, so string identity coincides with
-/// structural equality (D-0027).
+/// structural equality.
 impl PartialEq<str> for ObservationalTimePeriod {
     fn eq(&self, other: &str) -> bool {
         self.as_str() == other
@@ -1468,7 +1467,7 @@ impl AsRef<str> for SdmxDateTime {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a normalised
-/// view, so `Z` and `+00:00` and fractional-second padding stay distinct (D-0074, D-0079).
+/// view, so `Z` and `+00:00` and fractional-second padding stay distinct.
 impl PartialEq<str> for SdmxDateTime {
     fn eq(&self, other: &str) -> bool {
         self.raw == other
@@ -1517,7 +1516,7 @@ impl AsRef<str> for SdmxDuration {
 }
 
 /// String identity with the stored lexeme: compares the verbatim raw form, never a
-/// normalised view, so `"P1M"` and `"P01M"` compare unequal (D-0027 lossless-distinct).
+/// normalised view, so `"P1M"` and `"P01M"` compare unequal.
 impl PartialEq<str> for SdmxDuration {
     fn eq(&self, other: &str) -> bool {
         self.0 == other

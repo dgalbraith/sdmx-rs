@@ -48,12 +48,30 @@ use crate::{
 ///
 /// Pins the subset of the referenced structure's dimensions this dataflow uses. Each id validates
 /// against `IDType` (the `Dimension` element's type; as a 3.1-only element that is its sole tier);
-/// whether each names a dimension the referenced structure declares stays a higher-layer concern
-/// (D-0020). 3.1-only: a 3.0 payload never produces one.
+/// whether each names a dimension the referenced structure declares stays a higher-layer concern.
+/// 3.1-only: a 3.0 payload never produces one.
 ///
 /// ## Guarantees
 ///
 /// Always holds at least one dimension id, every id `IDType`-valid.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A 3.1-only element carried unconditionally as a superset member (D-0045), so the field is an
+`Option` a 3.0 payload never fills. Nothing branches on the edition, and a 3.1 document round-trips
+without loss.
+
+There is no tier union to reconcile here, unlike a member both editions declare: the `Dimension`
+element is 3.1's alone, so its `IDType` is the sole tier (D-0077). The list is non-empty because a
+present `DimensionConstraint` pinning no dimension would be mechanically schema-invalid, and the
+items stay bare `String`s because each carries no attribute of its own. Whether an id names a
+dimension the referenced structure declares stays above the type level (D-0020).
+
+Decisions: D-0020, D-0045, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DimensionConstraint(Vec<String>);

@@ -59,11 +59,29 @@ use crate::{
 ///
 /// The id a [`AttributeRelationship::Group`] points at. A local reference validated against
 /// `IDType` (the `Group` element's type inside `AttributeRelationshipType`, both editions);
-/// whether it names a group the DSD declares stays a higher-layer concern (D-0020).
+/// whether it names a group the DSD declares stays a higher-layer concern.
 ///
 /// ## Guarantees
 ///
 /// Always holds an `IDType`-valid id.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A newtype rather than a bare `String` so an `AttributeRelationship::Group` cannot be constructed
+around an unvalidated id: the validating `new()` is the only way in, and the enum variant takes this
+type rather than the raw one, which is what makes the invalid state unrepresentable (D-0019).
+
+The tier is `IDType`, the `Group` element's own declared type inside `AttributeRelationshipType` in
+both editions, and it is the loosest of the three, so a leading digit or an `@` is a legitimate
+group reference here where the same lexeme would be rejected as a component id (D-0077). Whether the
+id names a group the structure declares is a cross-object question the type layer cannot answer, so
+it stays above this level (D-0020).
+
+Decisions: D-0019, D-0020, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct GroupId(String);
@@ -120,12 +138,30 @@ impl<'de> serde::Deserialize<'de> for GroupId {
 ///
 /// The id is a local reference validated against `NCNameIDType` (the spec type's base, both
 /// editions); whether it names a dimension the key descriptor declares stays a higher-layer
-/// concern (D-0020). `optional` carries statedness: `None` means the wire omitted it, and the
+/// concern. `optional` carries statedness: `None` means the wire omitted it, and the
 /// schema default (`false`) is the [`effective_is_optional`](Self::effective_is_optional) view.
 ///
 /// ## Guarantees
 ///
 /// Always holds an `NCNameIDType`-valid id.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Invariant-bearing rather than a pub-field carrier: the id must hold its tier, so the fields are
+private, `new()` is fallible, and `Deserialize` routes through it by way of a Raw shape (D-0077).
+The tier is `NCNameIDType`, the base of `OptionalLocalDimensionReferenceType` in both editions,
+which is stricter than the `IDType` a group reference takes. Whether the id names a dimension the
+key descriptor declares stays above the type level (D-0020).
+
+`optional` is `Option<bool>` because the attribute has a schema default of `false`: storing the
+statedness keeps "the wire omitted it" distinct from "the wire stated false", which a writer needs,
+and the resolved reading is the `effective_is_optional()` view (D-0052).
+
+Decisions: D-0020, D-0052, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct DimensionRef {
     id: String,
@@ -190,6 +226,22 @@ impl<'de> serde::Deserialize<'de> for DimensionRef {
 /// ## Guarantees
 ///
 /// Always holds at least one [`DimensionRef`].
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A projection with no complexType of its own, holding the cardinality so the enum variant does not
+have to: an `AttributeRelationship::Dimensions` takes this type rather than a bare `Vec`, so it
+cannot be built around an empty list (D-0019).
+
+Its items are `DimensionRef` structs where the other non-empty reference lists in the crate hold
+bare `String`s, because a dimension reference here carries its own `optional` flag. The lexical tier
+therefore lives on `DimensionRef`, and this type owns nothing but the non-empty bound.
+
+Decisions: D-0019.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct DimensionRefs(Vec<DimensionRef>);
@@ -339,11 +391,31 @@ impl AttributeRelationship {
 ///
 /// A non-empty list of local measure-id references, each validated against `NCNameIDType` (the
 /// `Measure` element's type, both editions); whether each names a declared measure stays a
-/// higher-layer concern (D-0020).
+/// higher-layer concern.
 ///
 /// ## Guarantees
 ///
 /// Always holds at least one measure id, every id `NCNameIDType`-valid.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+Two distinct checks ride on `new()`, and they fail with distinct errors: the list is non-empty,
+because a present `MeasureRelationship` element that named no measure would be mechanically
+schema-invalid, and every item holds `NCNameIDType`, the `Measure` element's declared type in both
+editions (D-0077). An attribute that applies to no measure at all is the absent element, not an
+empty one, so nothing is lost by refusing the empty list.
+
+The items stay bare `String`s rather than a per-item newtype: unlike a dimension reference they
+carry no attribute of their own, so a wrapper would invent structure the wire does not have. Whether
+each names a declared measure stays above the type level (D-0020). Drawn in the same pass as
+`MetadataAttributeUsage`, though it sits on `AttributeType` itself rather than in the attribute list
+(D-0050).
+
+Decisions: D-0020, D-0050, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct MeasureRelationship(Vec<String>);
@@ -624,11 +696,31 @@ impl<'de> serde::Deserialize<'de> for Attribute {
 /// structure, plus a full [`AttributeRelationship`]. The wire admits at most one `Link`, so it is
 /// an `Option`, not a `Vec`. The local reference is validated against `NCNameIDType` (the
 /// `MetadataAttributeReference` element's type, both editions); whether it names a metadata
-/// attribute in the referenced MSD stays a higher-layer concern (D-0020).
+/// attribute in the referenced MSD stays a higher-layer concern.
 ///
 /// ## Guarantees
 ///
 /// Always holds an `NCNameIDType`-valid `metadata_attribute_ref`.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The other member an attribute list may hold, and deliberately not a variant of `Attribute`
+(D-0050): `MetadataAttributeUsageType` prohibits the id, drops concept identity and local
+representation, and admits at most one `Link` where an attribute admits many. Modelling it as its
+own type makes each of those absences unrepresentable by field omission instead of by convention,
+which is why the fields here are a shorter list than `Attribute`'s rather than a set of `Option`s
+that must never be filled.
+
+It is invariant-bearing for the same reason as `DimensionRef`: `metadata_attribute_ref` holds
+`NCNameIDType`, the `MetadataAttributeReference` element's declared type in both editions, so the
+fields are private and `new()` is fallible (D-0077). Whether the reference resolves to a metadata
+attribute in the referenced structure stays above the type level (D-0020).
+
+Decisions: D-0020, D-0050, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct MetadataAttributeUsage {
     metadata_attribute_ref: String,
