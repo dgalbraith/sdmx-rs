@@ -57,11 +57,29 @@ use crate::{
 /// Wraps the `GroupDimension+` of a group. The schema requires at least one dimension reference, so
 /// the constructor rejects an empty list, and each id validates against `NCNameIDType` (the
 /// `DimensionReference` element's type, both editions); whether each names a dimension the key
-/// descriptor declares stays a higher-layer concern (D-0020).
+/// descriptor declares stays a higher-layer concern.
 ///
 /// ## Guarantees
 ///
 /// Always holds at least one dimension id, every id `NCNameIDType`-valid.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A projection with no complexType of its own: it wraps the repeated `GroupDimension` element so the
+non-empty bound has somewhere to live, and `Group` composes it rather than holding a bare `Vec` that
+could be built empty.
+
+The tier is `NCNameIDType`, the `DimensionReference` element's declared type in both editions, so a
+group's *members* are held to a stricter grammar than the group's own id, which is `IDType`
+(D-0077). The items stay bare `String`s because a dimension reference here carries no attribute of
+its own. Whether each names a dimension the key descriptor declares stays above the type level
+(D-0020).
+
+Decisions: D-0020, D-0077.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize)]
 #[serde(transparent)]
 pub struct GroupDimensions(Vec<String>);

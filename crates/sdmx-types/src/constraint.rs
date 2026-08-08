@@ -573,10 +573,10 @@ pub enum ComponentSelection {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/CubeRegionKeyType.md"))]
 ///
 /// Names a dimension by its `id` and the values it selects ([`KeyValueSelection`]). The `id` is
-/// validated against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction (D-0077);
-/// whether it names a declared dimension stays a higher-layer concern (D-0020). The `include` flag (whether the
-/// named values are included in or excluded from the region) defaults to `true` when absent. A
-/// dimension selection may carry its own validity window.
+/// validated against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction; whether it
+/// names a declared dimension stays a higher-layer concern. The `include` flag (whether the named
+/// values are included in or excluded from the region) defaults to `true` when absent. A dimension
+/// selection may carry its own validity window.
 ///
 /// ## Guarantees
 ///
@@ -706,11 +706,11 @@ impl<'de> serde::Deserialize<'de> for CubeRegionKey {
 /// - **Editions**: SDMX 3.0 and 3.1
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/ComponentValueSetType.md"))]
 ///
-/// Names an attribute or measure by its `id` and the values it selects ([`ComponentSelection`]). The
-/// `id` may be a nested identifier (a dotted metadata-attribute path such as `CONTACT.ADDRESS.STREET`
-/// is one lexeme), validated against `NestedNCNameIDType` at construction (D-0077). Unlike a dimension
-/// selection, a component selection carries no validity window: the schema prohibits one here, so the
-/// field is simply absent.
+/// Names an attribute or measure by its `id` and the values it selects ([`ComponentSelection`]).
+/// The `id` may be a nested identifier (a dotted metadata-attribute path such as
+/// `CONTACT.ADDRESS.STREET` is one lexeme), validated against `NestedNCNameIDType` at construction.
+/// Unlike a dimension selection, a component selection carries no validity window: the schema
+/// prohibits one here, so the field is simply absent.
 ///
 /// ## Guarantees
 ///
@@ -1140,8 +1140,8 @@ pub enum DataComponentSelection {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataComponentValueSetType.md"))]
 ///
 /// The key-set counterpart of [`ComponentValueSet`]. It names an attribute or measure by its `id`
-/// (possibly nested, validated against `NestedNCNameIDType` at construction, D-0077) and the values
-/// it selects ([`DataComponentSelection`]), and carries the same `include`/`remove_prefix` node
+/// (possibly nested, validated against `NestedNCNameIDType` at construction) and the values it
+/// selects ([`DataComponentSelection`]), and carries the same `include`/`remove_prefix` node
 /// attributes but no validity window (prohibited here).
 ///
 /// ## Guarantees
@@ -1350,10 +1350,10 @@ impl<'de> serde::Deserialize<'de> for SimpleKeyValues {
 #[cfg_attr(design_docs, doc = include_str!("../docs/xsd-fragments/DataKeyValueType.3.1.md"))]
 #[cfg_attr(design_docs, doc = "")]
 ///
-/// Names a dimension by its `id` and the values it takes ([`SimpleKeyValues`]). The `id` is validated
-/// against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction (D-0077). Its `include`
-/// flag is schema-fixed to `true`, so it is the [`FixedInclude`] wrapper. A data-key selection
-/// carries no validity window (prohibited here).
+/// Names a dimension by its `id` and the values it takes ([`SimpleKeyValues`]). The `id` is
+/// validated against `SingleNCNameIDType` (the `NCNameIDType` pattern) at construction. Its
+/// `include` flag is schema-fixed to `true`, so it is the [`FixedInclude`] wrapper. A data-key
+/// selection carries no validity window (prohibited here).
 ///
 /// ## Guarantees
 ///

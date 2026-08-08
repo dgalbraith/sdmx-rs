@@ -19,7 +19,7 @@ element, named for the referenced artefact rather than the schema element, as `D
 `evolving_structure` is a 3.1-only attribute whose statedness is stored (D-0045/D-0052). The
 artefact trait hierarchy delegates to the `metadata` leaf, as on every maintainable.
 
-Decisions: D-0025, D-0045, D-0049, D-0052.
+Decisions: D-0025, D-0045, D-0049, D-0051, D-0052.
 "#
 )]
 
@@ -108,6 +108,31 @@ use crate::{
 /// assert_eq!(dsd.agency(), "ECB");
 /// # Ok::<(), sdmx_types::Error>(())
 /// ```
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+The one maintainable in this module, and a pub-field carrier with derived `Deserialize`: every
+invariant it rests on belongs to a descriptor that enforces it, so no cross-field rule is left for
+the DSD to hold (D-0049).
+
+`groups` is an ordered `Vec` rather than a map, because a keyed map sorts and wire order is part of
+what the store round-trips. Duplicate ids divide along the line the lint surface is drawn on: an
+explicitly stated one, group ids included, is schema-invalid under the
+`DataStructureUniqueComponent` `xs:unique`, so validation rejects it and no lint is owed; the one
+that is genuinely schema-valid is an id a component inherits from its concept identity, which the
+`xs:unique` cannot see and a lint therefore has to. Either way the store holds what reaches it, so
+`get_group` is a first-match view over wire order rather than a keyed lookup, and a caller that
+needs every match iterates `groups` directly (D-0049, D-0051).
+
+`attribute_list` and `measure_list` are `Option` because an absent descriptor and a present one are
+different wire states: a measure-less structure omits the element, and a present descriptor
+mechanically requires at least one member (D-0049).
+
+Decisions: D-0049, D-0051.
+"#
+)]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct DataStructureDefinition {
     /// The maintainable identity of the data structure.
@@ -130,9 +155,9 @@ pub struct DataStructureDefinition {
 impl DataStructureDefinition {
     /// Resolves the [`Group`] an [`AttributeRelationship::Group`](crate::AttributeRelationship::Group)
     /// names: a first-match lookup view over the groups in wire order. A duplicate group id is
-    /// schema-invalid under the `DataStructureUniqueComponent` `xs:unique`, so a non-conformant
-    /// document's duplicate is held verbatim and flagged by a catalogued lint, never a construction
-    /// error (D-0051).
+    /// schema-invalid under the `DataStructureUniqueComponent` `xs:unique`, so validation is what
+    /// rejects it; a non-conformant document that reaches this type keeps its duplicate verbatim,
+    /// and the first in wire order wins here.
     #[must_use]
     pub fn get_group(&self, id: &str) -> Option<&Group> {
         self.groups.iter().find(|group| group.id() == id)

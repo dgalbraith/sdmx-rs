@@ -13,8 +13,8 @@
 with items stored as an ordered `Vec` there is no derived map key and so no key/id desync to defend
 against, which is exactly §7's sharper test for the derive. Items are a `Vec`, not a keyed map: wire
 order and any duplicates are preserved (a duplicate id is schema-invalid under the relevant
-`xs:unique`, so a non-conformant document's duplicate is held verbatim and flagged by a catalogued
-lint, never collapsed). `get` is a first-match Layer-2 view.
+`xs:unique`, so validation is what rejects it, and a non-conformant document that reaches the store
+keeps its duplicate rather than having it collapsed). `get` is a first-match Layer-2 view.
 
 `SchemeItem` is implemented explicitly per item type (no blanket impl) so scheme membership is a
 deliberate opt-in; the marker is sealed through the crate-private `sealed::Sealed` supertrait
@@ -56,8 +56,24 @@ use crate::{
 /// decision that a type is a scheme item. Implemented explicitly for [`Code`](crate::Code),
 /// [`Concept`](crate::Concept), and [`Agency`](crate::Agency); there is no blanket impl.
 ///
-/// Sealed (D-0078): usable in downstream bounds and calls like any trait, but implementable only
+/// Sealed: usable in downstream bounds and calls like any trait, but implementable only
 /// within `sdmx-types`.
+#[cfg_attr(
+    design_docs,
+    doc = r#"
+## Design Notes
+
+A marker with no methods of its own, implemented explicitly per item type rather than by a blanket
+impl over `IdentifiableArtefact`. A blanket impl would make every identifiable artefact a scheme
+item, including the maintainables that hold schemes, so membership is an explicit opt-in and the
+`ItemScheme<I>` bound means what it says.
+
+Sealed through the crate-private `sealed::Sealed` supertrait (D-0078), so the item set can grow with
+the spec with no external implementation to break.
+
+Decisions: D-0078.
+"#
+)]
 pub trait SchemeItem: IdentifiableArtefact + sealed::Sealed {}
 
 // ---------------------------------------------------------------------------
